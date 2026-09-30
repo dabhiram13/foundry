@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Foundry"
+  short_description: "Start and build a product through conversation"
+  default_prompt: "Use $product-foundry to start a product with my name and idea, handling setup and checks."

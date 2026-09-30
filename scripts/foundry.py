@@ -491,6 +491,7 @@ def install(source, target, update):
                  "Read `docs/WORKFLOW.md` for product work and `docs/CATALOG.md` for reusable skills.\n"
                  "Use `python3 scripts/foundry.py` for run state and recorded checks. Resume active\n"
                  "work before a new feature; complete only with fresh passing required checks.\n"
+                 "The owner can describe work normally; select skills and handle path/check setup.\n"
                  "The owner’s product instructions and explicit authorizations govern scope.\n"
                  "Keep work delegated with separate write boundaries and honor interruptions.\n"
                  f"{AGENTS_END}")
@@ -535,7 +536,8 @@ def install(source, target, update):
         print(f"Installed Product Foundry {VERSION} in {target}")
         if not has_repository:
             print("Initialized a local Git repository on branch main (no remote added).")
-        print("Configure required checks in .foundry/project.json; review native hooks via /hooks in Codex.")
+        print("Tell Codex your product idea; it handles application setup and required checks.")
+        print("Review optional native hooks via /hooks in Codex.")
         print("Existing Git hook settings are preserved. Opt in with: git config core.hooksPath .githooks")
     return 0
 

@@ -2,6 +2,8 @@
 
 Run the four commands under "Check the framework" in `README.md`.
 
+- Entry-skill checks cover connecting to Codex, reconnection, and preservation of
+  existing skill edits.
 - Runtime and hook tests check installation and updates, preservation of local edits,
   project boundaries, pause/resume, current verification results, hook inputs, and
   scanning staged files for secrets.

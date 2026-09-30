@@ -1,64 +1,58 @@
 # Product Foundry
 
-Reusable workflows, skills, roles, and checks for building products with Codex.
-Use it in a separate project for a web app, SaaS, API, or another product.
+Start and build products with Codex through conversation. Give it a product name
+and idea; Codex handles the framework files, application setup, and check configuration.
 Requires Python 3.11+, Git, and Codex on macOS or Linux (WSL on Windows).
-The framework uses the Python standard library.
 
 ## Start a product
 
+In a new Codex chat, say:
+
+> Use Product Foundry to start a product called Tutor Booking. My idea is a booking
+> application where tutors publish available slots and students book lessons.
+
+The entry skill uses your local framework checkout. New products go beside that
+checkout by default. Describe another location normally if you prefer, such as
+"put it on my Desktop." Existing projects can use "add Product Foundry to this project."
+
+Codex handles installation, product scope, application setup, and the actual test
+and build commands. Installation-only requests leave application code and its
+existing configuration unchanged. It asks about product decisions when needed. You do not need
+to type folder paths, pick workflow commands, or edit configuration JSON.
+
+After setup, Codex shows the product folder. Open it as a separate Codex workspace
+for ongoing work, then describe features and fixes normally. Completion requires
+passing required checks on the current files; results stay local and completed
+feature notes go in `docs/built/`.
+
+## Connect on another computer
+
+Clone this repository once, then run this command from its root:
+
 ```sh
-git clone https://github.com/dabhiram13/product-foundry.git
-cd product-foundry
-python3 scripts/foundry.py install "$HOME/Documents/Products/my-product"
+python3 scripts/connect_codex.py
 ```
 
-Open the new product folder in Codex and ask it to use `$foundry-start` with your
-idea. Use `$foundry-spec` for a feature or `$foundry-mvp-spec` for the first working
-version. Follow [the workflow](docs/WORKFLOW.md) to build, check, and finish it.
-
-A fresh product gets its own local Git repository. Existing project instructions,
-files, and Git settings are preserved. Choose a folder outside another repository.
-
-Add the product's actual test and build commands to `.foundry/project.json`:
-
-```json
-{
-  "name": "My product",
-  "checks": [
-    {"name": "test", "command": ["npm", "test"], "required": true},
-    {"name": "build", "command": ["npm", "run", "build"], "required": true}
-  ]
-}
-```
-
-These are examples; use commands that work for your application. A new installation
-has no checks configured. Completion requires passing required checks on the current
-files; it saves results locally and writes a completed-feature note in `docs/built/`.
+This adds the Product Foundry entry skill to your Codex user skills. Start a new
+chat if the current chat does not see it yet. The connection records this checkout's
+location automatically. If you move the checkout, reconcile the existing entry
+skill and connect it again. Local edits to the entry skill are preserved.
 
 ## Customize and update
 
-[The catalog](docs/CATALOG.md) lists the workflow skills, specialist roles, and
-optional skill library. Add your own skills, roles, and checks using
-[the customization guide](docs/CUSTOMIZATION.md).
+Ask Codex to enable a needed library skill, add a workflow, or update the framework
+in a product. [The catalog](docs/CATALOG.md) lists what is available;
+[the customization guide](docs/CUSTOMIZATION.md) covers the underlying files.
+Updates stop before changing files if they conflict with local edits.
 
-Enable an optional skill when needed:
+Optional Codex hooks still need review through `/hooks`. Ask Codex to help enable
+the staged-secret Git hook when wanted. Each product keeps its own files and status.
 
-```sh
-python3 scripts/foundry.py enable-skill frontend-design
-```
+## Manual installation
 
-Review optional Codex hooks through `/hooks`; see [the hook guide](docs/HOOKS.md).
-To enable the Git check for staged secrets, review `.githooks/pre-commit`, then run
-`git config core.hooksPath .githooks` in the product.
-
-Pull updates in this framework repository, then run:
-
-```sh
-python3 scripts/foundry.py install "$HOME/Documents/Products/my-product" --update
-```
-
-Updates stop before changing files if they conflict with your local edits.
+For direct control, `scripts/foundry.py install TARGET` installs into a separate
+product folder. Add `--update` for an existing installation. Use an absolute folder
+path outside another repository. Normal conversational setup resolves this internally.
 
 ## Check the framework
 
@@ -70,4 +64,4 @@ python3 scripts/security_scan.py --whole-tracked
 ```
 
 [Validation](docs/VALIDATION.md) explains what these checks cover.
-[License notices](THIRD_PARTY_NOTICES.md) identify the notices to retain when copying.
+[License notices](THIRD_PARTY_NOTICES.md) identify notices to retain when copying.

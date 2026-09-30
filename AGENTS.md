@@ -6,6 +6,11 @@ Read `README.md` for setup and `docs/WORKFLOW.md` before product work. Follow th
 owner's existing instructions, scope, and stack. Use `docs/CATALOG.md` to choose
 skills and roles; read only what the task needs.
 
+For a new product or first installation, use `skills/product-foundry/SKILL.md`.
+Treat its framework-root placeholder as this checkout when reading the source copy.
+The owner can describe work normally; select skills and handle paths and configuration
+yourself. Keep application code in the selected product workspace.
+
 Use `python3 scripts/foundry.py` to install the framework, track work, and run
 checks. Resume existing work before starting another feature. Delegate independent
 tasks with separate write boundaries and wait for their results. Keep scope in

@@ -12,7 +12,7 @@ import unittest
 from app import create_server
 
 
-class IdeaBoardTests(unittest.TestCase):
+class WebAppTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -163,7 +163,7 @@ class IdeaBoardTests(unittest.TestCase):
         status, headers, body = self.request(path="/")
         self.assertEqual(status, 200)
         self.assertIn("text/html", headers["Content-Type"])
-        self.assertIn(b'<title>Idea board</title>', body)
+        self.assertIn(b'<title>Test web app</title>', body)
         status, headers, head_body = self.request("HEAD", "/")
         self.assertEqual((status, head_body), (200, b""))
         self.assertEqual(int(headers["Content-Length"]), len(body))

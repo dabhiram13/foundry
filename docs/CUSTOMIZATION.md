@@ -44,7 +44,3 @@ Make release-critical checks required. Missing tools, timeouts, and nonzero exit
 ## Add or change a role
 
 Create a TOML file under `.codex/agents/` with `name`, `description`, `sandbox_mode`, and `developer_instructions`. Omit `model` so the user's configured model is inherited. Point to repository-relative philosophy and skill files rather than home-directory configuration.
-
-## Import a later licensed catalog
-
-Use `python3 scripts/migrate-catalog.py SOURCE --destination .` only on a reviewed, licensed source tree. It updates the catalog mechanically and runs its structural checks. Review the diff before committing; core native skills remain the behavioral authority.

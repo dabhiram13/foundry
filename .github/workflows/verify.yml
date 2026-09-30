@@ -12,10 +12,10 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified 2026-09-29
       - name: Behavior and runtime contracts
         run: python3 -m unittest discover -s tests -v
-      - name: Independent application behavior
-        working-directory: examples/idea-board
+      - name: Web application behavior
+        working-directory: tests/fixtures/web_app
         run: python3 -m unittest test_app -v
       - name: Native catalog integrity
-        run: python3 scripts/migrate-catalog.py --check
+        run: python3 scripts/check_catalog.py
       - name: Exact index secret scan
         run: python3 scripts/security_scan.py --whole-tracked

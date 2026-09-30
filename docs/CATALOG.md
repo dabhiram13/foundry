@@ -1,29 +1,33 @@
 # Catalog
 
-Product Foundry ships a Codex-native catalog with three layers:
+Choose workflows and references for the task at hand:
 
-- 37 explicit workflow skills under `.agents/skills/`: 34 migrated source recipes plus native `foundry-resume`, `foundry-verify`, and `foundry-finish` lifecycle skills.
-- 28 optional subagent roles under `.codex/agents/`. They inherit the user's model; none pins a model.
-- 67 reference skills under `library/skills/`: the 60 shared source skills and seven optional Codex/Ralph additions. They are inert until enabled or read directly.
+- 37 workflow skills under `.agents/skills/` for planning, building, checking, and maintaining products.
+- 28 specialist roles under `.codex/agents/`, using your configured model.
+- 67 optional skills under `library/skills/`. Read them as needed or enable selected skills for a product.
 
 ## Workflow skills
 
 `foundry-analytics`, `foundry-audit`, `foundry-blog`, `foundry-deep-interview`, `foundry-deploy`, `foundry-design`, `foundry-discover`, `foundry-domain`, `foundry-drift`, `foundry-emails`, `foundry-enhance`, `foundry-finish`, `foundry-fix-issue`, `foundry-fumadocs`, `foundry-heal`, `foundry-help`, `foundry-landing-design`, `foundry-logo`, `foundry-monitor`, `foundry-mvp-build`, `foundry-mvp-spec`, `foundry-payments`, `foundry-pentest`, `foundry-performance`, `foundry-rate-limit`, `foundry-resume`, `foundry-schema-sync`, `foundry-security`, `foundry-sentry`, `foundry-seo`, `foundry-settings`, `foundry-setup`, `foundry-skeleton`, `foundry-spec`, `foundry-start`, `foundry-trace`, and `foundry-verify`.
 
-Each has `agents/openai.yaml` with `allow_implicit_invocation: false`. Invoke one deliberately from Codex's skill picker or by naming it. Every active skill contains native operational behavior and defers lifecycle state to the runtime. Historical recipes under `.foundry/references/commands/` are inert provenance and may contain obsolete harness commands; active skills never direct Codex to execute them.
+Use Codex's skill picker or name a skill with `$foundry-…`. These workflows run only when explicitly requested and use `scripts/foundry.py` to track work and record checks.
 
 ## Roles
 
-The agent TOMLs are optional specialist prompts. Read-only analysis roles keep a read-only sandbox; implementation roles use the repository's normal sandbox. Their instructions point to `.foundry/philosophy/` and `library/skills/` and use native file search, reads, edits, and shell terminology.
+Roles give Codex instructions for a specific job, such as planning, implementation, or review. Analysis roles have read-only access; implementation roles use the project's normal permissions.
 
 ## Reference library
 
-Run `python3 scripts/foundry.py enable-skill NAME` to copy one library skill into `.agents/skills/NAME`. Existing destinations are never overwritten. Provider-specific skills such as `claude-api` document that provider's API; they do not change Product Foundry's Codex-native runtime.
+Run `python3 scripts/foundry.py enable-skill NAME` to copy one library skill into `.agents/skills/NAME`. Existing destinations are never overwritten. Service-specific skills describe optional application integrations.
 
 The 101 supporting architecture documents used by the native roles live under
 `.foundry/references/source-docs/`: 64 product patterns, 10 Supabase references, and 27 tool
 catalog and Inngest references. Active roles use these installed paths, so they do not depend
-on the upstream checkout or a vendor CLI. They are reference material; project requirements
-and the active runtime spec remain authoritative.
+on another checkout. Follow the product's requirements and current specification when using these guides.
 
-See `.foundry/references/PROVENANCE.md` and `.foundry/references/skills-lock.json` for origin and licensing evidence.
+Reusable guides for auth, billing, design systems, landing pages, legal pages, and
+onboarding are in `.foundry/workflows/`. Optional SQL setup scripts are in
+`.foundry/migrations/`. Use them when the selected product stack needs them.
+
+Bundled source information is recorded in `library/provenance.json`; license files
+remain beside their skills.

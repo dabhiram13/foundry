@@ -1,4 +1,4 @@
-"""A loopback-only idea board using the Python standard library."""
+"""A loopback-only test web app using the Python standard library."""
 
 import argparse
 from contextlib import closing
@@ -158,9 +158,9 @@ def main():
     try:
         server = create_server(args.db, args.port)
     except (OSError, sqlite3.Error) as exc:
-        parser.error(f"Cannot start the idea board: {exc}")
+        parser.error(f"Cannot start the test web app: {exc}")
     with server:
-        print(f"Idea board: http://127.0.0.1:{server.server_port}", flush=True)
+        print(f"Test web app: http://127.0.0.1:{server.server_port}", flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:

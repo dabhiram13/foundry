@@ -21,7 +21,7 @@ EXCLUDED = {".git", "__pycache__", ".venv", "node_modules", ".next", "coverage",
 MANAGED = [".agents/skills", ".codex/agents", ".codex/hooks.json", ".codex/config.toml",
            ".foundry/workflows", ".foundry/philosophy", ".foundry/references", ".foundry/migrations",
            "library", "scripts/foundry.py", "scripts/hooks.py", "scripts/security_scan.py",
-           "scripts/migrate-catalog.py", ".githooks/pre-commit", "docs/WORKFLOW.md",
+           "scripts/check_catalog.py", ".githooks/pre-commit", "docs/WORKFLOW.md",
            "docs/CATALOG.md", "docs/CUSTOMIZATION.md", "docs/HOOKS.md",
            ".foundry/LICENSE-framework", ".foundry/THIRD_PARTY_NOTICES.md"]
 AGENTS_START = "<!-- product-foundry:start -->"

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <link rel="icon" href="data:,">
-  <title>Idea board</title>
+  <title>Test web app</title>
   <style>
     :root { font-family: system-ui, sans-serif; color: #22352d; background: #f5f4ee; }
     * { box-sizing: border-box; }
@@ -97,7 +97,7 @@
           body: data === undefined ? undefined : JSON.stringify(data)
         });
       } catch {
-        throw new Error('Could not reach the idea board. Check that the local server is running, then refresh ideas.');
+        throw new Error('Could not reach the test web app. Check that the local server is running, then refresh ideas.');
       }
       if (response.status === 204) return;
       const result = await response.json();

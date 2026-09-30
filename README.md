@@ -1,113 +1,73 @@
 # Product Foundry
 
-An independently maintained **Codex-native product development framework**.
-Use it with a new or existing web app, SaaS, API or other product. It supplies
-development workflows, role instructions, reusable expertise and local verification;
-each application's behavior, stack and production integrations remain product work.
-
-No BuildThisNow CLI, account, subscription, license-cache hook or Claude runtime is
-required. Python 3.11+, Git and Codex are the local tools. The runtime uses the
-Python standard library. Linux and macOS are supported; Windows needs WSL for the
-coordinator file lock.
+Reusable workflows, skills, roles, and checks for building products with Codex.
+Use it in a separate project for a web app, SaaS, API, or another product.
+Requires Python 3.11+, Git, and Codex on macOS or Linux (WSL on Windows).
+The framework uses the Python standard library.
 
 ## Start a product
-
-Clone this private framework once, then install it into a separate product folder:
 
 ```sh
 git clone https://github.com/dabhiram13/product-foundry.git
 cd product-foundry
-python3 scripts/foundry.py install ../my-product
+python3 scripts/foundry.py install "$HOME/Documents/Products/my-product"
 ```
 
-Open `my-product` in Codex. Ask it to use `$foundry-start` with your product idea.
-Use `$foundry-spec` for a bounded feature or `$foundry-mvp-spec` for an initial
-product slice. Existing product instructions and prior authorization remain in effect.
-The full workflow is in [docs/WORKFLOW.md](docs/WORKFLOW.md).
+Open the new product folder in Codex and ask it to use `$foundry-start` with your
+idea. Use `$foundry-spec` for a feature or `$foundry-mvp-spec` for the first working
+version. Follow [the workflow](docs/WORKFLOW.md) to build, check, and finish it.
 
-A fresh product gets a standalone local Git repository with no remote. Existing
-repositories retain their branch and Git settings. Choose a folder outside another
-repository so native hooks resolve the correct product root.
+A fresh product gets its own local Git repository. Existing project instructions,
+files, and Git settings are preserved. Choose a folder outside another repository.
 
-Configure **real required checks** in the product's `.foundry/project.json`. A fresh
-installation deliberately starts without checks and cannot claim verification:
+Add the product's actual test and build commands to `.foundry/project.json`:
 
 ```json
 {
   "name": "My product",
   "checks": [
-    {"name": "test", "command": ["npm", "test"], "cwd": ".", "timeout": 180, "required": true},
-    {"name": "build", "command": ["npm", "run", "build"], "cwd": ".", "timeout": 180, "required": true}
+    {"name": "test", "command": ["npm", "test"], "required": true},
+    {"name": "build", "command": ["npm", "run", "build"], "required": true}
   ]
 }
 ```
 
-Adjust those commands to the application's real package and behavior tests. Then:
+These are examples; use commands that work for your application. A new installation
+has no checks configured. Completion requires passing required checks on the current
+files; it saves results locally and writes a completed-feature note in `docs/built/`.
 
-```sh
-python3 scripts/foundry.py start first-feature --spec docs/specs/first-feature.md
-python3 scripts/foundry.py status
-python3 scripts/foundry.py pause
-python3 scripts/foundry.py resume
-python3 scripts/foundry.py verify
-python3 scripts/foundry.py complete
-```
+## Customize and update
 
-Completion requires fresh passing required checks on the current checkout. Changing
-source or check configuration invalidates earlier results. Logs and receipts live in
-`.foundry/state/runs/<run-id>/` and stay out of Git by default. Completion writes a
-durable `docs/built/` note. The reports are local evidence, not tamper-proof records
-or automatic owner approval.
+[The catalog](docs/CATALOG.md) lists the workflow skills, specialist roles, and
+optional skill library. Add your own skills, roles, and checks using
+[the customization guide](docs/CUSTOMIZATION.md).
 
-## Reuse and customize
-
-[docs/CATALOG.md](docs/CATALOG.md) maps all 34 original command workflows, 28 native
-roles and 67 optional skill bundles. Explicit skills use `$foundry-…`; Codex's native
-skill selector provides the command surface. Native lifecycle helpers include finish,
-resume and verify. Add your own skills in `.agents/skills/<name>/SKILL.md`.
-
-Enable an optional bundle when a product needs it:
+Enable an optional skill when needed:
 
 ```sh
 python3 scripts/foundry.py enable-skill frontend-design
 ```
 
-The library remains directly readable without enabling every skill in Codex's
-initial catalog. Agent roles inherit your configured model. Provider-specific
-references describe optional app integrations; they do not change the coding harness.
+Review optional Codex hooks through `/hooks`; see [the hook guide](docs/HOOKS.md).
+To enable the Git check for staged secrets, review `.githooks/pre-commit`, then run
+`git config core.hooksPath .githooks` in the product.
 
-Review optional native hooks through `/hooks` in Codex. New or changed definitions
-need native trust review. Explicit verification works even if hooks are disabled.
-See [docs/HOOKS.md](docs/HOOKS.md) and [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md).
-Opt into the staged-secret Git hook in each product with
-`git config core.hooksPath .githooks` after reviewing it.
+Pull updates in this framework repository, then run:
 
-Updates come from **our Git repository**. Pull the desired framework version, then
-run `python3 scripts/foundry.py install ../my-product --update`. The installer rejects
-conflicts before changing files and preserves local managed-file edits for manual
-reconciliation. Product AGENTS instructions are retained with a small Foundry block.
-It does not change Git hook configuration, create accounts or deploy products.
+```sh
+python3 scripts/foundry.py install "$HOME/Documents/Products/my-product" --update
+```
 
-## Verify the framework
+Updates stop before changing files if they conflict with your local edits.
+
+## Check the framework
 
 ```sh
 python3 -m unittest discover -s tests -v
-python3 scripts/migrate-catalog.py --check
+python3 -m unittest discover -s tests/fixtures/web_app -v
+python3 scripts/check_catalog.py
 python3 scripts/security_scan.py --whole-tracked
 ```
 
-The independently authored [local web example](examples/idea-board/README.md) supplies
-an app acceptance target. [docs/VALIDATION.md](docs/VALIDATION.md) records the actual
-checks performed, live Codex evidence and remaining limits.
-
-## Preservation and next improvements
-
-Original framework and CLI source, all local inventory hashes and the complete
-documentation review are preserved under `upstream/` and `docs/audit/`. Read
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before redistribution. The separately
-licensed vendor SaaS skeleton is excluded.
-
-This foundation can later gain our own stack starters, richer acceptance checks,
-isolated multi-product dashboards or a management app. The immediate extension points
-are ordinary skills, roles, hooks, workflows and project checks; no management service
-is needed to build products today.
+[Validation](docs/VALIDATION.md) explains what these checks cover.
+[License notices](THIRD_PARTY_NOTICES.md) identify the notices to retain when copying.

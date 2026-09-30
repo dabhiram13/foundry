@@ -1,1 +1,0 @@
-catalog ok: 37 commands, 67 library skills, 28 agents

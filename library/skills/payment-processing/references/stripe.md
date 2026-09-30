@@ -7,7 +7,7 @@ Use Stripe when:
 - subscriptions, upgrades, downgrades, and admin controls need depth
 
 Best fit here:
-- the current CodeKit skeleton is already Stripe-first
+- if the product already uses Stripe, extend its existing integration
 - strong docs and app code already exist
 - custom server-side flows are a better fit than simple hosted sales
 

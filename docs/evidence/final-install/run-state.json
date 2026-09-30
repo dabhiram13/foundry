@@ -1,0 +1,11 @@
+{
+  "run_id": "7a429ccd-6058-40ea-96d8-3c84eca41209",
+  "slug": "release-smoke",
+  "spec": "docs/specs/release-smoke.md",
+  "status": "completed",
+  "started_at": "2026-09-30T02:09:26.722391+00:00",
+  "updated_at": "2026-09-30T02:09:27.645956+00:00",
+  "verification": ".foundry/state/runs/7a429ccd-6058-40ea-96d8-3c84eca41209/verification-c3f04aa3-bfac-4a5c-b287-1c29fb21ca77/receipts.json",
+  "completed_at": "2026-09-30T02:09:27.733589+00:00",
+  "built_doc": "docs/built/release-smoke.md"
+}

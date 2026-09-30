@@ -1,0 +1,2 @@
+# Product Foundry leaves model choice, MCP servers and permissions to the user.
+# Project hooks are discovered from hooks.json and reviewed through /hooks.

@@ -1,0 +1,2219 @@
+{
+  "repository": "speedydevv1/buildthisnow-saas-skeleton",
+  "legacy_repository": "ZeiProX76/buildthisnow-saas-skeleton",
+  "pin": "88e4f1a9ced06d5be1f9de31aa596fb38255db8d",
+  "commit_url": "https://github.com/speedydevv1/buildthisnow-saas-skeleton/commit/88e4f1a9ced06d5be1f9de31aa596fb38255db8d",
+  "tree_complete": true,
+  "files": [
+    {
+      "path": ".buildthisniw-manifest.json",
+      "git_blob_sha": "1a1d218c3f9273ce8fc340562e2a6957b6fd1393",
+      "bytes": 2703
+    },
+    {
+      "path": ".githooks/pre-commit",
+      "git_blob_sha": "7c25ea472bc4b16c7f8ec180699609c175f54bc0",
+      "bytes": 109
+    },
+    {
+      "path": ".gitignore",
+      "git_blob_sha": "b382d0021afbf79cbbb67ea9caa93a2a0c184156",
+      "bytes": 289
+    },
+    {
+      "path": "LICENSE.md",
+      "git_blob_sha": "a43503925a1c5f4701333730991bb19cdd5d46e6",
+      "bytes": 2052
+    },
+    {
+      "path": "README.md",
+      "git_blob_sha": "529b71ee06827554b065459298f7ed099d5e3514",
+      "bytes": 1746
+    },
+    {
+      "path": "scripts/security-scan-staged.sh",
+      "git_blob_sha": "92dd1aa31dd954ea634394b25a3e03a80c159bdd",
+      "bytes": 10737
+    },
+    {
+      "path": "supabase/functions/.env.example",
+      "git_blob_sha": "feec72873751ce08e2de63dccbcd05fadefed66f",
+      "bytes": 243
+    },
+    {
+      "path": "supabase/functions/deno.json",
+      "git_blob_sha": "6dacb8cc2c548f067efd752ee93b7cdafb476b6a",
+      "bytes": 101
+    },
+    {
+      "path": "supabase/functions/send-email/README.md",
+      "git_blob_sha": "849882d46b2154a819bc2bbf277a2f24843bce38",
+      "bytes": 4392
+    },
+    {
+      "path": "supabase/functions/send-email/index.ts",
+      "git_blob_sha": "ba2fb27b30a12a9f018ae3945cf5d53a0d7f638d",
+      "bytes": 7994
+    },
+    {
+      "path": "supabase/functions/send-email/templates.ts",
+      "git_blob_sha": "cbf4d61d5b50eeb679867cd32f8359274ac6bf65",
+      "bytes": 17720
+    },
+    {
+      "path": "supabase/functions/send-email/types.ts",
+      "git_blob_sha": "10c80ba4a979acaa01dd1f276b5e9d37f7876510",
+      "bytes": 826
+    },
+    {
+      "path": "supabase/functions/stripe-checkout/index.ts",
+      "git_blob_sha": "8aa188e6222c97bacb58f72bf2677343856dde0e",
+      "bytes": 5508
+    },
+    {
+      "path": "supabase/functions/stripe-portal/index.ts",
+      "git_blob_sha": "849b5fb87dac7b777250fa99468e4662980953d9",
+      "bytes": 3457
+    },
+    {
+      "path": "supabase/functions/stripe-upgrade/index.ts",
+      "git_blob_sha": "c03967add0ef0f7e6ed1c6fe84a98821f5f6d44c",
+      "bytes": 3625
+    },
+    {
+      "path": "supabase/migrations/20260404120000_drop_stress_test_features.sql",
+      "git_blob_sha": "13caaf7366c44dc5c0c3de0799bf5abea73087dd",
+      "bytes": 5236
+    },
+    {
+      "path": "webapp/.env.example",
+      "git_blob_sha": "0f665a88a4467f94453a5d01a96852d80c78a284",
+      "bytes": 2472
+    },
+    {
+      "path": "webapp/.gitignore",
+      "git_blob_sha": "e89ea1820c6cc7bfca5de3e38f8c26a3a01f4c7c",
+      "bytes": 577
+    },
+    {
+      "path": "webapp/.source/browser.ts",
+      "git_blob_sha": "9c29639e62912e4d0476f1227e86a5be982e6090",
+      "bytes": 412
+    },
+    {
+      "path": "webapp/.source/dynamic.ts",
+      "git_blob_sha": "7dd9c10a611c554bd83b14e71246bca16c158e80",
+      "bytes": 373
+    },
+    {
+      "path": "webapp/.source/server.ts",
+      "git_blob_sha": "06c5375bf00aa35eea3dd87c958813e901e191a5",
+      "bytes": 566
+    },
+    {
+      "path": "webapp/.source/source.config.mjs",
+      "git_blob_sha": "82da84f66e318197e90be07fdf8a38e792aeb466",
+      "bytes": 233
+    },
+    {
+      "path": "webapp/README.md",
+      "git_blob_sha": "d417bffbf964fd61107e48f4c08ba5590d9b0232",
+      "bytes": 5332
+    },
+    {
+      "path": "webapp/app/(marketing)/error.tsx",
+      "git_blob_sha": "5c3f36235d99d86fb97e3c9e1a7e806ed3d75ed5",
+      "bytes": 1173
+    },
+    {
+      "path": "webapp/app/(marketing)/landing-page/page.tsx",
+      "git_blob_sha": "e6836f18fef71e0774c7d7dba7e539d4de48cf3a",
+      "bytes": 174
+    },
+    {
+      "path": "webapp/app/(marketing)/layout.tsx",
+      "git_blob_sha": "4be656bc67a4b711e4563ce38aaafa8d6aa3cae2",
+      "bytes": 257
+    },
+    {
+      "path": "webapp/app/(marketing)/logo-preview/page.tsx",
+      "git_blob_sha": "6a696c5b6710497656951aca47db0a77ebbfff8f",
+      "bytes": 132
+    },
+    {
+      "path": "webapp/app/(marketing)/page.tsx",
+      "git_blob_sha": "7487dd046090b25f77df380708a13f30c74f05cc",
+      "bytes": 109
+    },
+    {
+      "path": "webapp/app/(marketing)/privacy/page.tsx",
+      "git_blob_sha": "6c4cceb8300e0218a16142adca7bdc274583dd52",
+      "bytes": 14624
+    },
+    {
+      "path": "webapp/app/(marketing)/terms/page.tsx",
+      "git_blob_sha": "34104e3395fc2ece82a18a31d007589ae5ab6636",
+      "bytes": 11207
+    },
+    {
+      "path": "webapp/app/(setup)/error.tsx",
+      "git_blob_sha": "cb3ef64e3c76a56fc7235137a41512f0e828170d",
+      "bytes": 1171
+    },
+    {
+      "path": "webapp/app/(setup)/layout.tsx",
+      "git_blob_sha": "7107c83cf27329b777f4bcfc46697d7c4ccd6918",
+      "bytes": 265
+    },
+    {
+      "path": "webapp/app/(setup)/setup/page.tsx",
+      "git_blob_sha": "048270855eefd8c93b18094e1fd5f722a2460602",
+      "bytes": 228
+    },
+    {
+      "path": "webapp/app/api/inngest/route.ts",
+      "git_blob_sha": "fc3e831f065b54515fd232b302fdc7b25e45bd7d",
+      "bytes": 369
+    },
+    {
+      "path": "webapp/app/api/rpc/[[...rest]]/route.ts",
+      "git_blob_sha": "902b19bde2fc617e60af1e2462e3a873a73dcbfc",
+      "bytes": 4347
+    },
+    {
+      "path": "webapp/app/api/setup/check/route.ts",
+      "git_blob_sha": "3d0fafcf69cbc6eec603d1202e40f0ab1129a21e",
+      "bytes": 13310
+    },
+    {
+      "path": "webapp/app/api/upload/route.ts",
+      "git_blob_sha": "757c1baf19925b0351d158fe08772916d61d2dc2",
+      "bytes": 2710
+    },
+    {
+      "path": "webapp/app/apple-icon.tsx",
+      "git_blob_sha": "23b5352dffc77a6fb95442128676f2dced0664d1",
+      "bytes": 1002
+    },
+    {
+      "path": "webapp/app/auth/confirm/route.ts",
+      "git_blob_sha": "25e59a06fb24341eaa7ee4e99ec913a46d4c128e",
+      "bytes": 1840
+    },
+    {
+      "path": "webapp/app/auth/error.tsx",
+      "git_blob_sha": "4133929af7bbd4bd641cfb8e1f788535f02fc307",
+      "bytes": 1179
+    },
+    {
+      "path": "webapp/app/auth/error/page.tsx",
+      "git_blob_sha": "3c45c662509d421fb1788780c5821ae5d4854619",
+      "bytes": 1366
+    },
+    {
+      "path": "webapp/app/auth/forgot-password/page.tsx",
+      "git_blob_sha": "69c3793b8c5e3baf1cbd1171a2e6df95a025cea0",
+      "bytes": 353
+    },
+    {
+      "path": "webapp/app/auth/login/page.tsx",
+      "git_blob_sha": "1f777ab8bed4d627d496b0384447e5d65ab2b3de",
+      "bytes": 561
+    },
+    {
+      "path": "webapp/app/auth/sign-up-success/cached-sign-up-success-ui.tsx",
+      "git_blob_sha": "402bd9de49d095673ae7a4caf14d0d2917f4bb16",
+      "bytes": 1068
+    },
+    {
+      "path": "webapp/app/auth/sign-up-success/dynamic-sign-up-success.tsx",
+      "git_blob_sha": "a665cd0211f800b3a760d671fe994fdd1107ae1d",
+      "bytes": 552
+    },
+    {
+      "path": "webapp/app/auth/sign-up-success/page.tsx",
+      "git_blob_sha": "aaf629b4e7984fd206906649293302368c7884d4",
+      "bytes": 639
+    },
+    {
+      "path": "webapp/app/auth/sign-up-success/sign-up-success-content.tsx",
+      "git_blob_sha": "c5e16d2ce2bacc6db6c150873e3561c1b0b68af5",
+      "bytes": 7051
+    },
+    {
+      "path": "webapp/app/auth/sign-up/page.tsx",
+      "git_blob_sha": "add424c713c12907691aa7250ef8f3a1f2cdc3f5",
+      "bytes": 574
+    },
+    {
+      "path": "webapp/app/auth/signout/actions.ts",
+      "git_blob_sha": "c77e00fb5b96de92bbe208569ac3d5ad9ea1039c",
+      "bytes": 425
+    },
+    {
+      "path": "webapp/app/auth/update-password/page.tsx",
+      "git_blob_sha": "2a2ac4be3c6d251775d402fba57630c822a6e9f2",
+      "bytes": 353
+    },
+    {
+      "path": "webapp/app/docs/[[...slug]]/page.tsx",
+      "git_blob_sha": "df948918f767a1ba978bb516d3c20c94cc61c72a",
+      "bytes": 1001
+    },
+    {
+      "path": "webapp/app/docs/error.tsx",
+      "git_blob_sha": "f10541b2700f095f1ae9b19b6b29290fef8b7e99",
+      "bytes": 1183
+    },
+    {
+      "path": "webapp/app/docs/layout.tsx",
+      "git_blob_sha": "850a8ee5cef4aba6d68e250c81dca7b5f84f72b6",
+      "bytes": 776
+    },
+    {
+      "path": "webapp/app/error.tsx",
+      "git_blob_sha": "b0be58efafdb8ffe0477e0e43f508b5e76a2ca75",
+      "bytes": 1275
+    },
+    {
+      "path": "webapp/app/favicon.ico",
+      "git_blob_sha": "a1afdd916fe78932b5a49602458f209f48fdf559",
+      "bytes": 15086
+    },
+    {
+      "path": "webapp/app/global-error.tsx",
+      "git_blob_sha": "4f9c8a9dd41f0398078afac746d4219558b3a533",
+      "bytes": 681
+    },
+    {
+      "path": "webapp/app/globals.css",
+      "git_blob_sha": "286132e98674ba14c2b28fd2637199278d46564a",
+      "bytes": 12861
+    },
+    {
+      "path": "webapp/app/html-lang-sync.tsx",
+      "git_blob_sha": "d34713e8f0cdbb58ecb03f0d0ad940748966eee6",
+      "bytes": 411
+    },
+    {
+      "path": "webapp/app/icon.svg",
+      "git_blob_sha": "097b0ecb8fe49096154636e6c73f26ba2f81a368",
+      "bytes": 876
+    },
+    {
+      "path": "webapp/app/icon.tsx",
+      "git_blob_sha": "4c1a9158e93dbe9b87355de82bc027b1df22fe26",
+      "bytes": 967
+    },
+    {
+      "path": "webapp/app/intl-provider.tsx",
+      "git_blob_sha": "be4d18ed68f0e1366c3bbc505763c47d1403957f",
+      "bytes": 705
+    },
+    {
+      "path": "webapp/app/layout.tsx",
+      "git_blob_sha": "afc037a31bc5f10fc943baaa1495b97d5ebbc3aa",
+      "bytes": 3131
+    },
+    {
+      "path": "webapp/app/manifest.ts",
+      "git_blob_sha": "85a5668c2e57eeb749d6f9aac0ababceadebd404",
+      "bytes": 737
+    },
+    {
+      "path": "webapp/app/not-found.tsx",
+      "git_blob_sha": "6fa30f80e092bf17f18489371f954989ef3a5ac4",
+      "bytes": 922
+    },
+    {
+      "path": "webapp/app/onboarding/page.tsx",
+      "git_blob_sha": "bfbb468d66296b4f50f56fa255ff0391c123c3a3",
+      "bytes": 1585
+    },
+    {
+      "path": "webapp/app/opengraph-image.tsx",
+      "git_blob_sha": "ce6ad44a4c8ea02d142fd4d31b57db5d714c5839",
+      "bytes": 2816
+    },
+    {
+      "path": "webapp/app/protected/billing/page.tsx",
+      "git_blob_sha": "6d5f6da84274dac3938b02aa4aae5488884f509a",
+      "bytes": 347
+    },
+    {
+      "path": "webapp/app/protected/error.tsx",
+      "git_blob_sha": "cb37e725cd2c57e56383bcd3ec60ccd43012c8d2",
+      "bytes": 1332
+    },
+    {
+      "path": "webapp/app/protected/home/page.tsx",
+      "git_blob_sha": "8ec1a579fd3bf6ba131f29777cac04ddf5a50f51",
+      "bytes": 197
+    },
+    {
+      "path": "webapp/app/protected/layout.tsx",
+      "git_blob_sha": "f2c30faf6b9dde768364b8f8adc30fc5189ec317",
+      "bytes": 1390
+    },
+    {
+      "path": "webapp/app/protected/not-found.tsx",
+      "git_blob_sha": "8b5273625b9fb0a1a60f3473ee29e1435eb21fad",
+      "bytes": 787
+    },
+    {
+      "path": "webapp/app/protected/profile/page.tsx",
+      "git_blob_sha": "c46b568e86e641dd3628452e54f8411e9968e8fb",
+      "bytes": 148
+    },
+    {
+      "path": "webapp/app/protected/settings/error.tsx",
+      "git_blob_sha": "eb9b44cf15dee0c832cddfc859633927e00e15c6",
+      "bytes": 698
+    },
+    {
+      "path": "webapp/app/protected/settings/page.tsx",
+      "git_blob_sha": "3a9f704ce42990fce42ab57e501bacbefd9c7913",
+      "bytes": 1662
+    },
+    {
+      "path": "webapp/app/robots.ts",
+      "git_blob_sha": "0660a897214ea7beea8089273cc877a686c1a680",
+      "bytes": 510
+    },
+    {
+      "path": "webapp/app/sitemap.ts",
+      "git_blob_sha": "0282f1577c9f6a738835270829206a507556d2d3",
+      "bytes": 859
+    },
+    {
+      "path": "webapp/app/twitter-image.tsx",
+      "git_blob_sha": "4a9a3d1e9836dedc93c7450531ab71cada8f174b",
+      "bytes": 2700
+    },
+    {
+      "path": "webapp/assets/logo/logo.tsx",
+      "git_blob_sha": "b93d5b244e4a81af7bbb950dfbe4affe14e598af",
+      "bytes": 12887
+    },
+    {
+      "path": "webapp/components.json",
+      "git_blob_sha": "ec7017600d15f73608e6cf8d216ba92983c3e625",
+      "bytes": 740
+    },
+    {
+      "path": "webapp/components/Grainient.css",
+      "git_blob_sha": "814dfb788beb71af3350145572ecfb63981092b4",
+      "bytes": 98
+    },
+    {
+      "path": "webapp/components/Grainient.jsx",
+      "git_blob_sha": "8683ac07401e940838081deb642e02f9af0af960",
+      "bytes": 6951
+    },
+    {
+      "path": "webapp/components/Grainient.tsx",
+      "git_blob_sha": "69d43d33f56dcac4b82c50c3b10f0713acc3ac67",
+      "bytes": 7673
+    },
+    {
+      "path": "webapp/components/Plasma.css",
+      "git_blob_sha": "988241d25ddffc12d1adb43d674df3b598a1c95a",
+      "bytes": 95
+    },
+    {
+      "path": "webapp/components/Plasma.tsx",
+      "git_blob_sha": "fd37c64e6bb4fded5bee2f914563cb7ab656e4a8",
+      "bytes": 6337
+    },
+    {
+      "path": "webapp/components/SpotlightCard.css",
+      "git_blob_sha": "ee533751260e7a86cf1a13523b5a1c7ba0a0bb97",
+      "bytes": 625
+    },
+    {
+      "path": "webapp/components/SpotlightCard.jsx",
+      "git_blob_sha": "164b5db2c61420f046a67d902fa4f9e487a3114f",
+      "bytes": 739
+    },
+    {
+      "path": "webapp/components/data-table/data-table-column-header.tsx",
+      "git_blob_sha": "960ba6d93e6150993090ad4bd2284293948d64a4",
+      "bytes": 3106
+    },
+    {
+      "path": "webapp/components/data-table/data-table-date-filter.tsx",
+      "git_blob_sha": "f6dbc08d04d910f545538b8243d7722941810753",
+      "bytes": 6213
+    },
+    {
+      "path": "webapp/components/data-table/data-table-faceted-filter.tsx",
+      "git_blob_sha": "77554c8fbfe32a8dbd98374472992583b3e1fbb2",
+      "bytes": 5934
+    },
+    {
+      "path": "webapp/components/data-table/data-table-pagination.tsx",
+      "git_blob_sha": "84207535376116cf6366afa17e715225801b8315",
+      "bytes": 3530
+    },
+    {
+      "path": "webapp/components/data-table/data-table-skeleton.tsx",
+      "git_blob_sha": "df678e274d5c4dd8ed88d4351756bb69ad56a1bf",
+      "bytes": 3730
+    },
+    {
+      "path": "webapp/components/data-table/data-table-slider-filter.tsx",
+      "git_blob_sha": "8177a7c3ea2e9e7f0707715695b3241ac326abf5",
+      "bytes": 7587
+    },
+    {
+      "path": "webapp/components/data-table/data-table-toolbar.tsx",
+      "git_blob_sha": "e227b7dae673effbbd65c58ad22d7e7658b575de",
+      "bytes": 4344
+    },
+    {
+      "path": "webapp/components/data-table/data-table-view-options.tsx",
+      "git_blob_sha": "8935d1539500a2a8dd88d8cc5d27fda2bfbfa652",
+      "bytes": 2361
+    },
+    {
+      "path": "webapp/components/data-table/data-table.tsx",
+      "git_blob_sha": "89d91ea08d65f0fe2d36e6a17bf6e379d2cf2910",
+      "bytes": 3054
+    },
+    {
+      "path": "webapp/components/deploy-button.tsx",
+      "git_blob_sha": "806d6dbf7d8479eb7b1ab17c0388b0b25c3687fd",
+      "bytes": 1341
+    },
+    {
+      "path": "webapp/components/env-var-warning.tsx",
+      "git_blob_sha": "774c712879d943b592916ba6ec1b1824dbbfd975",
+      "bytes": 557
+    },
+    {
+      "path": "webapp/components/hero.tsx",
+      "git_blob_sha": "28baa07f6ce8f472859031dbb3d4da7353863ef3",
+      "bytes": 1483
+    },
+    {
+      "path": "webapp/components/logos/arrow-block.tsx",
+      "git_blob_sha": "ea6c9d25abaf02031d4ce756d5041e998fcac8b5",
+      "bytes": 2355
+    },
+    {
+      "path": "webapp/components/logos/bolt-mark.tsx",
+      "git_blob_sha": "cc17673dbeb8a553daf9590b1495c9728defbdc5",
+      "bytes": 1653
+    },
+    {
+      "path": "webapp/components/logos/component-placeholder.tsx",
+      "git_blob_sha": "c3c6bbcbf73982436bd89477abc6ba96355a14c2",
+      "bytes": 2238
+    },
+    {
+      "path": "webapp/components/logos/diamond-facet.tsx",
+      "git_blob_sha": "f2f260a75a5049b3e1eb1ca449bc2a9ba74a6111",
+      "bytes": 2283
+    },
+    {
+      "path": "webapp/components/logos/double-square.tsx",
+      "git_blob_sha": "ef6a47b3f2f45c86607f99187ce4478536f2db2c",
+      "bytes": 1581
+    },
+    {
+      "path": "webapp/components/logos/faceted-bolt.tsx",
+      "git_blob_sha": "53207d7e05c31c2d21bc4ff37cd569a872023cf6",
+      "bytes": 1732
+    },
+    {
+      "path": "webapp/components/logos/geo-b.tsx",
+      "git_blob_sha": "9a017e030d3b1ccc1b933b76826965e32ba80037",
+      "bytes": 2005
+    },
+    {
+      "path": "webapp/components/logos/hex-stack.tsx",
+      "git_blob_sha": "0fccd9a28d69f30bac58763dda0755c5c64e5aa5",
+      "bytes": 2041
+    },
+    {
+      "path": "webapp/components/logos/iso-cube.tsx",
+      "git_blob_sha": "f55bc94d5c89e36d793fa0f685b9a6c1120c7107",
+      "bytes": 1856
+    },
+    {
+      "path": "webapp/components/logos/logo-preview.tsx",
+      "git_blob_sha": "05ee5351ac952c0d51e4c4c730de5bcc0310b924",
+      "bytes": 3409
+    },
+    {
+      "path": "webapp/components/logos/next-logo.tsx",
+      "git_blob_sha": "720b242a6f93942d8993ac6652b1db94ccdc4d11",
+      "bytes": 4013
+    },
+    {
+      "path": "webapp/components/logos/prism-bolt.tsx",
+      "git_blob_sha": "350eb24545416292027104f4c55b32721fa0b5b5",
+      "bytes": 2057
+    },
+    {
+      "path": "webapp/components/logos/sandbox.tsx",
+      "git_blob_sha": "dbd4315917991f433924766771b0c7405a0aeb94",
+      "bytes": 1924
+    },
+    {
+      "path": "webapp/components/logos/supabase-logo.tsx",
+      "git_blob_sha": "1983941312331767066b1d773de7177bee078405",
+      "bytes": 7246
+    },
+    {
+      "path": "webapp/components/logos/tri-prism.tsx",
+      "git_blob_sha": "61226179b480bfa240f2d64bf01926d56f34b8fc",
+      "bytes": 1919
+    },
+    {
+      "path": "webapp/components/shadcn-space/animations/marquee.tsx",
+      "git_blob_sha": "8c33911f6f27f98c8dfa68ba4e69f02dae3c1bc5",
+      "bytes": 3021
+    },
+    {
+      "path": "webapp/components/shadcn-space/animations/splash-cursor.tsx",
+      "git_blob_sha": "267488cef1f709bdc2924b18b7010474685bdde3",
+      "bytes": 35818
+    },
+    {
+      "path": "webapp/components/shadcn-space/blocks/hero-01/brand-slider.tsx",
+      "git_blob_sha": "d424f963d4f3c66f4995ee55b294a5c613b8e1f4",
+      "bytes": 2334
+    },
+    {
+      "path": "webapp/components/shadcn-space/blocks/hero-01/header.tsx",
+      "git_blob_sha": "d621d9b0137c14d552d53ef77820b98d8bc3cf9d",
+      "bytes": 8962
+    },
+    {
+      "path": "webapp/components/shadcn-space/blocks/hero-01/hero.tsx",
+      "git_blob_sha": "3e32f2562d9535fc02d3811dc39138b9af39e70a",
+      "bytes": 5367
+    },
+    {
+      "path": "webapp/components/shadcn-space/blocks/hero-01/index.tsx",
+      "git_blob_sha": "8866923fa330d53be1f2a75c90b34596a72ae203",
+      "bytes": 2641
+    },
+    {
+      "path": "webapp/components/ui/accordion.tsx",
+      "git_blob_sha": "aa972da546dee8591fbb7f680b88c29566b46d24",
+      "bytes": 2048
+    },
+    {
+      "path": "webapp/components/ui/alert-dialog.tsx",
+      "git_blob_sha": "034b93fba4ae5015706a8529bbcf2ae6a02f7264",
+      "bytes": 5439
+    },
+    {
+      "path": "webapp/components/ui/alert.tsx",
+      "git_blob_sha": "14213546e5ac051dd33c8359f261f9f76051d66f",
+      "bytes": 1614
+    },
+    {
+      "path": "webapp/components/ui/animated-beam.tsx",
+      "git_blob_sha": "139380bea9aef83f36c1ad441be5f7cb6f2774d6",
+      "bytes": 4933
+    },
+    {
+      "path": "webapp/components/ui/animated-grid-pattern.tsx",
+      "git_blob_sha": "f4a519cb1bb804e37564950ca9de893fc6740854",
+      "bytes": 4288
+    },
+    {
+      "path": "webapp/components/ui/animated-list.tsx",
+      "git_blob_sha": "1e29b9f0f5cf0a2fe293c98194a6715c55c34347",
+      "bytes": 1908
+    },
+    {
+      "path": "webapp/components/ui/aspect-ratio.tsx",
+      "git_blob_sha": "57e38fa96f9c0cb767d7b8de0d6dbc171d1b921a",
+      "bytes": 274
+    },
+    {
+      "path": "webapp/components/ui/avatar.tsx",
+      "git_blob_sha": "1ac15704f747ac2f6eda0076f59ae5f6b4940021",
+      "bytes": 2916
+    },
+    {
+      "path": "webapp/components/ui/badge.tsx",
+      "git_blob_sha": "ea568d4403d7d66f3aee59496c986486a796e116",
+      "bytes": 1167
+    },
+    {
+      "path": "webapp/components/ui/bento-grid.tsx",
+      "git_blob_sha": "903775f11735d663a7ef2270907ca918b6add01c",
+      "bytes": 2033
+    },
+    {
+      "path": "webapp/components/ui/blur-fade.tsx",
+      "git_blob_sha": "6609f5af9286351e0c335966112f70568c37110b",
+      "bytes": 1795
+    },
+    {
+      "path": "webapp/components/ui/breadcrumb.tsx",
+      "git_blob_sha": "542e76202a6744bb972d213723f5a62fb5bfc377",
+      "bytes": 2350
+    },
+    {
+      "path": "webapp/components/ui/button.tsx",
+      "git_blob_sha": "6a2b9fbf7f906a6a5410cd253a75ab339a346c97",
+      "bytes": 2955
+    },
+    {
+      "path": "webapp/components/ui/calendar.tsx",
+      "git_blob_sha": "9fb18ca995e975bc5cd201a702b89e0483b6c76d",
+      "bytes": 7793
+    },
+    {
+      "path": "webapp/components/ui/card.tsx",
+      "git_blob_sha": "1cc0c125307e0d97cd656cfe1944c5617a41b1bc",
+      "bytes": 1857
+    },
+    {
+      "path": "webapp/components/ui/carousel.tsx",
+      "git_blob_sha": "0e05a77ea155fde6af5d9a4848b1d3953df6ea5a",
+      "bytes": 5556
+    },
+    {
+      "path": "webapp/components/ui/chart.tsx",
+      "git_blob_sha": "171ad421e602556fd53b11f262a0f26149f977df",
+      "bytes": 9988
+    },
+    {
+      "path": "webapp/components/ui/checkbox.tsx",
+      "git_blob_sha": "89148edf560e684c9faccaa323333c6398149b10",
+      "bytes": 1035
+    },
+    {
+      "path": "webapp/components/ui/clean-minimal-sign-in.tsx",
+      "git_blob_sha": "5d6e1c8089b843f4f2dee16d573f8aae4eaa5629",
+      "bytes": 4866
+    },
+    {
+      "path": "webapp/components/ui/collapsible.tsx",
+      "git_blob_sha": "2f7a4e7fc64a8874373c1584646a63f28cd63c47",
+      "bytes": 795
+    },
+    {
+      "path": "webapp/components/ui/command.tsx",
+      "git_blob_sha": "8cb4ca7a583da481866f41692bb50ba7cfba709d",
+      "bytes": 4818
+    },
+    {
+      "path": "webapp/components/ui/context-menu.tsx",
+      "git_blob_sha": "e972fe5fd824e79f4db668d524cf232466957313",
+      "bytes": 8268
+    },
+    {
+      "path": "webapp/components/ui/dialog.tsx",
+      "git_blob_sha": "80d7ad60483a9c56cfe75504a230b67ec4661c06",
+      "bytes": 4303
+    },
+    {
+      "path": "webapp/components/ui/dot-pattern.tsx",
+      "git_blob_sha": "17d6567c6c2be0f2a886c9c2e63baae16b95e96b",
+      "bytes": 4250
+    },
+    {
+      "path": "webapp/components/ui/drawer.tsx",
+      "git_blob_sha": "8aa69230a087be1fb8efe2067d1cf793de87acd4",
+      "bytes": 4255
+    },
+    {
+      "path": "webapp/components/ui/dropdown-menu.tsx",
+      "git_blob_sha": "bfffe673ec22acafd1f08e0f180f59f91e9b8e74",
+      "bytes": 7667
+    },
+    {
+      "path": "webapp/components/ui/form.tsx",
+      "git_blob_sha": "b438928c737e17dee24202f65637c61428d33608",
+      "bytes": 3757
+    },
+    {
+      "path": "webapp/components/ui/hero-section-with-gradient.tsx",
+      "git_blob_sha": "a11bc4c5752fcd54b81e794bf796258d048567c3",
+      "bytes": 10730
+    },
+    {
+      "path": "webapp/components/ui/highlighter.tsx",
+      "git_blob_sha": "2c8da872c8526d5f5f19b8d38344f7c0ef1b6606",
+      "bytes": 2187
+    },
+    {
+      "path": "webapp/components/ui/hover-card.tsx",
+      "git_blob_sha": "3e0c4daf8c46e1679c528761dcf3d1be29f3fabf",
+      "bytes": 1526
+    },
+    {
+      "path": "webapp/components/ui/input-otp.tsx",
+      "git_blob_sha": "9568f42de625e1cc0c1d64a7f42c3de896bf225c",
+      "bytes": 2334
+    },
+    {
+      "path": "webapp/components/ui/input.tsx",
+      "git_blob_sha": "89169058d054c972608ac3115cc655f267eedaa9",
+      "bytes": 962
+    },
+    {
+      "path": "webapp/components/ui/kanban.tsx",
+      "git_blob_sha": "e6639d91d276390d7f2eec08c85ebecef0d09353",
+      "bytes": 31596
+    },
+    {
+      "path": "webapp/components/ui/label.tsx",
+      "git_blob_sha": "84f8b0c70752350cd7066677f31d694ee0312503",
+      "bytes": 734
+    },
+    {
+      "path": "webapp/components/ui/light-rays.tsx",
+      "git_blob_sha": "ed80dcceb799b3ee598955103a0f0095bcb254b0",
+      "bytes": 3684
+    },
+    {
+      "path": "webapp/components/ui/magic-card.tsx",
+      "git_blob_sha": "c78a5f87ef5439eef73726ca4e2892049930101d",
+      "bytes": 2930
+    },
+    {
+      "path": "webapp/components/ui/marquee.tsx",
+      "git_blob_sha": "e0ad6fb96384ca105b3fe756a234af44a8313ee0",
+      "bytes": 1682
+    },
+    {
+      "path": "webapp/components/ui/menubar.tsx",
+      "git_blob_sha": "a655c39c9f24b8ae243b782e2347a40b6853a616",
+      "bytes": 8389
+    },
+    {
+      "path": "webapp/components/ui/navigation-menu.tsx",
+      "git_blob_sha": "06e5b7a37af6a990edb6d5e09d94422691cf5d5a",
+      "bytes": 6658
+    },
+    {
+      "path": "webapp/components/ui/pagination.tsx",
+      "git_blob_sha": "1dcfb0cc050c5f2bdd930522d627313d03d3690c",
+      "bytes": 2717
+    },
+    {
+      "path": "webapp/components/ui/particles.tsx",
+      "git_blob_sha": "5b9da79a1d96cd97d07e5d5d680dc69412970281",
+      "bytes": 8207
+    },
+    {
+      "path": "webapp/components/ui/popover.tsx",
+      "git_blob_sha": "9519cc488799a0b5ac420ac3e582283bf27154da",
+      "bytes": 2357
+    },
+    {
+      "path": "webapp/components/ui/progress.tsx",
+      "git_blob_sha": "bca13feb4b32bdc92fb07a729eef3249e8ddcc8d",
+      "bytes": 735
+    },
+    {
+      "path": "webapp/components/ui/radio-group.tsx",
+      "git_blob_sha": "ddae3d48ccaf96b594afd14df8831e24977e4eff",
+      "bytes": 1460
+    },
+    {
+      "path": "webapp/components/ui/rainbow-button.tsx",
+      "git_blob_sha": "2584812a0a5cb2a0b71a228f8b4da73e001b73e7",
+      "bytes": 3351
+    },
+    {
+      "path": "webapp/components/ui/resizable.tsx",
+      "git_blob_sha": "bbd25ccbbfb9d28412cb7069d9371cc8fa3b6fe3",
+      "bytes": 1815
+    },
+    {
+      "path": "webapp/components/ui/scroll-area.tsx",
+      "git_blob_sha": "0f873dcb529c5f2c785dc472fb27c13057a18d9d",
+      "bytes": 1639
+    },
+    {
+      "path": "webapp/components/ui/select.tsx",
+      "git_blob_sha": "fd01b7462695440bb4e3a46148d294fa32e80551",
+      "bytes": 6353
+    },
+    {
+      "path": "webapp/components/ui/separator.tsx",
+      "git_blob_sha": "4c24b2a884d7526faa0e527ddf84fb5beb99289b",
+      "bytes": 694
+    },
+    {
+      "path": "webapp/components/ui/sheet.tsx",
+      "git_blob_sha": "5963090576c441a3c5aab8e2fa34d7741a69801f",
+      "bytes": 4188
+    },
+    {
+      "path": "webapp/components/ui/shimmer-button.tsx",
+      "git_blob_sha": "131f73c851316ea43194f43c7344009f2849fd04",
+      "bytes": 2856
+    },
+    {
+      "path": "webapp/components/ui/sidebar.tsx",
+      "git_blob_sha": "6a5078343d17bcae61f6091ad83abd619f7363aa",
+      "bytes": 21651
+    },
+    {
+      "path": "webapp/components/ui/skeleton.tsx",
+      "git_blob_sha": "32ea0ef7fb4d4f7cb0affa7a3b329533b5f2af23",
+      "bytes": 276
+    },
+    {
+      "path": "webapp/components/ui/slider.tsx",
+      "git_blob_sha": "4b815ae64ea083fd064a551b9a175ce462fe29f0",
+      "bytes": 1991
+    },
+    {
+      "path": "webapp/components/ui/sonner.tsx",
+      "git_blob_sha": "9b20afe2e10fd9b94d1abc1ae732054b2fb9821c",
+      "bytes": 1034
+    },
+    {
+      "path": "webapp/components/ui/switch.tsx",
+      "git_blob_sha": "80dd45b2b046fe2bfd52a43cfcc10f1a974c9c1a",
+      "bytes": 1408
+    },
+    {
+      "path": "webapp/components/ui/table.tsx",
+      "git_blob_sha": "51b74dd52570a0268d78870be270dd460cef41db",
+      "bytes": 2448
+    },
+    {
+      "path": "webapp/components/ui/tabs.tsx",
+      "git_blob_sha": "7f73dcda316d3e3b34ef0f9c6b77fa47f7be503e",
+      "bytes": 3782
+    },
+    {
+      "path": "webapp/components/ui/textarea.tsx",
+      "git_blob_sha": "7f21b5e78a4c1c23bf41b6be206f3f81dc84fe99",
+      "bytes": 759
+    },
+    {
+      "path": "webapp/components/ui/toggle-group.tsx",
+      "git_blob_sha": "9894607b212ff7182bf2024f4262da03df0a8973",
+      "bytes": 2308
+    },
+    {
+      "path": "webapp/components/ui/toggle.tsx",
+      "git_blob_sha": "901c7f4459cef46eaf94a047162de434adf6b91f",
+      "bytes": 1565
+    },
+    {
+      "path": "webapp/components/ui/tooltip.tsx",
+      "git_blob_sha": "d80a14468c737298b56f404d5c1376f8a4dbe1e8",
+      "bytes": 1830
+    },
+    {
+      "path": "webapp/components/ui/tweet-card.tsx",
+      "git_blob_sha": "5621677ac4b5ea5e0222f8a3fc2295e9c6394654",
+      "bytes": 8852
+    },
+    {
+      "path": "webapp/config/data-table.ts",
+      "git_blob_sha": "8220f3377ec729d68249fb65dff8a7c85a851f17",
+      "bytes": 2686
+    },
+    {
+      "path": "webapp/content/docs/index.mdx",
+      "git_blob_sha": "1773942b0390b246302b00f32de9cf59402522fe",
+      "bytes": 197
+    },
+    {
+      "path": "webapp/content/docs/meta.json",
+      "git_blob_sha": "150e78f7a7d0f2bbf87c2c6063d7f47f5cbe0896",
+      "bytes": 44
+    },
+    {
+      "path": "webapp/eslint.config.mjs",
+      "git_blob_sha": "6996b474794a00b2e69da61129618317a957f65a",
+      "bytes": 1998
+    },
+    {
+      "path": "webapp/features/_shared/INDEX.md",
+      "git_blob_sha": "9059e057af305fdd21c450ffce66021c1e613412",
+      "bytes": 3313
+    },
+    {
+      "path": "webapp/features/_shared/components/app-sidebar-server.tsx",
+      "git_blob_sha": "4e2363afce3d8e04408fa68320e0b2048210c488",
+      "bytes": 543
+    },
+    {
+      "path": "webapp/features/_shared/components/app-sidebar.tsx",
+      "git_blob_sha": "1f1b361256437e927a4e49765f18be98ab23d26e",
+      "bytes": 5623
+    },
+    {
+      "path": "webapp/features/_shared/components/auth-button.tsx",
+      "git_blob_sha": "517c87f2b08d0c6803880400e06fdc4056e65137",
+      "bytes": 852
+    },
+    {
+      "path": "webapp/features/_shared/components/data-skeleton.tsx",
+      "git_blob_sha": "a948df9ccb07f504ff72644ea0fd4327ba333a7f",
+      "bytes": 2431
+    },
+    {
+      "path": "webapp/features/_shared/components/index.ts",
+      "git_blob_sha": "a797f4d49c99e3a243e5ea4cdc2d1f6e7fbd123c",
+      "bytes": 311
+    },
+    {
+      "path": "webapp/features/_shared/components/locale-switcher.tsx",
+      "git_blob_sha": "07df46b2591d42a07793cd21accc3c043d7efe5f",
+      "bytes": 2592
+    },
+    {
+      "path": "webapp/features/_shared/components/logout-button.tsx",
+      "git_blob_sha": "b16153176f4f41052e6e34697ec940b0713725e8",
+      "bytes": 239
+    },
+    {
+      "path": "webapp/features/_shared/components/plan-provider-server.tsx",
+      "git_blob_sha": "2c82c5b4d3a625bf08fba336e3b017cf66948a3c",
+      "bytes": 410
+    },
+    {
+      "path": "webapp/features/_shared/components/sidebar-skeleton.tsx",
+      "git_blob_sha": "5c933376958bdb301405344e5fc711dee7321bfd",
+      "bytes": 1584
+    },
+    {
+      "path": "webapp/features/_shared/components/theme-switcher.tsx",
+      "git_blob_sha": "f289c2e320e828264b07659f42fc3a828819b344",
+      "bytes": 817
+    },
+    {
+      "path": "webapp/features/_shared/components/turnstile.tsx",
+      "git_blob_sha": "2bb347288ca118e579f8ede919b944579d25bed1",
+      "bytes": 919
+    },
+    {
+      "path": "webapp/features/_shared/components/upgrade-dialog.tsx",
+      "git_blob_sha": "b8783904ed4464dec7a956db5e8da960d1252e53",
+      "bytes": 1155
+    },
+    {
+      "path": "webapp/features/_shared/components/upgrade-wall.tsx",
+      "git_blob_sha": "954e8bac7c354a6c6abcdce631cfdea297fabe72",
+      "bytes": 977
+    },
+    {
+      "path": "webapp/features/_shared/constants/index.ts",
+      "git_blob_sha": "93f4d7b9eb3475065b435807690a131919d8a239",
+      "bytes": 119
+    },
+    {
+      "path": "webapp/features/_shared/hooks/index.ts",
+      "git_blob_sha": "eac87502a759fc203c7fae207367f144497f6aaa",
+      "bytes": 230
+    },
+    {
+      "path": "webapp/features/_shared/hooks/use-filter-url.test.ts",
+      "git_blob_sha": "9f5668d2eae239e5c279d0fa65609309c4c49cb1",
+      "bytes": 4043
+    },
+    {
+      "path": "webapp/features/_shared/hooks/use-filter-url.ts",
+      "git_blob_sha": "65fd90d326e6302b0a5ce47f4cb5889cd1d6c165",
+      "bytes": 2278
+    },
+    {
+      "path": "webapp/features/_shared/hooks/use-infinite-scroll.test.ts",
+      "git_blob_sha": "34f0a456c9718161057262b6cb60fd70a901e0cf",
+      "bytes": 3388
+    },
+    {
+      "path": "webapp/features/_shared/hooks/use-infinite-scroll.ts",
+      "git_blob_sha": "12eea9171249402ac078dddf8fd1d6f8967e319e",
+      "bytes": 1503
+    },
+    {
+      "path": "webapp/features/_shared/hooks/use-upload-image.ts",
+      "git_blob_sha": "43fd36c4babff302135b7880acb232c8815841fe",
+      "bytes": 3437
+    },
+    {
+      "path": "webapp/features/_shared/providers/plan-provider.tsx",
+      "git_blob_sha": "ff9df277f87e3ff8f81458080c34dc38d509c023",
+      "bytes": 579
+    },
+    {
+      "path": "webapp/features/_shared/types/index.ts",
+      "git_blob_sha": "62a6dbb23693b8838175bdb547fd62ca985e7896",
+      "bytes": 827
+    },
+    {
+      "path": "webapp/features/_shared/types/pagination.ts",
+      "git_blob_sha": "6018bbd120e85705cb8842a24d9905e9a9d28a60",
+      "bytes": 454
+    },
+    {
+      "path": "webapp/features/_shared/utils/compress-avatar.ts",
+      "git_blob_sha": "210ddcb14b09521952aa7529368273490a0dbf00",
+      "bytes": 633
+    },
+    {
+      "path": "webapp/features/_shared/utils/compress-image.ts",
+      "git_blob_sha": "ffa378dc3829bf823648338062678853dd35e702",
+      "bytes": 3296
+    },
+    {
+      "path": "webapp/features/_shared/utils/index.ts",
+      "git_blob_sha": "329efffec722c064e6849a667d0db3e7650c2542",
+      "bytes": 1458
+    },
+    {
+      "path": "webapp/features/auth/_shared/components/auth-divider.tsx",
+      "git_blob_sha": "6bf68fd070efdfe3e2892cd57878d162b19e9346",
+      "bytes": 468
+    },
+    {
+      "path": "webapp/features/auth/_shared/components/google-oauth-button.tsx",
+      "git_blob_sha": "b132d5ebfe4c2ad5a2ca4791e85c3b8bec0ff2d9",
+      "bytes": 2002
+    },
+    {
+      "path": "webapp/features/auth/forgot-password/components/forgot-password-form.tsx",
+      "git_blob_sha": "66a0f9df146b5b43d15e1fa0fbfda90c969a32e6",
+      "bytes": 3298
+    },
+    {
+      "path": "webapp/features/auth/login/components/cached-login-ui.tsx",
+      "git_blob_sha": "ad30ffae2aa8cc56144d4d8586b64f8204012c91",
+      "bytes": 638
+    },
+    {
+      "path": "webapp/features/auth/login/components/dynamic-login-form.tsx",
+      "git_blob_sha": "c27d6c9f64771e6eaccc7750e10d3d9c0fcdb83e",
+      "bytes": 962
+    },
+    {
+      "path": "webapp/features/auth/login/components/index.ts",
+      "git_blob_sha": "b9be04dd9e0fb6ed1ddb4fd77839856c379eb8e5",
+      "bytes": 187
+    },
+    {
+      "path": "webapp/features/auth/login/components/login-form.tsx",
+      "git_blob_sha": "4cdecfc7cd202dd693b154b5612b904ad35c794a",
+      "bytes": 5537
+    },
+    {
+      "path": "webapp/features/auth/login/constants/index.ts",
+      "git_blob_sha": "3d38e2e964dde88d1a8c92156627a53153054069",
+      "bytes": 126
+    },
+    {
+      "path": "webapp/features/auth/login/hooks/index.ts",
+      "git_blob_sha": "aba30d9aeb798f05c2fa788a00bc3dfd919f0171",
+      "bytes": 114
+    },
+    {
+      "path": "webapp/features/auth/login/types/index.ts",
+      "git_blob_sha": "37326c67c14f782e237b0866aa330ba5a968ad06",
+      "bytes": 395
+    },
+    {
+      "path": "webapp/features/auth/sign-up-success/components/cached-sign-up-success-ui.tsx",
+      "git_blob_sha": "402bd9de49d095673ae7a4caf14d0d2917f4bb16",
+      "bytes": 1068
+    },
+    {
+      "path": "webapp/features/auth/sign-up-success/components/dynamic-sign-up-success.tsx",
+      "git_blob_sha": "f5cf19e2e9b066e2802cd2b0373ba59e5e1ad91b",
+      "bytes": 547
+    },
+    {
+      "path": "webapp/features/auth/sign-up-success/components/index.ts",
+      "git_blob_sha": "20e5d3d20b1f3bd94bf0a0bb3bf822561fbf91ae",
+      "bytes": 300
+    },
+    {
+      "path": "webapp/features/auth/sign-up-success/components/sign-up-success-content.tsx",
+      "git_blob_sha": "e8fa51e1159ccafeabb3546b8c912e34a0da4676",
+      "bytes": 7095
+    },
+    {
+      "path": "webapp/features/auth/sign-up-success/constants/index.ts",
+      "git_blob_sha": "d3888de2208b6ff6e33fc57409e4c5728d766b96",
+      "bytes": 297
+    },
+    {
+      "path": "webapp/features/auth/sign-up-success/hooks/index.ts",
+      "git_blob_sha": "6f875432091ee5247f94ff6f0a7c36c0ae690c31",
+      "bytes": 144
+    },
+    {
+      "path": "webapp/features/auth/sign-up-success/types/index.ts",
+      "git_blob_sha": "d8d592a3aa8e258335a9b75dc636337a9299e087",
+      "bytes": 583
+    },
+    {
+      "path": "webapp/features/auth/sign-up/components/cached-sign-up-ui.tsx",
+      "git_blob_sha": "cbd8159d7880cf4e5d5ba78b11c86e21e27f9610",
+      "bytes": 647
+    },
+    {
+      "path": "webapp/features/auth/sign-up/components/dynamic-sign-up-form.tsx",
+      "git_blob_sha": "22e3563c292003730c3f5e02119d9fd195e7219f",
+      "bytes": 856
+    },
+    {
+      "path": "webapp/features/auth/sign-up/components/index.ts",
+      "git_blob_sha": "9634d632fb5cee9ffbddcac1d72850c90d380e9e",
+      "bytes": 197
+    },
+    {
+      "path": "webapp/features/auth/sign-up/components/sign-up-form.tsx",
+      "git_blob_sha": "56b5e84a39b89df5e0bbfff80fa8066e231ed51e",
+      "bytes": 4960
+    },
+    {
+      "path": "webapp/features/auth/sign-up/constants/index.ts",
+      "git_blob_sha": "d1868dc9c72c6373f926c93ca0137666d4930e09",
+      "bytes": 132
+    },
+    {
+      "path": "webapp/features/auth/sign-up/hooks/index.ts",
+      "git_blob_sha": "6c388a8ac8ed39009e6ae033c87088b4a9653a86",
+      "bytes": 120
+    },
+    {
+      "path": "webapp/features/auth/sign-up/types/index.ts",
+      "git_blob_sha": "a8a14b90e92ff8840d896ed37ba599a5d6af810f",
+      "bytes": 408
+    },
+    {
+      "path": "webapp/features/auth/update-password/components/update-password-form.tsx",
+      "git_blob_sha": "b5b31aed97c574b828ee3a0ed6c43f83873390b8",
+      "bytes": 2430
+    },
+    {
+      "path": "webapp/features/credits/components/credit-balance.tsx",
+      "git_blob_sha": "87481a05d0ee43d8b4fdcfa62abee16ef7524d51",
+      "bytes": 1966
+    },
+    {
+      "path": "webapp/features/credits/hooks/index.ts",
+      "git_blob_sha": "184a5b4c2911c3ef37f1dfb2c2bd6fa68a55649c",
+      "bytes": 43
+    },
+    {
+      "path": "webapp/features/credits/hooks/use-credits.ts",
+      "git_blob_sha": "6121de49b74c53726020cff6d0e135b4e994af1e",
+      "bytes": 206
+    },
+    {
+      "path": "webapp/features/credits/index.ts",
+      "git_blob_sha": "b143e3a6ea941f027ea54c6f4637bb62e2ad4c7d",
+      "bytes": 97
+    },
+    {
+      "path": "webapp/features/marketing/components/bento-grid.tsx",
+      "git_blob_sha": "cb8658c8756692df42b7e71060bead5c190f7b2c",
+      "bytes": 64979
+    },
+    {
+      "path": "webapp/features/marketing/components/faq-section.tsx",
+      "git_blob_sha": "6438ac8ba7e4b330ca525ffbe9eb0c49b22edfcd",
+      "bytes": 3157
+    },
+    {
+      "path": "webapp/features/marketing/components/features-grid.tsx",
+      "git_blob_sha": "f2d91a05d85e79fabd69a84fad05d84872dc4277",
+      "bytes": 11020
+    },
+    {
+      "path": "webapp/features/marketing/components/final-cta.tsx",
+      "git_blob_sha": "0d511bef06b184264a46be401b4e464e830c686b",
+      "bytes": 4780
+    },
+    {
+      "path": "webapp/features/marketing/components/header.tsx",
+      "git_blob_sha": "3265f3e90ca492a63dd586b88c4d18213789f18b",
+      "bytes": 5666
+    },
+    {
+      "path": "webapp/features/marketing/components/hero.tsx",
+      "git_blob_sha": "b3540daea89f91ac02be0c0225ea628eda2ac141",
+      "bytes": 17149
+    },
+    {
+      "path": "webapp/features/marketing/components/how-it-works.tsx",
+      "git_blob_sha": "12b3c6c4f64f3219ff0b07600e7d459ec2abadd2",
+      "bytes": 4229
+    },
+    {
+      "path": "webapp/features/marketing/components/integration-illustration.tsx",
+      "git_blob_sha": "67da9e565f1bc34e836de8407e7b47c6ed891d49",
+      "bytes": 9771
+    },
+    {
+      "path": "webapp/features/marketing/components/pricing-section.tsx",
+      "git_blob_sha": "e21ca0a8db6a3ff5251b019f3d5939475824bd4c",
+      "bytes": 5298
+    },
+    {
+      "path": "webapp/features/marketing/components/problem-section.tsx",
+      "git_blob_sha": "b6ea15593d597366f2a1cf090847e1927c9ee2d7",
+      "bytes": 3241
+    },
+    {
+      "path": "webapp/features/marketing/components/protocol-section.tsx",
+      "git_blob_sha": "224cc0d52ccdbb135db6d8b2c0f6254d978667db",
+      "bytes": 29301
+    },
+    {
+      "path": "webapp/features/marketing/components/social-proof-bar.tsx",
+      "git_blob_sha": "8505c911176d009da3c5f41e17a2ff7e801bc578",
+      "bytes": 1254
+    },
+    {
+      "path": "webapp/features/marketing/components/solution-section.tsx",
+      "git_blob_sha": "7a27d365febffbf1eb4e8520b1f70597d8352345",
+      "bytes": 6913
+    },
+    {
+      "path": "webapp/features/marketing/components/testimonials.tsx",
+      "git_blob_sha": "75574388ceb954e4faf25f1364580c4e26d776cd",
+      "bytes": 4079
+    },
+    {
+      "path": "webapp/features/onboarding/actions.ts",
+      "git_blob_sha": "29941296ba50e15fa48d80726b2aa90c72314ffa",
+      "bytes": 1695
+    },
+    {
+      "path": "webapp/features/onboarding/components/index.ts",
+      "git_blob_sha": "d2970bc2fca7fe13969bfc76678eacade0ddf51c",
+      "bytes": 526
+    },
+    {
+      "path": "webapp/features/onboarding/components/onboarding-flow.tsx",
+      "git_blob_sha": "18ec3259955717f18e4f27bdb5ccc4cc608c2559",
+      "bytes": 4815
+    },
+    {
+      "path": "webapp/features/onboarding/components/onboarding-skeleton.tsx",
+      "git_blob_sha": "b1c6203ef694aad6d864976116de2c41855c8abe",
+      "bytes": 1178
+    },
+    {
+      "path": "webapp/features/onboarding/components/select-card.tsx",
+      "git_blob_sha": "fc9c7cb5d2052e7d3d1d5b41ec6e96b7c694d106",
+      "bytes": 1801
+    },
+    {
+      "path": "webapp/features/onboarding/components/step-avatar.tsx",
+      "git_blob_sha": "2f6b3365ecd95adc939f59026baef8b35ecc7427",
+      "bytes": 5514
+    },
+    {
+      "path": "webapp/features/onboarding/components/step-complete.tsx",
+      "git_blob_sha": "aee4aaaa6f6cba47ba7bb60e0917fcb286c444ec",
+      "bytes": 2135
+    },
+    {
+      "path": "webapp/features/onboarding/components/step-experience.tsx",
+      "git_blob_sha": "eff73004c2777d39ead98a35df4a8e8e697e2b4f",
+      "bytes": 1586
+    },
+    {
+      "path": "webapp/features/onboarding/components/step-interest.tsx",
+      "git_blob_sha": "9cc61e47993516e3619561f02e2f0e543fe45e10",
+      "bytes": 1556
+    },
+    {
+      "path": "webapp/features/onboarding/components/step-motivation.tsx",
+      "git_blob_sha": "31399b15647f17da05f0ade9cfca9619baffde1d",
+      "bytes": 1567
+    },
+    {
+      "path": "webapp/features/onboarding/components/step-name.tsx",
+      "git_blob_sha": "ef422239a756a052c61d022e7589ac08cb9338d6",
+      "bytes": 2096
+    },
+    {
+      "path": "webapp/features/onboarding/components/step-progress.tsx",
+      "git_blob_sha": "1e3469790277b2c395802a9b485212d7a3e555e4",
+      "bytes": 1818
+    },
+    {
+      "path": "webapp/features/onboarding/constants/index.ts",
+      "git_blob_sha": "b41899188617dbfcd03314bc4685531f84974b2b",
+      "bytes": 1666
+    },
+    {
+      "path": "webapp/features/onboarding/hooks/index.ts",
+      "git_blob_sha": "633110bb28f0c4109ec59f1cdfc373843817f0c1",
+      "bytes": 3339
+    },
+    {
+      "path": "webapp/features/onboarding/index.ts",
+      "git_blob_sha": "23d7bee492fbc6b0ffbdf9ff9ce2a735f46a8968",
+      "bytes": 479
+    },
+    {
+      "path": "webapp/features/onboarding/types/index.ts",
+      "git_blob_sha": "3454284d4d674db41c23e4194149b8ee1c34ce23",
+      "bytes": 1476
+    },
+    {
+      "path": "webapp/features/profile/components/index.ts",
+      "git_blob_sha": "41cb6872e6d73ea7321df51547a5230d506e212d",
+      "bytes": 147
+    },
+    {
+      "path": "webapp/features/profile/components/profile-page.tsx",
+      "git_blob_sha": "df8b4d1af86505e04711b350e10556ecb4009f40",
+      "bytes": 11753
+    },
+    {
+      "path": "webapp/features/profile/components/profile-server.tsx",
+      "git_blob_sha": "61fada5a0ae34f3584a1922eb7c88ad6d931487a",
+      "bytes": 1526
+    },
+    {
+      "path": "webapp/features/profile/components/profile-skeleton.tsx",
+      "git_blob_sha": "a4b0ac05de6ca1b27a76a7bccaf02627cb4dfe82",
+      "bytes": 1936
+    },
+    {
+      "path": "webapp/features/settings/actions.ts",
+      "git_blob_sha": "2bd15275b18dcd46a44e8baaa16a0f4c2526d500",
+      "bytes": 1518
+    },
+    {
+      "path": "webapp/features/settings/components/billing-section.tsx",
+      "git_blob_sha": "c8c318673a0087ff2b025458f75f0f55a6efb832",
+      "bytes": 279
+    },
+    {
+      "path": "webapp/features/settings/components/danger-zone-form.tsx",
+      "git_blob_sha": "cf83992f6700ea31b555c9a936c08266c9b51c8a",
+      "bytes": 428
+    },
+    {
+      "path": "webapp/features/settings/components/danger-zone-section.tsx",
+      "git_blob_sha": "dc16e8806faf4aad8260c6c2f381cee892143f9a",
+      "bytes": 345
+    },
+    {
+      "path": "webapp/features/settings/components/index.ts",
+      "git_blob_sha": "78bb0635d4ff7b75576d8766f5a8de4f838c51fa",
+      "bytes": 971
+    },
+    {
+      "path": "webapp/features/settings/components/notifications-form-server.tsx",
+      "git_blob_sha": "bfea73185a0af9d9d613809a58a428dd435b03bd",
+      "bytes": 456
+    },
+    {
+      "path": "webapp/features/settings/components/notifications-form.tsx",
+      "git_blob_sha": "ea9a912135a575996e59ae147393f6a0b6ac12db",
+      "bytes": 529
+    },
+    {
+      "path": "webapp/features/settings/components/preferences-form-server.tsx",
+      "git_blob_sha": "9be70f98305d6af5c3b85045e831400d564c9011",
+      "bytes": 427
+    },
+    {
+      "path": "webapp/features/settings/components/preferences-form.tsx",
+      "git_blob_sha": "e294c4089237a6c67ac5bb3a95748d49758c32b8",
+      "bytes": 484
+    },
+    {
+      "path": "webapp/features/settings/components/profile-form-server.tsx",
+      "git_blob_sha": "15ce93e677eb18f6c5665d5cc7ccbea0deefb12c",
+      "bytes": 394
+    },
+    {
+      "path": "webapp/features/settings/components/profile-form.tsx",
+      "git_blob_sha": "7cd7af1321ecf6c2dd6768d6628bb5178aa0ee89",
+      "bytes": 494
+    },
+    {
+      "path": "webapp/features/settings/components/settings-content-server.tsx",
+      "git_blob_sha": "c31d3cdb4c52a5f507ff0ba03f8518052f868ed9",
+      "bytes": 2271
+    },
+    {
+      "path": "webapp/features/settings/components/settings-error-boundary.tsx",
+      "git_blob_sha": "8ab338a30b7f28bd38485257fa6e8aa33e5bc276",
+      "bytes": 1128
+    },
+    {
+      "path": "webapp/features/settings/components/settings-form-skeleton.tsx",
+      "git_blob_sha": "9e247c0f3578c8110aada3063a850a114f44f219",
+      "bytes": 782
+    },
+    {
+      "path": "webapp/features/settings/components/settings-tabs.tsx",
+      "git_blob_sha": "5f6200ddef1e7352f5248fbe1d2fb09949c1682c",
+      "bytes": 350
+    },
+    {
+      "path": "webapp/features/settings/constants/index.ts",
+      "git_blob_sha": "acb2f24e278c83bb172c1a40b307dfb1c7fc3d5e",
+      "bytes": 1581
+    },
+    {
+      "path": "webapp/features/settings/data.ts",
+      "git_blob_sha": "cf2f57da9fa8d5bfb8fa4bbb8565d444dd533458",
+      "bytes": 820
+    },
+    {
+      "path": "webapp/features/settings/hooks/index.ts",
+      "git_blob_sha": "85234d76f94301dbe9a8c0b1d42a9e347a567fc5",
+      "bytes": 4640
+    },
+    {
+      "path": "webapp/features/settings/index.ts",
+      "git_blob_sha": "512f7d0dd688742ac9eda55761da0acc8d9ebe6f",
+      "bytes": 79
+    },
+    {
+      "path": "webapp/features/settings/types/index.ts",
+      "git_blob_sha": "059af47f0e873d178f2e328e215a6b87f46a73fb",
+      "bytes": 1917
+    },
+    {
+      "path": "webapp/features/setup/components/copy-command.tsx",
+      "git_blob_sha": "9b52c7114e126b8c20b474d94d6c0a954ab24a5f",
+      "bytes": 1404
+    },
+    {
+      "path": "webapp/features/setup/components/generated-commands.tsx",
+      "git_blob_sha": "02e78b375a5fb0ac9db9c732ec32e22ddbbbc1c0",
+      "bytes": 3048
+    },
+    {
+      "path": "webapp/features/setup/components/protected-setup-wizard.tsx",
+      "git_blob_sha": "0830c333a6447724e1e949ff1665a9894c47c475",
+      "bytes": 31511
+    },
+    {
+      "path": "webapp/features/setup/components/service-selector.tsx",
+      "git_blob_sha": "494447268f6e728d87cd68035d19729400fdbee5",
+      "bytes": 4327
+    },
+    {
+      "path": "webapp/features/setup/components/setup-checklist.tsx",
+      "git_blob_sha": "e8d304deaa8e78e226f1ab95465eaf63d0cc007a",
+      "bytes": 24605
+    },
+    {
+      "path": "webapp/features/setup/components/setup-header.tsx",
+      "git_blob_sha": "46c7a151fd10f6a5775755e4227c4cc97a21e347",
+      "bytes": 3579
+    },
+    {
+      "path": "webapp/features/setup/components/setup-wizard.tsx",
+      "git_blob_sha": "716231dcc43663106141ffec4ea3181ed8e2e2f3",
+      "bytes": 4421
+    },
+    {
+      "path": "webapp/features/setup/lib/generate-setup-prompt.ts",
+      "git_blob_sha": "dadedff94e1193edcf14a31516efbfddb5da13bf",
+      "bytes": 1618
+    },
+    {
+      "path": "webapp/features/stripe/components/billing-fallback.tsx",
+      "git_blob_sha": "165baa22ef6e4bef218c23a4d0ddf5325662edd6",
+      "bytes": 1783
+    },
+    {
+      "path": "webapp/features/stripe/components/billing-page.tsx",
+      "git_blob_sha": "be81e284083ab7f79a78e7d58afc6da5c6b9acc6",
+      "bytes": 10035
+    },
+    {
+      "path": "webapp/features/stripe/components/billing-with-claims.tsx",
+      "git_blob_sha": "96d06b5662aa334c445cd0dd90bd526f3eae3810",
+      "bytes": 400
+    },
+    {
+      "path": "webapp/features/stripe/components/checkout.tsx",
+      "git_blob_sha": "64a932b1abdbe4565b21bd002db29bdc71d43395",
+      "bytes": 2425
+    },
+    {
+      "path": "webapp/features/stripe/components/pricing-cards.tsx",
+      "git_blob_sha": "2d357bd49acf57a79d7f5f221417d5ba0a9aa699",
+      "bytes": 6962
+    },
+    {
+      "path": "webapp/features/stripe/components/pricing-table.tsx",
+      "git_blob_sha": "83f56012917766833db32048aad744a8369356c3",
+      "bytes": 4386
+    },
+    {
+      "path": "webapp/features/stripe/components/subscription-card.tsx",
+      "git_blob_sha": "435f25d71e4551ac059cab1541b0103c31cec066",
+      "bytes": 4512
+    },
+    {
+      "path": "webapp/features/stripe/components/tier-detail-dialog.tsx",
+      "git_blob_sha": "e516244120039b6bd680eb84a12df511ba8ab60b",
+      "bytes": 8711
+    },
+    {
+      "path": "webapp/features/stripe/hooks/index.ts",
+      "git_blob_sha": "13574fb9dbc450089b38e793be21adc68e390463",
+      "bytes": 153
+    },
+    {
+      "path": "webapp/features/stripe/hooks/use-stripe-mutations.ts",
+      "git_blob_sha": "eafeab1ba5486f238f3e62a0ff25b10037982a9c",
+      "bytes": 894
+    },
+    {
+      "path": "webapp/features/stripe/hooks/use-subscription.ts",
+      "git_blob_sha": "2080a9ef875007f94a0f4e8a2904aaf199247196",
+      "bytes": 215
+    },
+    {
+      "path": "webapp/features/stripe/index.ts",
+      "git_blob_sha": "7021b2eee4343f6a91b7494fa53995f3f91ec196",
+      "bytes": 363
+    },
+    {
+      "path": "webapp/frontend-refactoring.md",
+      "git_blob_sha": "f5695b48a61e1912699c4b128569e6dd35c7fe97",
+      "bytes": 11327
+    },
+    {
+      "path": "webapp/hooks/use-callback-ref.ts",
+      "git_blob_sha": "b47cbfc4d0c6b27b15861d1976cb5dbb31fb197c",
+      "bytes": 724
+    },
+    {
+      "path": "webapp/hooks/use-data-table.ts",
+      "git_blob_sha": "4b4ab5d26fe635eb7791032c31f7420cb81a52b1",
+      "bytes": 8809
+    },
+    {
+      "path": "webapp/hooks/use-debounced-callback.ts",
+      "git_blob_sha": "784524b2f94125b6a214122cd15004ac4df5b13d",
+      "bytes": 702
+    },
+    {
+      "path": "webapp/hooks/use-mobile.ts",
+      "git_blob_sha": "2b0fe1dfef3b17850bbac040665f514a8ffd0f15",
+      "bytes": 565
+    },
+    {
+      "path": "webapp/i18n/request.ts",
+      "git_blob_sha": "efe3a554807c6d19ffca40435c78fd8de47d0cbb",
+      "bytes": 794
+    },
+    {
+      "path": "webapp/i18n/routing.ts",
+      "git_blob_sha": "c70f1bc2cf1bcf64bf47b0a21c995cf58f383001",
+      "bytes": 130
+    },
+    {
+      "path": "webapp/instrumentation-client.ts",
+      "git_blob_sha": "23dbc634c392d20d948cfd0552e9b14536eaa9c9",
+      "bytes": 1746
+    },
+    {
+      "path": "webapp/instrumentation.ts",
+      "git_blob_sha": "313be70387f4a6047c4b8b586e3d0d6192b9f057",
+      "bytes": 131
+    },
+    {
+      "path": "webapp/lib/auth/refresh.ts",
+      "git_blob_sha": "299e578824f4dfb67a2720d236644dbf358e3a78",
+      "bytes": 475
+    },
+    {
+      "path": "webapp/lib/auth/utils.ts",
+      "git_blob_sha": "6874fa8d8ae2ff32300681a49cb020a6df6e060c",
+      "bytes": 777
+    },
+    {
+      "path": "webapp/lib/compose-refs.ts",
+      "git_blob_sha": "72732c26c6b0b89f5d8fe1267f3386f530342dc3",
+      "bytes": 1857
+    },
+    {
+      "path": "webapp/lib/credits/config.ts",
+      "git_blob_sha": "203b56f445ac8434c7255e0d10257247751bd348",
+      "bytes": 474
+    },
+    {
+      "path": "webapp/lib/credits/with-credits.ts",
+      "git_blob_sha": "9232f9f9eb286aabce00304faeb313fbeca43c20",
+      "bytes": 2468
+    },
+    {
+      "path": "webapp/lib/data-table.ts",
+      "git_blob_sha": "ac4c5aac8f9254fdb6dacf38c8172ae3462a7ecf",
+      "bytes": 2470
+    },
+    {
+      "path": "webapp/lib/format.ts",
+      "git_blob_sha": "0e6b885aa0e9908e3c892a07b2ad5f9e42fcdc88",
+      "bytes": 387
+    },
+    {
+      "path": "webapp/lib/inngest/client.ts",
+      "git_blob_sha": "b5dc33db0a3c5f38688e9ab9064a56e608b7fe35",
+      "bytes": 93
+    },
+    {
+      "path": "webapp/lib/inngest/functions/hello.ts",
+      "git_blob_sha": "a9c8f7d0da2f9e2d964fc574829ef56a4c862154",
+      "bytes": 544
+    },
+    {
+      "path": "webapp/lib/inngest/functions/index.ts",
+      "git_blob_sha": "15ea80fc004b20aa2fde7313e7e2b9d68db16ffd",
+      "bytes": 302
+    },
+    {
+      "path": "webapp/lib/inngest/functions/process-data.ts",
+      "git_blob_sha": "f56bb21ad1d558e47bf5fa2825905026e9528a04",
+      "bytes": 2284
+    },
+    {
+      "path": "webapp/lib/inngest/functions/user-delete.ts",
+      "git_blob_sha": "4eca0d39342a17ad0eb66f69a99ea00ae5babae3",
+      "bytes": 5838
+    },
+    {
+      "path": "webapp/lib/orpc/action-utils.ts",
+      "git_blob_sha": "dec28f222abb203aa3592ada0a40bf7a78052730",
+      "bytes": 1436
+    },
+    {
+      "path": "webapp/lib/orpc/analytics.ts",
+      "git_blob_sha": "74175baa4f3eaa6481d10b95af4328a9c025313d",
+      "bytes": 1684
+    },
+    {
+      "path": "webapp/lib/orpc/base.ts",
+      "git_blob_sha": "b9aead9147ab036acc879875082c82525a199f2e",
+      "bytes": 6081
+    },
+    {
+      "path": "webapp/lib/orpc/client.ts",
+      "git_blob_sha": "a877625cd4b6c66271aa2b27a37db5b205aaac1b",
+      "bytes": 1697
+    },
+    {
+      "path": "webapp/lib/orpc/context.ts",
+      "git_blob_sha": "6acd2745df5085dcf869eba32ed51f49c8c2ed54",
+      "bytes": 2727
+    },
+    {
+      "path": "webapp/lib/orpc/contracts/auth.contract.ts",
+      "git_blob_sha": "5e8c7ea27337968453491763a7c26e7b9745a6c9",
+      "bytes": 2565
+    },
+    {
+      "path": "webapp/lib/orpc/contracts/credits.contract.ts",
+      "git_blob_sha": "728e5cd7bd115426a57a0b57f35d12329fb4cf40",
+      "bytes": 448
+    },
+    {
+      "path": "webapp/lib/orpc/contracts/index.ts",
+      "git_blob_sha": "9dbe9471dc059db6c958c87e19b81f0c339bfba1",
+      "bytes": 748
+    },
+    {
+      "path": "webapp/lib/orpc/contracts/onboarding.contract.ts",
+      "git_blob_sha": "616804c1ffcd4b41428117889d6bf02b6596c338",
+      "bytes": 2180
+    },
+    {
+      "path": "webapp/lib/orpc/contracts/public.contract.ts",
+      "git_blob_sha": "c3c678285157f1b30b52cc721113623aa533deba",
+      "bytes": 547
+    },
+    {
+      "path": "webapp/lib/orpc/contracts/stripe.contract.ts",
+      "git_blob_sha": "60d7928a11858b4843417c93ffaa74a49bd79c9a",
+      "bytes": 2054
+    },
+    {
+      "path": "webapp/lib/orpc/contracts/user.contract.ts",
+      "git_blob_sha": "288d7b252ee421e354e7e707414926d57c364ae8",
+      "bytes": 817
+    },
+    {
+      "path": "webapp/lib/orpc/errors.ts",
+      "git_blob_sha": "6cf7d2749627efa7f86b87ec6eb602c3d3dc3521",
+      "bytes": 1466
+    },
+    {
+      "path": "webapp/lib/orpc/index.ts",
+      "git_blob_sha": "a4425a77bef14828abdc36d6f1dcf778f4f282c5",
+      "bytes": 1377
+    },
+    {
+      "path": "webapp/lib/orpc/procedures/auth.ts",
+      "git_blob_sha": "29f9c071102dd33fb5c6695a3f63c7de44bd1f8e",
+      "bytes": 6319
+    },
+    {
+      "path": "webapp/lib/orpc/procedures/credits.ts",
+      "git_blob_sha": "a092669d11d3d6690500622b1618b26d0e05f58c",
+      "bytes": 2530
+    },
+    {
+      "path": "webapp/lib/orpc/procedures/jobs.ts",
+      "git_blob_sha": "5c426d0c746ff31be30dc666cdb08644728fa15f",
+      "bytes": 1330
+    },
+    {
+      "path": "webapp/lib/orpc/procedures/onboarding.ts",
+      "git_blob_sha": "5d35f531f99cc2e340bd3f706fe0b8d301d98661",
+      "bytes": 8579
+    },
+    {
+      "path": "webapp/lib/orpc/procedures/protected.ts",
+      "git_blob_sha": "0530140f63241e168211d5a04a03b362189ea12e",
+      "bytes": 1904
+    },
+    {
+      "path": "webapp/lib/orpc/procedures/public.ts",
+      "git_blob_sha": "bbcfcca7e1cc71d5feb7ca2426d1b6126bbff66d",
+      "bytes": 769
+    },
+    {
+      "path": "webapp/lib/orpc/procedures/settings.ts",
+      "git_blob_sha": "8a93fe9dfeb0fc36f806007101791f038ccece4e",
+      "bytes": 9005
+    },
+    {
+      "path": "webapp/lib/orpc/procedures/stripe.ts",
+      "git_blob_sha": "c3ca3faffcd55d3ebbf327d6cc7bcd69e3839759",
+      "bytes": 9809
+    },
+    {
+      "path": "webapp/lib/orpc/rate-limit.ts",
+      "git_blob_sha": "e2aefd964b9abbee92f8ba33b16b893ab2547a4e",
+      "bytes": 2944
+    },
+    {
+      "path": "webapp/lib/orpc/ratelimit.ts",
+      "git_blob_sha": "f2a389bd207b4471b7cbc420b20a6ac3c1df48ad",
+      "bytes": 4160
+    },
+    {
+      "path": "webapp/lib/orpc/request-integrity.ts",
+      "git_blob_sha": "ad6d06cd880d90ad4197c9ded941e15f4fc60fe4",
+      "bytes": 3650
+    },
+    {
+      "path": "webapp/lib/orpc/resolve-user.ts",
+      "git_blob_sha": "6c8cdc5f30bcb765dea36577979313675c591dff",
+      "bytes": 794
+    },
+    {
+      "path": "webapp/lib/orpc/router.ts",
+      "git_blob_sha": "e9f478d7247cf9678b6277e45c07fe73e8e3b81b",
+      "bytes": 538
+    },
+    {
+      "path": "webapp/lib/orpc/schemas.ts",
+      "git_blob_sha": "3fd9aae29c3d243e03e5211d3bf8a67621281834",
+      "bytes": 5215
+    },
+    {
+      "path": "webapp/lib/orpc/sentry.ts",
+      "git_blob_sha": "da838c9b19f18bf9ec7ba0eebf8fe4808640ca8a",
+      "bytes": 2310
+    },
+    {
+      "path": "webapp/lib/orpc/server.ts",
+      "git_blob_sha": "324f6ce82416886c4acb6ec34acda59c07631036",
+      "bytes": 2074
+    },
+    {
+      "path": "webapp/lib/orpc/tracing.ts",
+      "git_blob_sha": "723746b37f2aa96e2595201037b825b30084fd86",
+      "bytes": 1984
+    },
+    {
+      "path": "webapp/lib/orpc/utils.ts",
+      "git_blob_sha": "7b1a1a56227e75eee0d88028ce624e4780073e96",
+      "bytes": 185
+    },
+    {
+      "path": "webapp/lib/otel/index.ts",
+      "git_blob_sha": "aaab5eada4439aa05dc2bf08d7a3ef37f63941af",
+      "bytes": 182
+    },
+    {
+      "path": "webapp/lib/otel/spans.ts",
+      "git_blob_sha": "e0cdaf645b0b50d9f33729a7ef888275f35598fd",
+      "bytes": 1640
+    },
+    {
+      "path": "webapp/lib/otel/tracer.ts",
+      "git_blob_sha": "beb8349d4e7a6f4ea8f64f6cf3a4925a824f5a81",
+      "bytes": 491
+    },
+    {
+      "path": "webapp/lib/parsers.ts",
+      "git_blob_sha": "ea4f0dd0cd4c5205c7f53c77056be57efc5ab5bb",
+      "bytes": 2467
+    },
+    {
+      "path": "webapp/lib/posthog/server.ts",
+      "git_blob_sha": "56b6ee1888859b5dfa2aed561da02f6d3cee271a",
+      "bytes": 954
+    },
+    {
+      "path": "webapp/lib/query/client.ts",
+      "git_blob_sha": "842a6a36ae50ca2b5659b07bc9724fb1202f0da4",
+      "bytes": 868
+    },
+    {
+      "path": "webapp/lib/query/provider.tsx",
+      "git_blob_sha": "fb048a3ad2953ec3c2c35eaf49855f225375dcbe",
+      "bytes": 664
+    },
+    {
+      "path": "webapp/lib/search-params/onboarding.ts",
+      "git_blob_sha": "97450df0316afc74df4f9181b58c80f0d3c320a3",
+      "bytes": 122
+    },
+    {
+      "path": "webapp/lib/search-params/settings.ts",
+      "git_blob_sha": "e5d5c78681954cbd9f05cbb3cba603ea15d312c2",
+      "bytes": 417
+    },
+    {
+      "path": "webapp/lib/source.ts",
+      "git_blob_sha": "ee9db86928894c0a518b0c7f59147d4e4a73f088",
+      "bytes": 191
+    },
+    {
+      "path": "webapp/lib/storage.ts",
+      "git_blob_sha": "f3016fd5ab650f3760a6c4283a3f8fe073d57a4c",
+      "bytes": 3883
+    },
+    {
+      "path": "webapp/lib/stripe/client.ts",
+      "git_blob_sha": "ab26d96eb29837fea07350f40bba7b1d61c9e63e",
+      "bytes": 203
+    },
+    {
+      "path": "webapp/lib/stripe/index.ts",
+      "git_blob_sha": "11fbf3feebc70dc7f3661d008358389a1529804e",
+      "bytes": 1596
+    },
+    {
+      "path": "webapp/lib/stripe/types.ts",
+      "git_blob_sha": "832eea951415e25ada8a6f70d93162a4525ff29e",
+      "bytes": 1013
+    },
+    {
+      "path": "webapp/lib/supabase/admin.ts",
+      "git_blob_sha": "0051ce46cdf1433dd851e144f05dcf5c26569651",
+      "bytes": 571
+    },
+    {
+      "path": "webapp/lib/supabase/cached-claims.ts",
+      "git_blob_sha": "da41eb42bc4e4a0ba0ffb5d2fdbfff41d0f13e65",
+      "bytes": 293
+    },
+    {
+      "path": "webapp/lib/supabase/client.ts",
+      "git_blob_sha": "e50bdf6889b8195c9b7a5daae9b5ff2d1a99b295",
+      "bytes": 222
+    },
+    {
+      "path": "webapp/lib/supabase/database.types.ts",
+      "git_blob_sha": "7680164eb3a1b51c69d1dc37fdd75242432712bf",
+      "bytes": 36233
+    },
+    {
+      "path": "webapp/lib/supabase/proxy.ts",
+      "git_blob_sha": "e5ee696fc85df4211a424094362a63c1ee9a0028",
+      "bytes": 3516
+    },
+    {
+      "path": "webapp/lib/supabase/server.ts",
+      "git_blob_sha": "06bab9d4259f760a7747587b6b0b5b5e84ebcf0f",
+      "bytes": 1257
+    },
+    {
+      "path": "webapp/lib/utils.ts",
+      "git_blob_sha": "4d55d907a6dc2ca9c1e6e8778e1181bb842470b6",
+      "bytes": 361
+    },
+    {
+      "path": "webapp/mdx-components.tsx",
+      "git_blob_sha": "83e13263decc593e300830e3e45facab7d21f9bb",
+      "bytes": 361
+    },
+    {
+      "path": "webapp/messages/en/common.json",
+      "git_blob_sha": "626e5a26218d1fb0d7f655885175082a2129bed8",
+      "bytes": 133
+    },
+    {
+      "path": "webapp/messages/en/locale-switcher.json",
+      "git_blob_sha": "4ef0a4f50c71ddc195f12c9bb64051b3d5fb7664",
+      "bytes": 137
+    },
+    {
+      "path": "webapp/messages/en/marketing.json",
+      "git_blob_sha": "8dd187b927fa78e5b4e7be4a5d9b5097a0121f44",
+      "bytes": 157
+    },
+    {
+      "path": "webapp/messages/index.ts",
+      "git_blob_sha": "629e3a45ccfc04af8dd5fe6fd1a63fe660327b49",
+      "bytes": 773
+    },
+    {
+      "path": "webapp/next.config.ts",
+      "git_blob_sha": "fa869d06b3331be2cdf0f464423477d6e5095cfc",
+      "bytes": 4024
+    },
+    {
+      "path": "webapp/package-lock.json",
+      "git_blob_sha": "712408556b2acc8cb21672e84c2b563f5d4c7f6c",
+      "bytes": 836548
+    },
+    {
+      "path": "webapp/package.json",
+      "git_blob_sha": "7a5c3b0638ccbf90cb427cf3e54707416dfaad44",
+      "bytes": 4445
+    },
+    {
+      "path": "webapp/playwright.config.ts",
+      "git_blob_sha": "97296529c326d9cfeca8e29296c66fed240bafd1",
+      "bytes": 3679
+    },
+    {
+      "path": "webapp/postcss.config.mjs",
+      "git_blob_sha": "79bcf135dc4391e8ff691d471c1fe46d10ff8329",
+      "bytes": 146
+    },
+    {
+      "path": "webapp/proxy.ts",
+      "git_blob_sha": "b53869032ece2b3699d13e66f72b34816f1e6cba",
+      "bytes": 643
+    },
+    {
+      "path": "webapp/sentry.edge.config.ts",
+      "git_blob_sha": "4954fdf9e931fa4d17c34c04c84e492a9c0bcc98",
+      "bytes": 843
+    },
+    {
+      "path": "webapp/sentry.server.config.ts",
+      "git_blob_sha": "67d65bfd5bea1dd7e7cd96d92b4dcf007b0e432a",
+      "bytes": 688
+    },
+    {
+      "path": "webapp/skills-lock.json",
+      "git_blob_sha": "075188456bdffd1ebdf2626e1247c64e6d5bc051",
+      "bytes": 230
+    },
+    {
+      "path": "webapp/source.config.ts",
+      "git_blob_sha": "30df196f0a2e3f051e7f2e73f2e3fd518cdca51c",
+      "bytes": 154
+    },
+    {
+      "path": "webapp/test-results-initial.txt",
+      "git_blob_sha": "ec875ec1217d648e12aec2b43bd6f8216e08234b",
+      "bytes": 140127
+    },
+    {
+      "path": "webapp/tests/e2e/auth-api.spec.ts",
+      "git_blob_sha": "a9fcd75e03a61fe3fbcb48875ef0dabdc19c536f",
+      "bytes": 3273
+    },
+    {
+      "path": "webapp/tests/e2e/auth-confirm-api.spec.ts",
+      "git_blob_sha": "0b16b04dddbf31e63d3ee11e019afd9c874268ed",
+      "bytes": 1801
+    },
+    {
+      "path": "webapp/tests/e2e/auth-oauth.spec.ts",
+      "git_blob_sha": "65bd821234398ed9349dcd7eb4d8a852dce9b032",
+      "bytes": 5628
+    },
+    {
+      "path": "webapp/tests/e2e/auth-pages.e2e.spec.ts",
+      "git_blob_sha": "1f221737a72437856c7cdbc7141960ee420841d2",
+      "bytes": 5787
+    },
+    {
+      "path": "webapp/tests/e2e/auth.setup.ts",
+      "git_blob_sha": "3c65752c88979538b9a795d4ddfd6b2a6aa6472a",
+      "bytes": 2975
+    },
+    {
+      "path": "webapp/tests/e2e/credits-api.spec.ts",
+      "git_blob_sha": "cafa78981137876453822c96be295f95aa31a6a1",
+      "bytes": 1147
+    },
+    {
+      "path": "webapp/tests/e2e/fixtures/auth.ts",
+      "git_blob_sha": "d9a34716a66aa1492b0662b8443626dac2cd3d3b",
+      "bytes": 4904
+    },
+    {
+      "path": "webapp/tests/e2e/fixtures/constants.ts",
+      "git_blob_sha": "c91019f199c6650efe88594b35eec4468b2e991e",
+      "bytes": 554
+    },
+    {
+      "path": "webapp/tests/e2e/global-setup.ts",
+      "git_blob_sha": "dca6c1fcfe008914d136a1a1e3dedcb271e3be44",
+      "bytes": 2146
+    },
+    {
+      "path": "webapp/tests/e2e/global-teardown.ts",
+      "git_blob_sha": "fd4df9be8eff7fee550fde56fe3ed361a4cf4bcd",
+      "bytes": 268
+    },
+    {
+      "path": "webapp/tests/e2e/jobs-api.spec.ts",
+      "git_blob_sha": "0365f0b632165bd189956eeae014a39539d92e70",
+      "bytes": 4443
+    },
+    {
+      "path": "webapp/tests/e2e/journeys/billing-flow.spec.ts",
+      "git_blob_sha": "696d9aa4b4051b38ec65138acc20db31651d21ea",
+      "bytes": 1352
+    },
+    {
+      "path": "webapp/tests/e2e/journeys/navigation.spec.ts",
+      "git_blob_sha": "7c19127d5791ffad87ee570e2fea46ad48022f05",
+      "bytes": 2173
+    },
+    {
+      "path": "webapp/tests/e2e/journeys/onboarding-flow.spec.ts",
+      "git_blob_sha": "e6874b17a5ef56e0f5536b2f962f9fb84ad1482d",
+      "bytes": 2175
+    },
+    {
+      "path": "webapp/tests/e2e/journeys/profile-update.spec.ts",
+      "git_blob_sha": "87fe16184658e8be0f7b99f2b3ef6b69684564ae",
+      "bytes": 2263
+    },
+    {
+      "path": "webapp/tests/e2e/marketing-pages.e2e.spec.ts",
+      "git_blob_sha": "9a9b7643d301aec63f3112c5cd163c5cd8698456",
+      "bytes": 2874
+    },
+    {
+      "path": "webapp/tests/e2e/onboarding-api.spec.ts",
+      "git_blob_sha": "1ced63dd7817ccb29c166f28ae2e3391ded3a9dd",
+      "bytes": 4089
+    },
+    {
+      "path": "webapp/tests/e2e/onboarding.spec.ts",
+      "git_blob_sha": "4197cc4910fbfb13be441687cb02adb4fe2f1b7c",
+      "bytes": 4588
+    },
+    {
+      "path": "webapp/tests/e2e/pages/BillingPage.ts",
+      "git_blob_sha": "f3bf5554e305967383013affac85c149bfb1aea1",
+      "bytes": 992
+    },
+    {
+      "path": "webapp/tests/e2e/pages/HomePage.ts",
+      "git_blob_sha": "3c128bd0771191f632a990d98df243bbf0f8775c",
+      "bytes": 724
+    },
+    {
+      "path": "webapp/tests/e2e/pages/OnboardingPage.ts",
+      "git_blob_sha": "4ce572c1d505b94d78a4d39c9777b5930d6ebb0b",
+      "bytes": 2512
+    },
+    {
+      "path": "webapp/tests/e2e/pages/ProfilePage.ts",
+      "git_blob_sha": "7efdb119152ac373ce54e7fcbf979cda369326e1",
+      "bytes": 1314
+    },
+    {
+      "path": "webapp/tests/e2e/protected-api.spec.ts",
+      "git_blob_sha": "126ffc71fd58b737258c6f56285bb5f5be441525",
+      "bytes": 1926
+    },
+    {
+      "path": "webapp/tests/e2e/protected-pages.e2e.spec.ts",
+      "git_blob_sha": "10de8f4380f6d15a8c396c8c73170b820110978b",
+      "bytes": 4199
+    },
+    {
+      "path": "webapp/tests/e2e/public-api.spec.ts",
+      "git_blob_sha": "fa590d6d9f6ed73a9c3827968c912f7b188cd177",
+      "bytes": 1695
+    },
+    {
+      "path": "webapp/tests/e2e/security.e2e.spec.ts",
+      "git_blob_sha": "4ea261cba5d16754a7f61abb3a689a2a0ccbebf9",
+      "bytes": 5952
+    },
+    {
+      "path": "webapp/tests/e2e/settings-api.spec.ts",
+      "git_blob_sha": "2faef3391b858efe4b4a07d571132964f2d3f89c",
+      "bytes": 5933
+    },
+    {
+      "path": "webapp/tests/e2e/settings.e2e.spec.ts",
+      "git_blob_sha": "931f8843465011f5e99bef6306762a53a0740adf",
+      "bytes": 7270
+    },
+    {
+      "path": "webapp/tests/e2e/stripe-api.spec.ts",
+      "git_blob_sha": "0901b725d3f37ce874aafb209b94953b229ea039",
+      "bytes": 2048
+    },
+    {
+      "path": "webapp/tests/e2e/stripe-writes-api.spec.ts",
+      "git_blob_sha": "31108799a6756c0da980614be4ff7c18c4bc1fe8",
+      "bytes": 2412
+    },
+    {
+      "path": "webapp/tests/setup.ts",
+      "git_blob_sha": "e87ca3f0a89f22b76733d66fbb5a3eb09ef79907",
+      "bytes": 160
+    },
+    {
+      "path": "webapp/tsconfig.json",
+      "git_blob_sha": "ee7d69588314944d35482ae7588ae856c5cc1fb8",
+      "bytes": 772
+    },
+    {
+      "path": "webapp/types/data-table.ts",
+      "git_blob_sha": "a9914adae097a93964d0bc1e4ccc90cff00783d6",
+      "bytes": 1562
+    },
+    {
+      "path": "webapp/vitest.config.ts",
+      "git_blob_sha": "b1e1d06aaf77e8007588dae552eecf72b1cd180c",
+      "bytes": 812
+    }
+  ],
+  "read_files": [
+    "LICENSE.md",
+    "README.md",
+    "webapp/package.json",
+    ".buildthisniw-manifest.json"
+  ],
+  "license_at_pin": "Proprietary; single-organization, one production application per purchased license; redistribution and competing template/framework-for-sale restrictions.",
+  "license_at_main": "Same restrictive text observed during this audit.",
+  "local_status": "Not cloned or installed. Only remote metadata and four file contents read.",
+  "coverage": "Complete remote path tree, selected file review; not a code audit of the 440 remote files."
+}

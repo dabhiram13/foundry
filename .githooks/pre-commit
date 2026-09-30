@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+python3 scripts/security_scan.py --staged

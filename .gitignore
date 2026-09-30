@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+node_modules/
+.env
+.env.*
+!.env.example
+.foundry/state/
+.foundry/install.json
+.foundry/update-conflicts/
+*.log
+coverage/
+.next/
+dist/
+build/

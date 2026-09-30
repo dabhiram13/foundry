@@ -1,0 +1,160 @@
+{
+  "root": "/Users/sridurga/.npm/_npx/76ffa31cfa7c7196/node_modules/buildthisnow",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 4105,
+      "sha256": "606b4aa8ff37982033b99838ef9e3c161951874f58ce936897f5f941d774a92d"
+    },
+    {
+      "path": "LICENSE.md",
+      "bytes": 1068,
+      "sha256": "371c794f6dee3035af6700d12845115fdda4350fb7b74919c94c2e38d5ecab19"
+    },
+    {
+      "path": "README.md",
+      "bytes": 18741,
+      "sha256": "54020899bc8541df5154313f426bba6c9a123ae9428245758b5a0d5bfc6d69fe"
+    },
+    {
+      "path": "bin/buildthisnow.js",
+      "bytes": 3614,
+      "sha256": "1fdb64b95e7eb19ec210aa63aa282db11b5d73476cdc423d812aec5b71d4e366"
+    },
+    {
+      "path": "lib/constants.js",
+      "bytes": 6394,
+      "sha256": "84b1b52d9d4647299a938c3bfd917b0c6873fa83ac85a16a08a279c0b165ce1c"
+    },
+    {
+      "path": "lib/diff.js",
+      "bytes": 2647,
+      "sha256": "7de09b725e44bb7052bd02882d33040defa79f6d92d35c026fc245d04aac6b3e"
+    },
+    {
+      "path": "lib/doctor.js",
+      "bytes": 4306,
+      "sha256": "7cccd5be7ea310a95a809bf8aeab345ddbb695f6c6b0bf0f0f6d2918b53b8a4a"
+    },
+    {
+      "path": "lib/init.js",
+      "bytes": 15888,
+      "sha256": "aa6693e24fa62e7872806cc475b5111e7a3d777e4dd1a52efe07f302d0ca4ae8"
+    },
+    {
+      "path": "lib/license-cmd.js",
+      "bytes": 1257,
+      "sha256": "3eed3d88702924c20410d01a9449be40ed90410541aabf5277e0674711da6ec9"
+    },
+    {
+      "path": "lib/license.js",
+      "bytes": 9841,
+      "sha256": "e0049919828d6d9ffb94ed071a9dd286269ffe7d715c8cbf37db36a4d2ae9f40"
+    },
+    {
+      "path": "lib/login-cmd.js",
+      "bytes": 2435,
+      "sha256": "7e31e182ba0e1fb2a82cf1d165f684ad66cb48445bf2a4bd9204cf73aaecdbe7"
+    },
+    {
+      "path": "lib/manifest.js",
+      "bytes": 2223,
+      "sha256": "7b2a2f14146208a09c9e839f8f355d72cf6d6925b73e28986c7a16418c37f912"
+    },
+    {
+      "path": "lib/payload.js",
+      "bytes": 7267,
+      "sha256": "f2068ca86921633400d1025e0083ef4e88ec13fe04f7560f9d7241930c92d4b3"
+    },
+    {
+      "path": "lib/plugin.js",
+      "bytes": 8379,
+      "sha256": "3d00d5a9a6454edaf1629cb62a36e063fcb92847c209009b907321a724387838"
+    },
+    {
+      "path": "lib/settings.js",
+      "bytes": 3702,
+      "sha256": "db30cbc13248e2e0b29f203063a72e97f5e2b206b48abe6698d27c13d8651ed5"
+    },
+    {
+      "path": "lib/templates/claude/_shared.md",
+      "bytes": 1558,
+      "sha256": "a91eb1d0c80c1fe146834e721fea777ffbe023536e8b6ddb6512ce2ce7db85d9"
+    },
+    {
+      "path": "lib/templates/claude/desktop.md",
+      "bytes": 1029,
+      "sha256": "20465aaedfa8890c8b9ee204271e3e3221e90a60e7fc1dec60d5d549540a7e60"
+    },
+    {
+      "path": "lib/templates/claude/mobile.md",
+      "bytes": 987,
+      "sha256": "e0f041c5078bd6a68cd674437e2e910903780c39fb58304349b6748630857aa7"
+    },
+    {
+      "path": "lib/templates/claude/web.md",
+      "bytes": 907,
+      "sha256": "6253e1cd989feff013ff6e2d3159980d33a758f547a1ccd89fa2d09b6beaceae"
+    },
+    {
+      "path": "lib/update.js",
+      "bytes": 22628,
+      "sha256": "f0870184b262ee04d31cbb0fafe514f5e9ea4ec7e98a664791359a4408afbc55"
+    },
+    {
+      "path": "lib/utils.js",
+      "bytes": 6452,
+      "sha256": "e96e6f67c0ba55b1cb75485fd4e0683156aeecf3a4361e033a52f9ac7356373d"
+    },
+    {
+      "path": "package.json",
+      "bytes": 918,
+      "sha256": "ab359ca2792e0c29b5976742d17e128ba48fb643bc502536c636e0cd4754ab46"
+    },
+    {
+      "path": "scripts/agent.sh",
+      "bytes": 5384,
+      "sha256": "9ab1f6b4d7c14c1515288770a19000659085a67aad3dcb09cb912707f220eeaf"
+    },
+    {
+      "path": "scripts/build-manifest.js",
+      "bytes": 4351,
+      "sha256": "7e97f1e5f7744c22d5d837847644bc7f37a8edfe77e4864a6896eb8e244d53c3"
+    },
+    {
+      "path": "scripts/eval-cross-harness.sh",
+      "bytes": 3636,
+      "sha256": "fa94e5e66ae355824ff9d475ef770826592838ed315889242f5f510943fb16a1"
+    },
+    {
+      "path": "scripts/gen-agents.sh",
+      "bytes": 28090,
+      "sha256": "ab7332c6f9cd59970bbd53b8d1a7dbe8adb83b4b0f29fed91718990546562b29"
+    },
+    {
+      "path": "scripts/lint-patterns.sh",
+      "bytes": 22756,
+      "sha256": "e768bce17c2476a0af41fe8fa15432b43aecd3284137e37408be1db4b07da56d"
+    },
+    {
+      "path": "scripts/release-payload.sh",
+      "bytes": 10166,
+      "sha256": "7d3f8d9a7432025a767f4de019b6f85d1834cc893e47a1b9310f038123513123"
+    },
+    {
+      "path": "scripts/security-scan-staged.sh",
+      "bytes": 10737,
+      "sha256": "ff07b6d905892e026431b53c66847796a5da734c5a8ddacd97f8eded3c4a031b"
+    },
+    {
+      "path": "scripts/send-report-email.sh",
+      "bytes": 2911,
+      "sha256": "6232fc573e757948c6b82375d030bedf4eee015c8e51c18d2b38d7577984ec98"
+    },
+    {
+      "path": "scripts/verify.sh",
+      "bytes": 11945,
+      "sha256": "49385593a6e46c0041ef5ebd67552c90bc34d98b6dc38157411962fab59138b0"
+    }
+  ]
+}

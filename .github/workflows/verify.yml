@@ -1,0 +1,20 @@
+name: Verify Product Foundry
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified 2026-09-29
+      - name: Behavior and runtime contracts
+        run: python3 -m unittest discover -s tests -v
+      - name: Independent application behavior
+        working-directory: examples/idea-board
+        run: python3 -m unittest test_app -v
+      - name: Native catalog integrity
+        run: python3 scripts/migrate-catalog.py --check
+      - name: Exact index secret scan
+        run: python3 scripts/security_scan.py --whole-tracked

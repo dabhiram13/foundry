@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="data:,">
+  <title>Idea board</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #22352d; background: #f5f4ee; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 740px; margin: 0 auto; padding: 56px 24px; }
+    .brand { display: flex; align-items: center; gap: 9px; font-size: .78rem; letter-spacing: .12em; font-weight: 700; text-transform: uppercase; }
+    .brand span { color: #466950; font-size: 1.4rem; }
+    h1 { margin: 34px 0 10px; font-size: clamp(2rem, 6vw, 3.2rem); letter-spacing: -.05em; line-height: 1.1; }
+    .intro { margin: 0 0 32px; color: #56645d; line-height: 1.6; }
+    form { padding: 24px; border: 1px solid #d4dcd1; border-radius: 16px; background: #fff; }
+    label { display: block; font-weight: 650; font-size: .9rem; }
+    .entry { display: flex; gap: 10px; margin-top: 10px; }
+    input[type="text"] { min-width: 0; flex: 1; width: 100%; border: 1px solid #9daea1; border-radius: 8px; padding: 12px; color: inherit; background: #fff; font: inherit; }
+    button { min-height: 44px; border: 1px solid transparent; border-radius: 8px; padding: 10px 16px; cursor: pointer; font: inherit; font-size: .9rem; font-weight: 600; color: #fff; background: #27543d; }
+    button:hover { background: #193d2a; }
+    button:disabled, input:disabled { cursor: wait; opacity: .65; }
+    :focus-visible { outline: 3px solid #357251; outline-offset: 3px; }
+    .hint { margin: 10px 0 0; color: #5d685f; font-size: .8rem; }
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 34px; }
+    h2 { font-size: 1.05rem; margin: 0; }
+    #count { color: #5d685f; font-size: .85rem; }
+    #status { min-height: 1.3em; margin: 12px 0; color: #56645d; font-size: .85rem; }
+    #error { padding: 16px; margin-top: 20px; border: 1px solid #dcaaa0; background: #fff2ee; border-radius: 10px; color: #8b2c22; }
+    #error p { margin: 0 0 12px; line-height: 1.5; }
+    #retry { border-color: #b97466; color: #8b2c22; background: transparent; }
+    #empty { text-align: center; padding: 38px 20px; border: 1px dashed #b8c5b7; border-radius: 12px; }
+    #empty p { color: #5d685f; font-size: .9rem; margin-bottom: 0; }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; padding: 14px 16px; background: #fff; border: 1px solid #d4dcd1; border-radius: 12px; }
+    .idea-label { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; min-height: 44px; cursor: pointer; }
+    input[type="checkbox"] { flex-shrink: 0; width: 20px; height: 20px; margin: 0; accent-color: #27543d; }
+    .idea-title { overflow-wrap: anywhere; line-height: 1.5; font-weight: 500; }
+    .done .idea-title { text-decoration: line-through; color: #65736a; }
+    .delete { background: transparent; color: #8b3a2e; padding: 10px; }
+    .delete:hover { background: #fff2ee; }
+    footer { margin-top: 32px; padding-top: 18px; border-top: 1px solid #d4dcd1; color: #5d685f; font-size: .78rem; line-height: 1.6; }
+    [hidden] { display: none !important; }
+    @media (max-width: 480px) {
+      main { padding: 28px 16px; }
+      form { padding: 18px; }
+      .entry { flex-direction: column; }
+      li { gap: 8px; padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand"><span aria-hidden="true">✳</span> A place to start</div>
+      <h1>Small ideas. Real possibilities.</h1>
+      <p class="intro">Give your next product idea a home. Capture it, make it happen, check it off.</p>
+    </header>
+    <form id="add-form">
+      <label for="title">Product idea</label>
+      <div class="entry">
+        <input id="title" name="title" type="text" required maxlength="200" aria-describedby="title-hint" placeholder="What would you like to build?" disabled>
+        <button id="add" type="submit" disabled>Add idea</button>
+      </div>
+      <p id="title-hint" class="hint">A name is enough. Up to 200 characters.</p>
+    </form>
+    <div id="error" role="alert" hidden>
+      <p id="error-message"></p>
+      <button id="retry" type="button">Refresh ideas</button>
+    </div>
+    <section aria-labelledby="ideas-heading" id="board" aria-busy="true">
+      <div class="section-heading"><h2 id="ideas-heading">Your ideas</h2><span id="count"></span></div>
+      <p id="status" role="status" aria-live="polite">Loading your ideas…</p>
+      <div id="empty" hidden><strong>A clean slate.</strong><p>Add your first idea above. It will be here when you come back.</p></div>
+      <ul id="ideas" aria-label="Saved product ideas"></ul>
+    </section>
+    <footer>Saved on this computer. No account needed.</footer>
+    <noscript><p>Enable JavaScript to add and manage ideas.</p></noscript>
+  </main>
+  <script>
+    const title = document.getElementById('title');
+    const list = document.getElementById('ideas');
+    const status = document.getElementById('status');
+    const error = document.getElementById('error');
+    let ideas = [];
+    let loaded = false;
+    let busy = false;
+
+    async function request(path = '', method = 'GET', data) {
+      let response;
+      try {
+        response = await fetch('/api/ideas' + path, {
+          method,
+          headers: data === undefined ? {} : {'Content-Type': 'application/json'},
+          body: data === undefined ? undefined : JSON.stringify(data)
+        });
+      } catch {
+        throw new Error('Could not reach the idea board. Check that the local server is running, then refresh ideas.');
+      }
+      if (response.status === 204) return;
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Something went wrong. Please try again.');
+      return result;
+    }
+
+    function setBusy(value) {
+      busy = value;
+      document.getElementById('board').setAttribute('aria-busy', String(value));
+      document.querySelectorAll('input, button').forEach(control => { control.disabled = value; });
+      title.disabled = value || !loaded;
+      document.getElementById('add').disabled = value || !loaded;
+    }
+
+    function render() {
+      list.replaceChildren();
+      document.getElementById('empty').hidden = !loaded || ideas.length > 0;
+      document.getElementById('count').textContent = loaded ? `${ideas.filter(idea => idea.done).length} of ${ideas.length} done` : '';
+      for (const idea of ideas) {
+        const row = document.createElement('li');
+        row.classList.toggle('done', idea.done);
+        const label = document.createElement('label');
+        label.className = 'idea-label';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `idea-${idea.id}`;
+        checkbox.checked = idea.done;
+        checkbox.setAttribute('aria-label', `Done: ${idea.title}`);
+        checkbox.addEventListener('change', () => perform('Saving change…', async () => {
+          const updated = await request(`/${idea.id}`, 'PATCH', {done: checkbox.checked});
+          ideas = ideas.map(item => item.id === idea.id ? updated : item);
+          return updated.done ? 'Idea marked done.' : 'Idea marked open.';
+        }, checkbox.id));
+        const text = document.createElement('span');
+        text.className = 'idea-title';
+        text.textContent = idea.title;
+        label.append(checkbox, text);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'delete';
+        remove.textContent = 'Delete';
+        remove.setAttribute('aria-label', `Delete ${idea.title}`);
+        remove.addEventListener('click', () => {
+          const next = ideas.find(item => item.id !== idea.id);
+          perform('Deleting idea…', async () => {
+            await request(`/${idea.id}`, 'DELETE');
+            ideas = ideas.filter(item => item.id !== idea.id);
+            return 'Idea deleted.';
+          }, next ? `idea-${next.id}` : 'title');
+        });
+        row.append(label, remove);
+        list.append(row);
+      }
+    }
+
+    async function perform(message, action, focusId) {
+      if (busy) return;
+      error.hidden = true;
+      status.textContent = message;
+      setBusy(true);
+      try {
+        status.textContent = await action();
+      } catch (exception) {
+        document.getElementById('error-message').textContent = exception.message;
+        error.hidden = false;
+        status.textContent = 'Could not finish. Please try again.';
+      } finally {
+        render();
+        setBusy(false);
+        if (focusId) document.getElementById(focusId)?.focus();
+      }
+    }
+
+    function load() {
+      return perform('Loading your ideas…', async () => {
+        ideas = (await request()).ideas;
+        loaded = true;
+        return ideas.length ? 'Your ideas are up to date.' : 'Ready for your first idea.';
+      });
+    }
+
+    title.addEventListener('input', () => title.setCustomValidity(''));
+    document.getElementById('add-form').addEventListener('submit', event => {
+      event.preventDefault();
+      if (!title.value.trim()) {
+        title.setCustomValidity('Give your idea a name.');
+        title.reportValidity();
+        return;
+      }
+      perform('Saving your idea…', async () => {
+        const saved = await request('', 'POST', {title: title.value.trim()});
+        ideas.unshift(saved);
+        loaded = true;
+        title.value = '';
+        return 'Idea saved.';
+      }, 'title');
+    });
+    document.getElementById('retry').addEventListener('click', load);
+    load();
+  </script>
+</body>
+</html>

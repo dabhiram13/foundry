@@ -1,0 +1,9 @@
+{
+  "name": "Product Foundry",
+  "checks": [
+    {"name": "behavior", "command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"], "cwd": ".", "timeout": 180, "required": true},
+    {"name": "catalog", "command": ["python3", "scripts/migrate-catalog.py", "--check"], "cwd": ".", "timeout": 120, "required": true},
+    {"name": "example-app", "command": ["python3", "-m", "unittest", "test_app", "-v"], "cwd": "examples/idea-board", "timeout": 60, "required": true},
+    {"name": "secrets", "command": ["python3", "scripts/security_scan.py", "--whole-tracked"], "cwd": ".", "timeout": 120, "required": true}
+  ]
+}

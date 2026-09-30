@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.155.1",
+  "thread_id": "01a0f00a-5aac-7cd2-ade5-85d7ea80cd81",
+  "configured_model_inherited": true,
+  "sandbox": "workspace-write",
+  "hook_trust_bypass": false,
+  "delegation": "Native delegation unavailable in this CLI run; implemented directly. Optional role configurations statically validated.",
+  "source_project": "/private/tmp/product-foundry-live-yis17y1b",
+  "browser_checks": [
+    "add idea",
+    "mark done",
+    "reload persistence",
+    "delete synthetic test idea",
+    "blank-title validation",
+    "connection error state retains draft",
+    "restart server and refresh recovery"
+  ],
+  "live_generated_artifacts": {
+    "app.py": "3117fe18fd7f78b7c1b1b40c382cc34e50a0012acfdf735b7bf0afe3ddfbcc9e",
+    "index.html": "77c0d04de2780d60a6292d5246f9132b5ca68c15c4f5d9a50a90301e9df83304",
+    "test_app.py": "d3c3b8473104296a9a1297b27a5892a6e351cd6360c29a1324eeee50b5c8a4f3",
+    "README.md": "c58f7b4a80c09b1b502a0a8c1f8fb0ca8f347f8a7f5cad2094e68b103f98b06b"
+  },
+  "packaged_artifacts": {
+    "index.html": "77c0d04de2780d60a6292d5246f9132b5ca68c15c4f5d9a50a90301e9df83304",
+    "README.md": "69fb8a8db60fed3eb798e5e5e67affaee58bc3457b1b3dbf7397e8873b635f50",
+    ".gitignore": "471a2500c0ba762351a02d8544bb9df7b0e11633e15288c9698c9acf116b4db5",
+    "app.py": "3117fe18fd7f78b7c1b1b40c382cc34e50a0012acfdf735b7bf0afe3ddfbcc9e",
+    "SPEC.md": "0ae67c7aa79da4952633cfb184118c825532243fb164946f84a659df778cc68d",
+    "test_app.py": "d3c3b8473104296a9a1297b27a5892a6e351cd6360c29a1324eeee50b5c8a4f3"
+  }
+}

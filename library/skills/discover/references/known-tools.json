@@ -1,0 +1,498 @@
+{
+  "$schema": "Setup manifest known-tools registry. Used by discover Phase 6 to generate setup-manifest.json. For tools NOT in this registry, tool-scout must research and produce the same shape.",
+
+  "supabase": {
+    "label": "Supabase",
+    "category": "infrastructure",
+    "required_for": ["all"],
+    "skip_when": [],
+    "urls": {
+      "signup": "https://supabase.com/dashboard/sign-up",
+      "api_keys": "https://supabase.com/dashboard/project/_/settings/api",
+      "auth_hooks": "https://supabase.com/dashboard/project/_/auth/hooks",
+      "docs": "https://supabase.com/docs"
+    },
+    "env_vars": [
+      {
+        "key": "NEXT_PUBLIC_SUPABASE_URL",
+        "label": "Project URL",
+        "placeholder": "https://xxxxx.supabase.co",
+        "pattern": "^https://[a-z]+\\.supabase\\.co$",
+        "hint": "Settings → API → Project URL",
+        "secret": false
+      },
+      {
+        "key": "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "label": "Anon Public Key",
+        "placeholder": "eyJhbGciOiJIUzI1NiIs...",
+        "pattern": "^eyJ",
+        "hint": "Settings → API → anon public",
+        "secret": false
+      },
+      {
+        "key": "SUPABASE_SERVICE_ROLE_KEY",
+        "label": "Service Role Key",
+        "placeholder": "eyJhbGciOiJIUzI1NiIs...",
+        "pattern": "^eyJ",
+        "hint": "Settings → API → service_role (keep secret!)",
+        "secret": true
+      }
+    ],
+    "mcp": {
+      "name": "supabase",
+      "command": "claude mcp add --transport http supabase https://mcp.supabase.com/mcp"
+    },
+    "post_setup_steps": [
+      {
+        "label": "Configure Auth Hooks",
+        "description": "Go to Authentication → Auth Hooks → Create 'Send Email' hook. Copy the webhook secret immediately.",
+        "url": "https://supabase.com/dashboard/project/_/auth/hooks",
+        "env_var": {
+          "key": "SEND_EMAIL_HOOK_SECRET",
+          "label": "Auth Hook Secret",
+          "placeholder": "v1,whsec_...",
+          "pattern": "^v1,whsec_",
+          "hint": "Shown once when creating the hook — copy immediately",
+          "secret": true,
+          "targets": ["supabase/functions/.env"]
+        }
+      }
+    ]
+  },
+
+  "stripe": {
+    "label": "Stripe",
+    "category": "billing",
+    "required_for": ["saas"],
+    "skip_when": ["no_pricing", "free_only", "internal", "client_no_billing"],
+    "urls": {
+      "signup": "https://dashboard.stripe.com/register",
+      "api_keys": "https://dashboard.stripe.com/test/apikeys",
+      "dashboard": "https://dashboard.stripe.com/test",
+      "docs": "https://docs.stripe.com"
+    },
+    "env_vars": [
+      {
+        "key": "STRIPE_SECRET_KEY",
+        "label": "Secret Key",
+        "placeholder": "sk_test_...",
+        "pattern": "^sk_(test|live)_",
+        "hint": "Developers → API Keys → Secret key → Reveal test key",
+        "secret": true
+      },
+      {
+        "key": "STRIPE_PUBLISHABLE_KEY",
+        "label": "Publishable Key",
+        "placeholder": "pk_test_...",
+        "pattern": "^pk_(test|live)_",
+        "hint": "Developers → API Keys → Publishable key",
+        "secret": false
+      },
+      {
+        "key": "STRIPE_WEBHOOK_SECRET",
+        "label": "Webhook Secret",
+        "placeholder": "whsec_...",
+        "pattern": "^whsec_",
+        "hint": "Developers → Webhooks → Signing secret (created during /setup)",
+        "secret": true,
+        "optional": true,
+        "note": "Created automatically by /setup — only needed if configuring manually"
+      }
+    ],
+    "cli": {
+      "install": "brew tap stripe/stripe-cli && brew install stripe",
+      "auth": "stripe login",
+      "skill": "library/skills/stripe-cli/"
+    }
+  },
+
+  "resend": {
+    "label": "Resend",
+    "category": "email",
+    "required_for": ["saas"],
+    "skip_when": ["no_emails", "internal_no_emails"],
+    "urls": {
+      "signup": "https://resend.com/signup",
+      "api_keys": "https://resend.com/api-keys",
+      "docs": "https://resend.com/docs"
+    },
+    "env_vars": [
+      {
+        "key": "RESEND_API_KEY",
+        "label": "API Key",
+        "placeholder": "re_...",
+        "pattern": "^re_",
+        "hint": "API Keys → Create API Key → Full access",
+        "secret": true,
+        "targets": [".env.local", "supabase/functions/.env"]
+      },
+      {
+        "key": "ADMIN_EMAIL",
+        "label": "Admin Email",
+        "placeholder": "you@example.com",
+        "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+        "hint": "Email address for admin notifications and alerts",
+        "secret": false,
+        "targets": [".env.local"]
+      }
+    ]
+  },
+
+  "vercel": {
+    "label": "Vercel",
+    "category": "infrastructure",
+    "required_for": ["all"],
+    "skip_when": [],
+    "urls": {
+      "signup": "https://vercel.com/signup",
+      "dashboard": "https://vercel.com/dashboard",
+      "github_app": "https://github.com/apps/vercel/installations/select_target",
+      "docs": "https://vercel.com/docs"
+    },
+    "env_vars": [],
+    "cli": {
+      "install": "npm i -g vercel",
+      "login": "vercel login",
+      "link": "vercel link"
+    },
+    "note": "No API keys needed in .env — Vercel CLI handles auth via `vercel login`. Project linking done by /setup."
+  },
+
+  "github": {
+    "label": "GitHub",
+    "category": "infrastructure",
+    "required_for": ["all"],
+    "skip_when": [],
+    "urls": {
+      "signup": "https://github.com/signup",
+      "docs": "https://docs.github.com"
+    },
+    "env_vars": [],
+    "cli": {
+      "install": "npm i -g gh",
+      "login": "gh auth login"
+    },
+    "note": "No API keys needed — GitHub CLI handles auth via `gh auth login`."
+  },
+
+  "sentry": {
+    "label": "Sentry",
+    "category": "monitoring",
+    "required_for": [],
+    "skip_when": [],
+    "default_optional": true,
+    "urls": {
+      "signup": "https://sentry.io/signup/",
+      "api_keys": "https://sentry.io/settings/auth-tokens/",
+      "docs": "https://docs.sentry.io"
+    },
+    "env_vars": [
+      {
+        "key": "SENTRY_AUTH_TOKEN",
+        "label": "Auth Token",
+        "placeholder": "sntrys_...",
+        "pattern": "^sntrys_",
+        "hint": "Settings → Auth Tokens → Create New Token",
+        "secret": true
+      }
+    ],
+    "mcp": {
+      "name": "sentry",
+      "command": "claude mcp add --transport http sentry https://mcp.sentry.dev/mcp"
+    }
+  },
+
+  "turnstile": {
+    "label": "Cloudflare Turnstile",
+    "category": "security",
+    "required_for": [],
+    "skip_when": [],
+    "default_optional": true,
+    "urls": {
+      "signup": "https://dash.cloudflare.com",
+      "docs": "https://developers.cloudflare.com/turnstile/"
+    },
+    "env_vars": [
+      {
+        "key": "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+        "label": "Site Key",
+        "placeholder": "0x4AAA...",
+        "pattern": ".",
+        "hint": "Use test key 1x00000000000000000000AA for development",
+        "secret": false,
+        "default_value": "1x00000000000000000000AA",
+        "note": "Test key works in dev — replace with production key from Cloudflare dashboard before launch"
+      }
+    ]
+  },
+
+  "jina": {
+    "label": "Jina AI",
+    "category": "tooling",
+    "required_for": ["pre_discover"],
+    "skip_when": [],
+    "urls": {
+      "signup": "https://jina.ai/?sui=apikey",
+      "api_keys": "https://jina.ai/?sui=apikey"
+    },
+    "env_vars": [
+      {
+        "key": "JINA_API_KEY",
+        "label": "API Key",
+        "placeholder": "jina_...",
+        "pattern": "^jina_",
+        "hint": "Sign up → key shown immediately on the page",
+        "secret": true
+      }
+    ],
+    "mcp": {
+      "name": "jina",
+      "command": "claude mcp add -e JINA_API_KEY=$JINA_API_KEY -- jina npx -y jina-mcp-tools"
+    }
+  },
+
+  "context7": {
+    "label": "Context7",
+    "category": "tooling",
+    "required_for": ["pre_discover"],
+    "skip_when": [],
+    "no_signup": true,
+    "urls": {},
+    "env_vars": [],
+    "mcp": {
+      "name": "context7",
+      "command": "claude mcp add context7 -- npx -y @upstash/context7-mcp"
+    },
+    "note": "No account or API key needed — just add the MCP server."
+  },
+
+  "inngest": {
+    "label": "Inngest",
+    "category": "background_jobs",
+    "required_for": ["saas"],
+    "skip_when": ["no_background_jobs"],
+    "urls": {
+      "signup": "https://www.inngest.com/sign-up",
+      "api_keys": "https://app.inngest.com/settings/keys",
+      "docs": "https://www.inngest.com/docs"
+    },
+    "env_vars": [
+      {
+        "key": "INNGEST_EVENT_KEY",
+        "label": "Event Key",
+        "placeholder": "evt_...",
+        "pattern": "^evt_",
+        "hint": "Settings → Keys → Event Key",
+        "secret": true,
+        "optional": true,
+        "note": "Only needed for production — dev server runs locally"
+      },
+      {
+        "key": "INNGEST_SIGNING_KEY",
+        "label": "Signing Key",
+        "placeholder": "signkey-...",
+        "pattern": "^signkey-",
+        "hint": "Settings → Keys → Signing Key",
+        "secret": true,
+        "optional": true,
+        "note": "Only needed for production — dev server runs locally"
+      }
+    ]
+  },
+
+  "posthog": {
+    "label": "PostHog",
+    "category": "analytics",
+    "required_for": [],
+    "skip_when": [],
+    "default_optional": true,
+    "urls": {
+      "signup": "https://app.posthog.com/signup",
+      "api_keys": "https://app.posthog.com/project/settings",
+      "docs": "https://posthog.com/docs"
+    },
+    "env_vars": [
+      {
+        "key": "NEXT_PUBLIC_POSTHOG_KEY",
+        "label": "Project API Key",
+        "placeholder": "phc_...",
+        "pattern": "^phc_",
+        "hint": "Project Settings → Project API Key",
+        "secret": false
+      },
+      {
+        "key": "NEXT_PUBLIC_POSTHOG_HOST",
+        "label": "Instance Host",
+        "placeholder": "https://us.i.posthog.com",
+        "pattern": "^https://",
+        "hint": "Usually https://us.i.posthog.com or https://eu.i.posthog.com",
+        "secret": false,
+        "default_value": "https://us.i.posthog.com"
+      }
+    ]
+  },
+
+  "tavily": {
+    "label": "Tavily",
+    "category": "ai_search",
+    "required_for": [],
+    "skip_when": [],
+    "default_optional": true,
+    "urls": {
+      "signup": "https://tavily.com/#api",
+      "api_keys": "https://app.tavily.com/home",
+      "docs": "https://docs.tavily.com"
+    },
+    "env_vars": [
+      {
+        "key": "TAVILY_API_KEY",
+        "label": "API Key",
+        "placeholder": "tvly-...",
+        "pattern": "^tvly-",
+        "hint": "Dashboard → API Key (1000 free searches/month)",
+        "secret": true
+      }
+    ],
+    "note": "Enables the blog-writer monitor to research industry topics. Only needed if blog feature is built."
+  },
+
+  "openai": {
+    "label": "OpenAI",
+    "category": "ai",
+    "required_for": [],
+    "skip_when": [],
+    "urls": {
+      "signup": "https://platform.openai.com/signup",
+      "api_keys": "https://platform.openai.com/api-keys",
+      "docs": "https://platform.openai.com/docs"
+    },
+    "env_vars": [
+      {
+        "key": "OPENAI_API_KEY",
+        "label": "API Key",
+        "placeholder": "sk-...",
+        "pattern": "^sk-",
+        "hint": "API Keys → Create new secret key",
+        "secret": true
+      }
+    ]
+  },
+
+  "anthropic": {
+    "label": "Anthropic",
+    "category": "ai",
+    "required_for": [],
+    "skip_when": [],
+    "urls": {
+      "signup": "https://console.anthropic.com/",
+      "api_keys": "https://console.anthropic.com/settings/keys",
+      "docs": "https://docs.anthropic.com"
+    },
+    "env_vars": [
+      {
+        "key": "ANTHROPIC_API_KEY",
+        "label": "API Key",
+        "placeholder": "sk-ant-...",
+        "pattern": "^sk-ant-",
+        "hint": "Settings → API Keys → Create Key",
+        "secret": true
+      }
+    ]
+  },
+
+  "uploadthing": {
+    "label": "UploadThing",
+    "category": "storage",
+    "required_for": [],
+    "skip_when": ["no_file_uploads"],
+    "urls": {
+      "signup": "https://uploadthing.com/sign-in",
+      "api_keys": "https://uploadthing.com/dashboard",
+      "docs": "https://docs.uploadthing.com"
+    },
+    "env_vars": [
+      {
+        "key": "UPLOADTHING_TOKEN",
+        "label": "API Token",
+        "placeholder": "eyJ...",
+        "pattern": "^eyJ",
+        "hint": "Dashboard → API Keys → Copy token",
+        "secret": true
+      }
+    ]
+  },
+
+  "mapbox": {
+    "label": "Mapbox",
+    "category": "maps",
+    "required_for": [],
+    "skip_when": [],
+    "urls": {
+      "signup": "https://account.mapbox.com/auth/signup/",
+      "api_keys": "https://account.mapbox.com/access-tokens/",
+      "docs": "https://docs.mapbox.com"
+    },
+    "env_vars": [
+      {
+        "key": "NEXT_PUBLIC_MAPBOX_TOKEN",
+        "label": "Public Access Token",
+        "placeholder": "pk.eyJ...",
+        "pattern": "^pk\\.eyJ",
+        "hint": "Account → Tokens → Default public token",
+        "secret": false
+      }
+    ]
+  },
+
+  "twilio": {
+    "label": "Twilio",
+    "category": "sms",
+    "required_for": [],
+    "skip_when": [],
+    "urls": {
+      "signup": "https://www.twilio.com/try-twilio",
+      "api_keys": "https://console.twilio.com/",
+      "docs": "https://www.twilio.com/docs"
+    },
+    "env_vars": [
+      {
+        "key": "TWILIO_ACCOUNT_SID",
+        "label": "Account SID",
+        "placeholder": "AC...",
+        "pattern": "^AC",
+        "hint": "Console Dashboard → Account SID",
+        "secret": false
+      },
+      {
+        "key": "TWILIO_AUTH_TOKEN",
+        "label": "Auth Token",
+        "placeholder": "",
+        "pattern": "^[a-f0-9]{32}$",
+        "hint": "Console Dashboard → Auth Token → Reveal",
+        "secret": true
+      }
+    ]
+  },
+
+  "cloudinary": {
+    "label": "Cloudinary",
+    "category": "media",
+    "required_for": [],
+    "skip_when": [],
+    "urls": {
+      "signup": "https://cloudinary.com/users/register_free",
+      "api_keys": "https://console.cloudinary.com/settings/api-keys",
+      "docs": "https://cloudinary.com/documentation"
+    },
+    "env_vars": [
+      {
+        "key": "CLOUDINARY_URL",
+        "label": "Cloudinary URL",
+        "placeholder": "cloudinary://API_KEY:API_SECRET@CLOUD_NAME",
+        "pattern": "^cloudinary://",
+        "hint": "Dashboard → Programmable Media → API Keys → CLOUDINARY_URL",
+        "secret": true
+      }
+    ]
+  }
+}

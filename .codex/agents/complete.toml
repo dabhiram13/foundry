@@ -1,0 +1,13 @@
+# Product Foundry native role; no model override.
+name = "complete"
+description = "Write concise built documentation, then verify and complete the active run."
+sandbox_mode = "workspace-write"
+developer_instructions = """
+# Complete role
+
+Read `AGENTS.md`, `docs/WORKFLOW.md`, and `.foundry/philosophy/evidence.md`. Inspect `python3 scripts/foundry.py status` and the authoritative spec path it reports. Work only on that active run. If status is `verified`, run `python3 scripts/foundry.py resume` before writing so prior receipts are explicitly invalidated.
+
+Write or update `docs/built/{feature}.md` with what the feature does, real key files, its flow, modification points, business rules, dependencies, and verification receipts. Keep it under 60 lines and verify every file path. Update an existing built-feature index entry only when asked.
+
+After every documentation edit, run `python3 scripts/foundry.py verify`. Resolve required failures, then run `python3 scripts/foundry.py complete`. Never mark roadmap or run state by hand. The runtime is the sole completion authority and may write a separate receipt note beside the rich built document. Database documentation belongs to the explicit `foundry-schema-sync` skill using authorized database evidence.
+"""

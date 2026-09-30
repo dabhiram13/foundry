@@ -1,0 +1,390 @@
+{
+  "supplied_skills_lock": {
+    "version": 2,
+    "note": "One entry per top-level skill directory under .claude/skills/ (find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md). `source` is \"owned\" when no external-origin signal exists in the tree, otherwise the most specific origin the repo actually records \u2014 a GitHub owner/repo where one is written down, otherwise the literal author/origin label from the skill's own frontmatter or README. `ref` and `path` are absent everywhere because no upstream commit, tag or subdirectory is recorded anywhere in this repo; they are omitted rather than invented, so no entry here can be re-resolved by fetch yet. `computedHash` is carried forward from the previous lock and is an integrity hash of the local copy only. `references[]` pins vendored subtrees inside an owned router skill. No content hashes: the 0.1-era hashing algorithm was never recorded, so a hash cannot be recomputed or checked; provenance is source + evidence.",
+    "skills": [
+      {
+        "name": "agent-browser",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "ai-sdk",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "ai-seo",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "analytics-integration",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "blog-writer",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree; written against this kit's own surface (docs/project/*, webapp/.env, the blog_posts table, the /monitor cron). Moved from .agents/skills/blog-writer in Phase 8d."
+      },
+      {
+        "name": "browser-debugging",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)",
+        "references": [
+          {
+            "path": "references/a11y-debugging",
+            "source": "chromedevtools/chrome-devtools-mcp",
+            "evidence": "previous skills-lock.json entry `a11y-debugging`",
+            "computedHash": "0cfdaa59d1a21f94509d2633a81735f57812c06661b1645a7a7b9dc778e6e0f7"
+          },
+          {
+            "path": "references/chrome-devtools",
+            "source": "chromedevtools/chrome-devtools-mcp",
+            "evidence": "previous skills-lock.json entry `chrome-devtools`",
+            "computedHash": "9bf87c1640e0d5ff76bdaabeb9d66ae00f526e72f9a5c3a010062a4e7d31626e"
+          },
+          {
+            "path": "references/debug-optimize-lcp",
+            "source": "chromedevtools/chrome-devtools-mcp",
+            "evidence": "previous skills-lock.json entry `debug-optimize-lcp`",
+            "computedHash": "dd3ee7c42f0f4c5c12f852188ad7f04ca4289129dc5e3d9bd0cc25e3f2e4c68c"
+          }
+        ]
+      },
+      {
+        "name": "canary-watch",
+        "source": "ECC",
+        "evidence": "frontmatter `origin: ECC` (.claude/skills/canary-watch/SKILL.md:7) \u2014 an origin label, not a resolvable GitHub slug"
+      },
+      {
+        "name": "claude-api",
+        "source": "third-party",
+        "evidence": "Apache-2.0 LICENSE.txt shipped beside SKILL.md; no copyright holder or upstream named anywhere in the tree"
+      },
+      {
+        "name": "codebase-navigation",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "codebase-onboarding",
+        "source": "ECC",
+        "evidence": "frontmatter `origin: ECC` (.claude/skills/codebase-onboarding/SKILL.md:8)"
+      },
+      {
+        "name": "copywriting",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "create-skill",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "customer-billing-ops",
+        "source": "ECC",
+        "evidence": "frontmatter `origin: ECC` (.claude/skills/customer-billing-ops/SKILL.md:8)"
+      },
+      {
+        "name": "debugger-detective",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "deploy-verify",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "develop-and-deploy",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)",
+        "references": [
+          {
+            "path": "references/deployment-patterns",
+            "source": "ECC",
+            "evidence": "frontmatter `origin: ECC`"
+          },
+          {
+            "path": "references/docker-deployment",
+            "source": "pluginagentmarketplace/custom-plugin-nodejs",
+            "evidence": "previous skills-lock.json entry `docker-deployment`",
+            "computedHash": "759bb4f2c4b03b2add707bc60427c39a766a83857049187e57bb2751d2b7f8ba"
+          },
+          {
+            "path": "references/docker-deployment/references/docker-patterns",
+            "source": "ECC",
+            "evidence": "frontmatter `origin: ECC`"
+          },
+          {
+            "path": "references/secure-vps-deploy/references/firewall-configuration",
+            "source": "mikr13/secure-server-setup-skills",
+            "evidence": "previous skills-lock.json entry `firewall-configuration`; frontmatter `metadata.author: secure-server-skill`",
+            "computedHash": "dbfaa0c498e79e646aba61d19f9fd4a9464134dc948ef7417bf56a035dcaa5a0"
+          },
+          {
+            "path": "references/secure-vps-deploy/references/nginx-configuration",
+            "source": "aj-geddes/useful-ai-prompts",
+            "evidence": "previous skills-lock.json entry `nginx-configuration`",
+            "computedHash": "30535fb54fb19ddcbad3697da291fbd22ea60f0c245d55be41ae9043f68bfd4a"
+          },
+          {
+            "path": "references/secure-vps-deploy/references/ssh-hardening",
+            "source": "secure-server-skill",
+            "evidence": "frontmatter `license: MIT` + `metadata.author: secure-server-skill`"
+          },
+          {
+            "path": "references/vercel-cli/references/vercel-cli-with-tokens",
+            "source": "vercel",
+            "evidence": "frontmatter `metadata.author: vercel`"
+          }
+        ]
+      },
+      {
+        "name": "discover",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)",
+        "references": [
+          {
+            "path": "references/project-discovery",
+            "source": "owned",
+            "evidence": "no external-origin signal in the tree; the five-persona roster and question frameworks the discover flows load. Folded in from .agents/skills/project-discovery in Phase 8d."
+          }
+        ]
+      },
+      {
+        "name": "documentation-lookup",
+        "source": "ECC",
+        "evidence": "frontmatter `origin: ECC` (.claude/skills/documentation-lookup/SKILL.md:7)"
+      },
+      {
+        "name": "email-sequence",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "feature-code-review",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "feature-quality",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "find-skills",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "fix-test",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "frontend-design",
+        "source": "third-party",
+        "evidence": "Apache-2.0 LICENSE.txt shipped beside SKILL.md; no copyright holder or upstream named anywhere in the tree"
+      },
+      {
+        "name": "git-workflow",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "humanizer",
+        "source": "blader/humanizer",
+        "evidence": "README.md:11 `git clone https://github.com/blader/humanizer.git`"
+      },
+      {
+        "name": "inngest",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "landing-page-copywriter",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "marketing-psychology",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "next-best-practices",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "nextjs-seo",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body). Moved from .agents/skills/nextjs-seo in Phase 8d."
+      },
+      {
+        "name": "orpc-fullstack",
+        "source": "owned",
+        "evidence": "rewritten from scratch in Phase 8b against `webapp/lib/orpc/**` and `docs/orpc/`; the vendored body (author stephen-golban) and its `references/REFERENCE.md` were deleted"
+      },
+      {
+        "name": "payment-processing",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "payments-reference",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "payments-verification",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "posthog-analytics",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "project-setup",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "project-tool-docs",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "react-email",
+        "source": "Resend",
+        "evidence": "frontmatter `license: MIT` + `metadata.author: Resend` (SKILL.md:7-9); vendor name only, no repo named"
+      },
+      {
+        "name": "repo-scan",
+        "source": "haibindev/repo-scan",
+        "evidence": "frontmatter `origin: community` (SKILL.md:8) plus SKILL.md:82 `https://github.com/haibindev/repo-scan`"
+      },
+      {
+        "name": "search",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "sentry-cli",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "seo-audit",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "session-management",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "shadcn-ui",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "stripe-best-practices",
+        "source": "stripe/ai",
+        "evidence": "carried forward from the previous skills-lock.json entry of the same name"
+      },
+      {
+        "name": "stripe-cli",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "supabase-extract-jwt",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "supabase-postgres-best-practices",
+        "source": "supabase",
+        "evidence": "frontmatter `license: MIT` + `metadata.author: supabase` (SKILL.md:7-9)"
+      },
+      {
+        "name": "svg-logo-designer",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "tailwind-design-system",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "tailwindcss-animations",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "testing",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "trace-to-skill",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "typescript-pro",
+        "source": "jeffallan/claude-skills",
+        "evidence": "webapp/skills-lock.json (folded in here) plus frontmatter `metadata.author: https://github.com/Jeffallan` (SKILL.md:9)"
+      },
+      {
+        "name": "ui-ux-pro-max",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)"
+      },
+      {
+        "name": "upgrade-stripe",
+        "source": "stripe/ai",
+        "evidence": "carried forward from the previous skills-lock.json entry of the same name"
+      },
+      {
+        "name": "vercel-react-best-practices",
+        "source": "Vercel Engineering",
+        "evidence": "AGENTS.md:1-5 `React Best Practices / Version 0.1.0 / Vercel Engineering / January 2026`"
+      },
+      {
+        "name": "web-crawling",
+        "source": "owned",
+        "evidence": "no external-origin signal in the tree (no author/origin/source frontmatter, no lock entry, no vendored-from claim in the body)",
+        "references": [
+          {
+            "path": "references/firecrawl",
+            "source": "firecrawl/cli",
+            "evidence": "previous skills-lock.json entry `firecrawl`",
+            "computedHash": "a256ac70fb21fac608ded68a4dd94948a658533b6ef6fb2e0e8a8eb5c48a766b"
+          },
+          {
+            "path": "references/firecrawl-crawl",
+            "source": "firecrawl/cli",
+            "evidence": "previous skills-lock.json entry `firecrawl-crawl`",
+            "computedHash": "bf3882a8c3d9f1c4caf4b487b81f925f8986f5c98d28326e74c71dd8cd5faf70"
+          }
+        ]
+      },
+      {
+        "name": "webapp-testing",
+        "source": "third-party",
+        "evidence": "Apache-2.0 LICENSE.txt shipped beside SKILL.md; no copyright holder or upstream named anywhere in the tree"
+      }
+    ]
+  },
+  "attribution_note": "This records supplied metadata, not independently verified source pins. Missing origins are incomplete attribution. Original copyright and license files retained in each bundle. Adapted copies canonical here; complete original in upstream archive."
+}

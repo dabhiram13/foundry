@@ -1,0 +1,748 @@
+{
+  "scope": "Syntax and integrity only; no vendor script, application, agent, integration, hook or CI execution",
+  "checks": [
+    {
+      "path": ".agents/reference/claude-settings.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/scripts/codex-monitor-run.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/agent-browser/templates/authenticated-session.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/agent-browser/templates/capture-workflow.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/agent-browser/templates/form-automation.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/ai-seo/evals/evals.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/blog-writer/scripts/get-recent-posts.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/blog-writer/scripts/notify-admin.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/blog-writer/scripts/save-post.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/copywriting/evals/evals.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/develop-and-deploy/references/docker-deployment/scripts/helper.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/develop-and-deploy/references/secure-vps-deploy/references/firewall-configuration/scripts/setup-firewall.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/develop-and-deploy/references/secure-vps-deploy/references/nginx-configuration/scripts/validate-api.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/develop-and-deploy/references/secure-vps-deploy/references/secure-vps-setup/scripts/verify_setup.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/develop-and-deploy/references/secure-vps-deploy/references/ssh-hardening/scripts/generate-ssh-keys.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/develop-and-deploy/references/secure-vps-deploy/references/ssh-hardening/scripts/setup-ssh-hardening.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/develop-and-deploy/references/secure-vps-deploy/scripts/render-nginx-site.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/develop-and-deploy/references/secure-vps-deploy/scripts/vps-preflight.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/discover/references/known-tools.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/email-sequence/evals/evals.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/search/scripts/search.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/seo-audit/evals/evals.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/testing/scripts/start-test-stack.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/ui-ux-pro-max/scripts/core.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/ui-ux-pro-max/scripts/design_system.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/ui-ux-pro-max/scripts/search.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/webapp-testing/examples/console_logging.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/webapp-testing/examples/element_discovery.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/webapp-testing/examples/static_html_automation.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".agents/skills/webapp-testing/scripts/with_server.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/.claude-plugin/plugin.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/.manifest.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/auto-format.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/brief-budget.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/guardrails.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/harness-root.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/hooks.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/license-notice.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/orchestrator-init.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/persistent-build.js",
+      "check": "node --check",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/pre-compact-save.js",
+      "check": "node --check",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/progress-track.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/skill-activate.js",
+      "check": "node --check",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/skill-activation-aliases.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/subagent-prime.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/suggest-compact.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/trace-emit.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/verdict-gate.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/verify-deliverables.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/hooks/verify-stop.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/scripts/claude-monitor-run.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/settings.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/agent-browser/templates/authenticated-session.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/agent-browser/templates/capture-workflow.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/agent-browser/templates/form-automation.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/ai-seo/evals/evals.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/blog-writer/scripts/get-recent-posts.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/blog-writer/scripts/notify-admin.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/blog-writer/scripts/save-post.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/copywriting/evals/evals.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/develop-and-deploy/references/docker-deployment/scripts/helper.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/develop-and-deploy/references/secure-vps-deploy/references/firewall-configuration/scripts/setup-firewall.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/develop-and-deploy/references/secure-vps-deploy/references/nginx-configuration/scripts/validate-api.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/develop-and-deploy/references/secure-vps-deploy/references/secure-vps-setup/scripts/verify_setup.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/develop-and-deploy/references/secure-vps-deploy/references/ssh-hardening/scripts/generate-ssh-keys.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/develop-and-deploy/references/secure-vps-deploy/references/ssh-hardening/scripts/setup-ssh-hardening.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/develop-and-deploy/references/secure-vps-deploy/scripts/render-nginx-site.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/develop-and-deploy/references/secure-vps-deploy/scripts/vps-preflight.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/discover/references/known-tools.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/email-sequence/evals/evals.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/search/scripts/search.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/seo-audit/evals/evals.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/testing/scripts/start-test-stack.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/ui-ux-pro-max/scripts/core.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/ui-ux-pro-max/scripts/design_system.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/ui-ux-pro-max/scripts/search.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/webapp-testing/examples/console_logging.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/webapp-testing/examples/element_discovery.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/webapp-testing/examples/static_html_automation.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/skills/webapp-testing/scripts/with_server.py",
+      "check": "Python AST parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/state/install.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".claude/state/manifest.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/api-tester.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/architect.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/backend-evaluator.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/backend.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/build-fixer.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/complete.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/connector.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/critic.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/db-architect.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/design-evaluator.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/designer.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/discovery-critic.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/flow-tester.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/logo-designer.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/market-researcher.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/perf-tester.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/planner.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/quality-gate.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/security-auditor.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/sentry-analyst.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/skill-scout.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/slop-cleaner.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/social-signal.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/spec-critic.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/tool-scout.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/trend-validator.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/ts-expert.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/agents/ux-critic.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/config.toml",
+      "check": "TOML parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".codex/hooks.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": ".githooks/pre-commit",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": "package-lock.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": "package.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": "scripts/lint-patterns.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": "scripts/security-scan-staged.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": "scripts/send-report-email.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": "scripts/verify.sh",
+      "check": "bash -n",
+      "ok": true,
+      "error": null
+    },
+    {
+      "path": "skills-lock.json",
+      "check": "JSON parse",
+      "ok": true,
+      "error": null
+    }
+  ],
+  "counts": {
+    "JSON parse": 22,
+    "bash -n": 48,
+    "Python AST parse": 18,
+    "node --check": 3,
+    "TOML parse": 29
+  },
+  "failures": [],
+  "changed_since_initial_inventory": [],
+  "manifests": [
+    {
+      "path": ".claude/.manifest.json",
+      "entries": 1332,
+      "missing": [],
+      "modified": []
+    },
+    {
+      "path": ".claude/state/manifest.json",
+      "entries": 1332,
+      "missing": [],
+      "modified": []
+    }
+  ]
+}

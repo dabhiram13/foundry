@@ -1,6 +1,9 @@
 # Playwright Reference
 
-## Install
+Use the project's installed Playwright version and existing configuration. Add or upgrade packages
+only when the task explicitly requires setup and the owner authorizes the dependency change.
+
+## Install (only when setup is requested)
 
 ```bash
 npm i -D @playwright/test @axe-core/playwright
@@ -23,7 +26,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [['html'], ['json', { outputFile: 'test-results/playwright-report.json' }]],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -91,16 +94,14 @@ export const test = base.extend<Fixtures>({
 export { expect } from '@playwright/test';
 ```
 
-## Network Mocking
+## Third-party boundary control
+
+Keep owned application flows real. Route interception is useful for deterministic failure states or
+unavailable third-party systems; scope it to the exact external URL and assert the contract.
 
 ```typescript
-// Mock API failure
-await page.route('**/api/users', route =>
-  route.fulfill({ status: 500, body: JSON.stringify({ error: 'fail' }) })
-);
-
-// Mock Stripe
-await page.route('**/api/stripe/**', route =>
+// Isolate a third-party sandbox that is not part of the behavior under test.
+await page.route('https://payments.example.test/**', route =>
   route.fulfill({ status: 200, body: JSON.stringify({ status: 'succeeded' }) })
 );
 
@@ -147,6 +148,7 @@ npx playwright test --shard=4/4
 ```bash
 npx playwright test --headed          # See browser
 npx playwright test --debug           # Step debugger
+npx playwright test path/to/spec --trace on --repeat-each=5
 npx playwright show-report            # HTML report
 ```
 

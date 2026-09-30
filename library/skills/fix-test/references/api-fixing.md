@@ -1,6 +1,9 @@
 # API Fixing Reference
 
-API failures mean a backend endpoint returned an unexpected response: wrong status code, missing validation, incorrect data shape, auth issues. Usually contained to a single procedure file.
+API failures mean a backend endpoint returned an unexpected response: wrong status code, missing validation, incorrect data shape, or auth issues. Follow the trace and route registration; the root cause may cross middleware, handler, storage, or test setup.
+
+The oRPC, Zod, and Supabase names below are conditional examples. Apply them only when the target
+project uses that stack; otherwise use its actual router, validator, auth, and persistence layers.
 
 ## Diagnosis by symptom
 
@@ -34,6 +37,9 @@ API failures mean a backend endpoint returned an unexpected response: wrong stat
 - Common: procedure returns full object, client expects just an ID (or vice versa)
 
 ## Where to look
+
+The following is an illustrative oRPC/Supabase layout. Use it only when those paths exist; otherwise
+locate the equivalent router, auth boundary, handler, and data client in the target repository.
 
 ```
 webapp/lib/orpc/
@@ -112,6 +118,6 @@ return post.title
 
 ## After fixing
 
-Check that your fix follows:
+When these project-local references exist and match the stack, check that your fix follows:
 - `.foundry/references/source-docs/patterns/backend/orpc.md` — procedure patterns, middleware, error handling
 - `.foundry/references/source-docs/patterns/testing/api-contracts.md` — how API tests validate endpoints

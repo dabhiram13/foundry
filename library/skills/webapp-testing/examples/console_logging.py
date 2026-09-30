@@ -1,4 +1,4 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 # Example: Capturing console logs during browser automation
 
@@ -19,11 +19,12 @@ with sync_playwright() as p:
 
     # Navigate to page
     page.goto(url)
-    page.wait_for_load_state('networkidle')
+    # Replace with the actual user-visible state that proves this route is ready.
+    expect(page.get_by_role('heading', name='Home')).to_be_visible()
 
     # Interact with the page (triggers console logs)
-    page.click('text=Dashboard')
-    page.wait_for_timeout(1000)
+    page.get_by_role('link', name='Dashboard').click()
+    page.wait_for_url('**/dashboard')
 
     browser.close()
 

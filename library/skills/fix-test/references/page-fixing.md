@@ -2,6 +2,9 @@
 
 Page failures mean a page doesn't render correctly: blank screen, error boundary, console errors, missing content, broken layout. Usually simpler than flow fixes — contained to one page component.
 
+The Next.js, Tailwind, and `webapp/` names below are conditional examples. Use the target
+repository's actual framework, build command, route layout, and styling system.
+
 ## Diagnosis by symptom
 
 ### Blank page / error boundary
@@ -30,7 +33,15 @@ Page failures mean a page doesn't render correctly: blank screen, error boundary
 - Check `metadata` export in page.tsx or layout.tsx
 - For dynamic titles: check `generateMetadata` function
 
+### Locator or readiness failure
+- Inspect the trace to see the accessible name and state at the failing action.
+- Prefer role/label/text locators and web-first assertions.
+- Wait for the state that proves readiness; do not add `networkidle` or a fixed timeout.
+
 ## Where to look
+
+The following is an illustrative Next.js layout. Use it only when those paths exist; otherwise
+locate the equivalent route, layout, loading state, error boundary, and component directory.
 
 ```
 webapp/app/protected/{route}/
@@ -85,7 +96,7 @@ export default function Loading() {
 
 ## After fixing
 
-Check that your fix follows:
+When these files exist and match the stack, check that your fix follows:
 - `.foundry/references/source-docs/patterns/frontend/page-pattern.md` — page component structure
 - `.foundry/references/source-docs/patterns/frontend/loading-states-pattern.md` — loading/error handling
 - `.foundry/references/source-docs/patterns/frontend/component-pattern.md` — component conventions

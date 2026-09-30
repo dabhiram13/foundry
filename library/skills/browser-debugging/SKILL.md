@@ -22,14 +22,17 @@ It decides which browser surface to use:
 
 1. Reproduce before theorizing.
 2. Prefer the smallest tool that exposes the real problem.
-3. Capture evidence: screenshot, console, network, DOM state, or video.
+3. Capture evidence: trace, screenshot, console, network, semantic DOM state, or video.
 4. Keep the loop short: reproduce -> isolate -> fix path.
-5. If the issue is actually a test failure, hand off to `fix-test`.
+5. Wait for observable application state, never a blanket `networkidle` or fixed delay.
+6. If the issue is already represented by a test failure, use `fix-test` to classify whether the
+   defect is in the product, test, data, or environment.
 
 ## Standard Workflow
 
 1. Read `references/tool-selection.md`
-2. Read `references/reproduction-loop.md`
+2. Read `references/reproduction-loop.md`; for an intermittent or CI-only failure, inspect the
+   retained Playwright trace before changing code
 3. Pull in `references/console-and-network.md` if the bug is runtime/data related
 4. Pull in `references/evidence-capture.md` if screenshots or video help
 

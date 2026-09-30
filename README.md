@@ -45,6 +45,11 @@ in a product. [The catalog](docs/CATALOG.md) lists what is available;
 [the customization guide](docs/CUSTOMIZATION.md) covers the underlying files.
 Updates stop before changing files if they conflict with local edits.
 
+[Research and next build plan](docs/RESEARCH.md) records the reviewed skills,
+harness designs, and proposed evaluation, capability-pack, and dashboard work.
+The development stages and coordinator responsibilities are in
+[Workflow](docs/WORKFLOW.md); those instructions complement the runtime checks.
+
 Optional Codex hooks still need review through `/hooks`. Ask Codex to help enable
 the staged-secret Git hook when wanted. Each product keeps its own files and status.
 

@@ -90,7 +90,7 @@ Traces now flow: `playwright test → fetch /rpc → oRPC procedure → DB`.
 1. **Start stack**: `./scripts/start-test-stack.sh`
 2. **Agent → Playwright MCP**: "Run E2E suite on localhost:3000, capture traces"
 3. **Agent → VictoriaLogs MCP**: "Query logs for 'error | oRPC | playwright' since 5m"
-4. **Agent reasons**: "Login failed on step 3 — missing wait for element"
+4. **Agent reasons from evidence**: "The trace shows the button remained disabled until the profile response completed"
 5. **Agent writes fix** → re-runs → validates
 
 ## MCP Servers

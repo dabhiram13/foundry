@@ -2,6 +2,9 @@
 
 Flow failures mean a user journey is broken. The user tried to do something (login, create, navigate) and it didn't work. These are the hardest fixes because they can span frontend + backend + routing.
 
+The Next.js, oRPC, and `webapp/` names below are conditional examples. Use the target repository's
+actual routes, commands, state library, and service boundaries.
+
 ## Diagnosis by symptom
 
 ### Page doesn't load / blank screen
@@ -33,7 +36,15 @@ Flow failures mean a user journey is broken. The user tried to do something (log
 - Common: `Hydration mismatch` → server/client render difference
 - Common: `Failed to fetch` → wrong API URL or CORS issue
 
+### Test fails but the user flow works
+- Inspect the Playwright trace before changing product code.
+- Check for a stale accessible name, brittle CSS locator, shared test data, or fixed-time wait.
+- Update the test only when the approved behavior is still correct; keep assertions user-visible.
+
 ## Where to look
+
+The following is an illustrative Next.js/oRPC layout. Use it only when those paths exist; otherwise
+locate the equivalent route, component, client state, and backend handler.
 
 ```
 webapp/
@@ -92,7 +103,7 @@ const { mutate, error } = useMutation(...)
 
 ## After fixing
 
-Read the pattern docs to make sure your fix follows the project's established approach:
+When these files exist and match the stack, read them to follow the project's established approach:
 - `.foundry/references/source-docs/patterns/frontend/architecture.md` — component structure, data flow
 - `.foundry/references/source-docs/patterns/backend/orpc.md` — procedure patterns, error handling
 - `.foundry/references/source-docs/patterns/frontend/form-pattern.md` — form submission patterns

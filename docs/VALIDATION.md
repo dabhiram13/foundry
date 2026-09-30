@@ -18,3 +18,24 @@ Product tests and real service integration checks belong in each product's
 `.foundry/project.json`. These framework checks do not establish that an application's
 payments, deployment, email, or other integrations work. Optional Codex hooks still
 require native trust review through `/hooks`; explicit verification runs without them.
+
+## Instruction evaluation — 2026-09-30
+
+Two isolated forward exercises reviewed the revised planner and quality-gate
+instructions. A planning-only CSV export request for a plain Python CLI produced
+a scoped plan with real paths and observable checks, without starting a run or
+implementing the feature. A review-only persistence scenario rejected a successful
+no-op check after reproducing record loss across store instances; it reported the
+failure without repairing code or completing a run.
+
+These are focused instruction exercises. They do not establish native Codex role
+auto-discovery, automatic routing, repeatability across models, or complete product
+delivery. The broader live journey evaluation suite is proposed in
+[Research and next build plan](RESEARCH.md).
+
+The same update passed 22 framework tests and 12 HTTP/SQLite fixture tests. The
+HTTP tests required loopback access outside the restrictive execution sandbox.
+Changed skill frontmatter was parsed and checked with the installed Ruby YAML
+parser because the Skill Creator validator's Python environment lacked PyYAML;
+no new package was added. Modified browser examples received Python syntax
+checks, not a live browser run against a product.

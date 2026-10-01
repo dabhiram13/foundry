@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Marketcraft: evidence-led product delivery, using the compatible Foundry runtime."""
+"""Foundry: evidence-led product delivery, using the compatible Foundry runtime."""
 from foundry import main
 
 

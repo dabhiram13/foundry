@@ -1,6 +1,6 @@
 ---
 name: foundry-settings
-description: Run the Marketcraft settings workflow explicitly in Codex.
+description: Run the Foundry settings workflow explicitly in Codex.
 ---
 
 # Settings

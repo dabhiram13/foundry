@@ -1,6 +1,6 @@
 ---
 name: foundry-fumadocs
-description: Run the Marketcraft fumadocs workflow explicitly in Codex.
+description: Run the Foundry fumadocs workflow explicitly in Codex.
 ---
 
 # Fumadocs

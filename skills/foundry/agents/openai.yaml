@@ -1,0 +1,4 @@
+interface:
+  display_name: "Foundry"
+  short_description: "Foundry turns ideas into tested products."
+  default_prompt: "Use $foundry to guide my product through research, design, development, and iteration."

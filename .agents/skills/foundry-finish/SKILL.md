@@ -1,6 +1,6 @@
 ---
 name: foundry-finish
-description: Finish an implemented Marketcraft feature using current checks and an explicit acceptance-to-evidence comparison.
+description: Finish an implemented Foundry feature using current checks and an explicit acceptance-to-evidence comparison.
 ---
 
 # Finish

@@ -583,7 +583,7 @@ def main():
     try:
         return run(foundry.project_root(args.project), args)
     except (foundry.Error, OSError, ValueError, TypeError) as exc:
-        print(f"Marketcraft: {exc}", file=sys.stderr)
+        print(f"Foundry: {exc}", file=sys.stderr)
         return 2
 
 

@@ -671,7 +671,7 @@ def run(root, args):
             return 0 if result["status"] == "completed" else 130 if result["status"] == "canceled" else 1
         return 0
     except (Error, OSError, TypeError) as exc:
-        print("Marketcraft provider: " + Redactor().clean(str(exc)), file=sys.stderr)
+        print("Foundry provider: " + Redactor().clean(str(exc)), file=sys.stderr)
         return 2
 
 

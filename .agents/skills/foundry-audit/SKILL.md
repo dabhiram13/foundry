@@ -1,6 +1,6 @@
 ---
 name: foundry-audit
-description: Run the Marketcraft audit workflow explicitly in Codex.
+description: Run the Foundry audit workflow explicitly in Codex.
 ---
 
 # Audit

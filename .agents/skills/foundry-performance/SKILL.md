@@ -1,6 +1,6 @@
 ---
 name: foundry-performance
-description: Run the Marketcraft performance workflow explicitly in Codex.
+description: Run the Foundry performance workflow explicitly in Codex.
 ---
 
 # Performance

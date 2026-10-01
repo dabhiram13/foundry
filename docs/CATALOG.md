@@ -1,4 +1,4 @@
-# Marketcraft catalog
+# Foundry catalog
 
 Choose the smallest applicable workflow and references. The coordinator selects
 roles based on the request, accepted criteria, capability availability, and write
@@ -6,7 +6,8 @@ boundaries; the catalog is not an automatic execution pipeline.
 
 ## Entry and workflows
 
-`marketcraft` is the canonical conversational entry in `skills/marketcraft/`.
+`foundry` is the canonical conversational entry in `skills/foundry/`.
+`marketcraft` remains a compatible entry in `skills/marketcraft/`.
 `product-foundry` remains a compatibility entry. The 37 `foundry-*` workflow names
 under `.agents/skills/` are preserved for installed products. Explicit invocation
 uses those names; normal conversation can use the shared workflow directly.

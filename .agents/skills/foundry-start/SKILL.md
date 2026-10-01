@@ -1,6 +1,6 @@
 ---
 name: foundry-start
-description: Choose the next useful Marketcraft action from the idea, evidence, scope, and current capability.
+description: Choose the next useful Foundry action from the idea, evidence, scope, and current capability.
 ---
 
 # Start

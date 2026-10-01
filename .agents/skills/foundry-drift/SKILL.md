@@ -1,6 +1,6 @@
 ---
 name: foundry-drift
-description: Run the Marketcraft drift workflow explicitly in Codex.
+description: Run the Foundry drift workflow explicitly in Codex.
 ---
 
 # Drift

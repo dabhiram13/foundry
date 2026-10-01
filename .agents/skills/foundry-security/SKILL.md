@@ -1,6 +1,6 @@
 ---
 name: foundry-security
-description: Run the Marketcraft security workflow explicitly in Codex.
+description: Run the Foundry security workflow explicitly in Codex.
 ---
 
 # Security

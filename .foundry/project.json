@@ -1,5 +1,5 @@
 {
-  "name": "Marketcraft",
+  "name": "Foundry",
   "checks": [
     {"name": "behavior", "command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"], "cwd": ".", "timeout": 180, "required": true},
     {"name": "catalog", "command": ["python3", "scripts/check_catalog.py"], "cwd": ".", "timeout": 120, "required": true},

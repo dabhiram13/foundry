@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make Marketcraft and its Product Foundry compatibility entry available to Codex."""
+"""Make Foundry and its legacy compatibility entries available to Codex."""
 import argparse
 import os
 from pathlib import Path
@@ -10,7 +10,10 @@ from foundry import Error, atomic_text, reject_symlink_components
 def connect(source, skills_directory):
     source = Path(source).resolve()
     skills_directory = Path(os.path.abspath(Path(skills_directory).expanduser()))
-    names = ['marketcraft', 'product-foundry'] if (source / 'skills/marketcraft').is_dir() else ['product-foundry']
+    names = [name for name in ('foundry', 'marketcraft', 'product-foundry')
+             if (source / 'skills' / name).is_dir()]
+    if not names:
+        raise Error('No supported entry skills found in the framework checkout')
     payload = {}
     for entry in names:
         destination = skills_directory / entry
@@ -24,8 +27,8 @@ def connect(source, skills_directory):
             raise Error(f'Existing skill preserved: {target}. Reconcile it before reconnecting.')
     for target, text in payload.items():
         atomic_text(target, text)
-    print('Marketcraft is connected to Codex; Product Foundry remains a compatible name.')
-    print('In a new Codex chat, say: Use Marketcraft to start a product called NAME. My idea is ...')
+    print('Foundry is connected to Codex; Marketcraft and Product Foundry remain compatible names.')
+    print('In a new Codex chat, say: Use Foundry to start a product called NAME. My idea is ...')
     return skills_directory / names[0]
 
 
@@ -37,7 +40,7 @@ def main():
     try:
         connect(Path(__file__).resolve().parents[1], args.skills_directory)
     except (Error, OSError, ValueError) as exc:
-        parser.exit(1, f'Could not connect Marketcraft: {exc}\n')
+        parser.exit(1, f'Could not connect Foundry: {exc}\n')
 
 
 if __name__ == '__main__':

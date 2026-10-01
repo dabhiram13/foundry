@@ -1,6 +1,6 @@
 ---
 name: foundry-verify
-description: Verify a Marketcraft change against acceptance criteria and configured checks, reporting evidence and gaps.
+description: Verify a Foundry change against acceptance criteria and configured checks, reporting evidence and gaps.
 ---
 
 # Verify

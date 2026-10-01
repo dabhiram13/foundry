@@ -1,4 +1,4 @@
-# Marketcraft workflow
+# Foundry workflow
 
 The owner describes an idea or change normally. Sri remains the product driver;
 the parent Codex session coordinates context, paths, delegation, and evidence.

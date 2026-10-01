@@ -151,6 +151,77 @@ class ReliabilityTests(unittest.TestCase):
             self.assertEqual(receipt['input_revisions'], receipt['input_revisions_after'])
             self.assertEqual(receipt['input_revisions']['backend/config.ini'], foundry.digest((root / 'backend/config.ini').read_bytes()))
 
+    def test_cold_python_import_does_not_invalidate_declared_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            check = {'name':'behavior', 'command':[sys.executable, '-c',
+                     'import sys; sys.dont_write_bytecode = False; import backend.module'],
+                     'inputs':['backend']}
+            root = self.make_project(Path(tmp), [check])
+            (root / '.gitignore').write_text('__pycache__/\n*.pyc\n*.pyo\n')
+            source = root / 'backend/module.py'
+            source.write_text('VALUE = 1\n')
+            self.start(root)
+            self.assertFalse((source.parent / '__pycache__').exists())
+            self.assertEqual(self.quiet(foundry.verify, root), 0)
+            caches = list(source.parent.glob('__pycache__/*.pyc'))
+            self.assertTrue(caches)
+            evidence = foundry.read_json(root / foundry.active(root)[1]['verification'])
+            receipt = evidence['checks'][0]
+            self.assertEqual(receipt['input_revisions'], receipt['input_revisions_after'])
+            self.assertIn('backend/module.py', receipt['input_revisions'])
+            self.assertFalse(any('__pycache__' in p for p in receipt['input_revisions']))
+            before = foundry.snapshot(root)
+            caches[0].write_bytes(b'changed incidental bytecode')
+            self.assertEqual(foundry.snapshot(root), before)
+            caches[0].unlink()
+            self.assertEqual(foundry.snapshot(root), before)
+            (source.parent / 'legacy.pyc').write_bytes(b'incidental legacy cache')
+            (source.parent / 'legacy.pyo').write_bytes(b'incidental optimized cache')
+            self.assertEqual(foundry.snapshot(root), before)
+            self.assertEqual(foundry.declared_revisions(root, check), receipt['input_revisions'])
+            source.write_text('VALUE = 2\n')
+            with self.assertRaisesRegex(foundry.Error, 'stale'):
+                foundry.complete(root)
+
+    def test_explicit_bytecode_and_build_artifacts_remain_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            check = {'name':'behavior', 'command':[sys.executable, '-c', 'pass'],
+                     'inputs':['backend', 'backend/__pycache__/explicit.pyc']}
+            root = self.make_project(Path(tmp), [check])
+            artifact = root / 'backend/__pycache__/explicit.pyc'
+            artifact.parent.mkdir()
+            artifact.write_bytes(b'explicit artifact')
+            build = root / 'backend/dist/bundle.js'
+            build.parent.mkdir()
+            build.write_text('reviewed build')
+            self.start(root)
+            self.assertEqual(self.quiet(foundry.verify, root), 0)
+            revisions = foundry.declared_revisions(root, check)
+            self.assertIn('backend/__pycache__/explicit.pyc', revisions)
+            self.assertIn('backend/dist/bundle.js', revisions)
+            artifact.write_bytes(b'changed artifact')
+            with self.assertRaisesRegex(foundry.Error, 'stale'):
+                foundry.complete(root)
+
+    def test_declared_cache_symlinks_and_missing_inputs_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            check = {'name':'behavior', 'command':[sys.executable, '-c', 'pass'],
+                     'inputs':['backend']}
+            root = self.make_project(Path(tmp), [check])
+            outside = Path(tmp) / 'outside'
+            outside.mkdir()
+            (outside / 'secret.pyc').write_bytes(b'outside')
+            link = root / 'backend/__pycache__'
+            link.symlink_to(outside, target_is_directory=True)
+            for operation in (lambda: foundry.snapshot(root),
+                              lambda: foundry.declared_revisions(root, check)):
+                with self.assertRaises(foundry.Error):
+                    operation()
+            link.unlink()
+            check['inputs'] = ['missing.pyc']
+            with self.assertRaisesRegex(foundry.Error, 'missing'):
+                foundry.declared_revisions(root, check)
+
     def test_source_edit_after_completion_crash_can_recover_and_reverify(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self.make_project(Path(tmp))

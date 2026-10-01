@@ -1,6 +1,6 @@
 ---
 name: foundry-schema-sync
-description: Run the Marketcraft schema-sync workflow explicitly in Codex.
+description: Run the Foundry schema-sync workflow explicitly in Codex.
 ---
 
 # Schema Sync

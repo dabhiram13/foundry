@@ -1,6 +1,6 @@
 # Provider and runtime adapters
 
-Marketcraft keeps the owner's interactive Codex session as its normal coordinator.
+Foundry keeps the owner's interactive Codex session as its normal coordinator.
 Nothing here replaces that session, changes authentication, connects an account,
 selects a paid plan, or starts another agent automatically. Use this optional seam
 when an explicitly authorized task needs a separate local agent process or a

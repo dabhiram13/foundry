@@ -1,5 +1,5 @@
 {
-  "description": "Optional Marketcraft lifecycle/context guidance and narrow local guardrails.",
+  "description": "Optional Foundry lifecycle/context guidance and narrow local guardrails.",
   "hooks": {
     "SessionStart": [
       {

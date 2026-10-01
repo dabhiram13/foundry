@@ -1,6 +1,6 @@
 # Local run integrity and recovery
 
-Marketcraft 0.2 keeps `scripts/foundry.py`, `.foundry/project.json`, existing run
+Foundry 0.2 keeps `scripts/foundry.py`, `.foundry/project.json`, existing run
 IDs and installed-product metadata compatible. `scripts/marketcraft.py` is the
 canonical command. Existing projects do not need to rename their folders, Git
 remotes, specs or state directory. Earlier verification receipts must be rerun
@@ -82,3 +82,12 @@ automatic rollback. Preserve the pinned source until an update finishes.
 Files and containing directories are fsynced after atomic replacement on local
 POSIX filesystems. Durability still depends on the filesystem and storage device;
 network filesystems and non-POSIX hosts are not qualified by these tests.
+
+## Declared directory inputs
+
+Directory inputs omit incidental `__pycache__` contents and `.pyc`/`.pyo` files
+from source snapshots and per-check input receipts. Every discovered path still
+undergoes containment and symlink validation. Explicit file inputs remain tracked,
+including bytecode files, and other generated artifacts such as `dist` contents
+remain included when their directory is declared. Missing declared inputs fail.
+Cold verification does not require disabling Python bytecode generation.

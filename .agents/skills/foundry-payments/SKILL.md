@@ -1,6 +1,6 @@
 ---
 name: foundry-payments
-description: Run the Marketcraft payments workflow explicitly in Codex.
+description: Run the Foundry payments workflow explicitly in Codex.
 ---
 
 # Payments

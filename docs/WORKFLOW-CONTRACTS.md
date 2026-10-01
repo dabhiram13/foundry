@@ -1,6 +1,6 @@
 # Guided work and durable evidence
 
-Marketcraft keeps the owner oriented: what is known, the next useful result, why
+Foundry keeps the owner oriented: what is known, the next useful result, why
 it matters, and any decision or connection actually needed. The coordinator
 handles command arguments and record files. The owner can describe the work
 normally and remains the driver.

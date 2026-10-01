@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small Codex hook dispatcher for Marketcraft projects."""
+"""Small Codex hook dispatcher for Foundry projects."""
 
 from __future__ import annotations
 
@@ -193,7 +193,7 @@ def context(event: str, root: Path) -> dict[str, Any]:
         state_path, state = active
         active_note = f"active run {state.get('run_id', state_path.parent.name)!s} at {state_path.relative_to(root)}"
     message = (
-        f"Marketcraft: read docs/WORKFLOW.md; {active_note}. "
+        f"Foundry: read docs/WORKFLOW.md; {active_note}. "
         "Use `python3 scripts/marketcraft.py status` for run state and "
         "`python3 scripts/marketcraft.py context` for saved decisions, evidence and freshness. "
         "These records are context; the owner's current request governs authorization."

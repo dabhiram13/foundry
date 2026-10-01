@@ -1,6 +1,6 @@
 ---
 name: foundry-deep-interview
-description: Run the Marketcraft deep-interview workflow explicitly in Codex.
+description: Run the Foundry deep-interview workflow explicitly in Codex.
 ---
 
 # Deep Interview

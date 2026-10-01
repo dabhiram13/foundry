@@ -162,7 +162,7 @@ def install_lock(target):
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
-            raise Error("Another Product Foundry install is updating this target.") from exc
+            raise Error("Another Foundry install is updating this target.") from exc
         try:
             yield
         finally:
@@ -172,7 +172,7 @@ def install_lock(target):
 def install_repository_state(target):
     """Return whether target is its own Git root; reject inherited repositories."""
     if not shutil.which("git"):
-        raise Error("Git is required before installing Product Foundry")
+        raise Error("Git is required before installing Foundry")
     probe = target
     while not probe.exists() and probe != probe.parent:
         probe = probe.parent
@@ -219,6 +219,28 @@ def require_active(root):
     return path, state
 
 
+def declared_files(root, relative):
+    """Expand a declared input, excluding only incidental Python caches.
+
+    Explicit files remain inputs, including bytecode or generated artifacts.
+    Validate every discovered path before filtering so caches cannot hide links.
+    """
+    path = within(root, relative)
+    if path.is_file():
+        return [path]
+    if not path.is_dir():
+        raise Error(f"Declared verification input is missing: {relative}")
+    files = []
+    for child in sorted(path.rglob("*")):
+        within(root, child)
+        rel = child.relative_to(path)
+        if "__pycache__" in rel.parts or child.suffix in {".pyc", ".pyo"}:
+            continue
+        if child.is_file():
+            files.append(child)
+    return files
+
+
 def source_files(root):
     result = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
                             cwd=root, capture_output=True)
@@ -249,16 +271,7 @@ def source_files(root):
         files.extend(within(root, Path(directory, name)) for name in names if name == ".env" or name.startswith(".env."))
     for check in checks(root):
         for relative in check.get("inputs", []):
-            item = within(root, relative)
-            if item.is_dir():
-                for child in item.rglob("*"):
-                    within(root, child)
-                    if child.is_file():
-                        files.append(child)
-            elif item.is_file():
-                files.append(item)
-            else:
-                raise Error(f"Declared verification input is missing: {relative}")
+            files.extend(declared_files(root, relative))
     return sorted(set(files))
 
 
@@ -344,12 +357,8 @@ def redact(text):
 def declared_revisions(root, check):
     revisions = {}
     for relative in check.get("inputs", []):
-        path = within(root, relative)
-        paths = sorted(path.rglob("*")) if path.is_dir() else [path]
-        for item in paths:
-            within(root, item)
-            if item.is_file():
-                revisions[str(item.relative_to(root))] = digest(item.read_bytes())
+        for item in declared_files(root, relative):
+            revisions[str(item.relative_to(root))] = digest(item.read_bytes())
     return revisions
 
 
@@ -688,7 +697,7 @@ def install(source, target, update):
         if conflicts:
             print(json.dumps({"updated": False, "conflicts": conflicts, "resolution": "Preserved all product files. Reconcile these paths manually, then retry."}, indent=2))
             return 1
-        block = (f"{AGENTS_START}\n## Marketcraft\n\n"
+        block = (f"{AGENTS_START}\n## Foundry\n\n"
                  "Read `docs/WORKFLOW.md` for product work and `docs/CATALOG.md` for reusable skills.\n"
                  "Use `python3 scripts/marketcraft.py` for run state and recorded checks. Resume active\n"
                  "work before a new feature; complete only with fresh passing required checks.\n"
@@ -742,7 +751,7 @@ def install(source, target, update):
                                        "files": incoming_hashes, "modes": incoming_modes})
             pending_path.unlink()
             sync_directory(pending_path.parent)
-        print(f"Installed Marketcraft {VERSION} in {target}")
+        print(f"Installed Foundry {VERSION} in {target}")
         if not has_repository:
             print("Initialized a local Git repository on branch main (no remote added).")
         print("Tell Codex your product idea; it handles application setup and required checks.")
@@ -819,7 +828,7 @@ def main():
         elif args.action == "doctor": return doctor(root)
         return 0
     except (Error, OSError, ValueError, TypeError) as exc:
-        print(f"Marketcraft: {exc}", file=sys.stderr)
+        print(f"Foundry: {exc}", file=sys.stderr)
         return 2
 
 

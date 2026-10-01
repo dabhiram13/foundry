@@ -1,6 +1,6 @@
 ---
 name: foundry-emails
-description: Run the Marketcraft emails workflow explicitly in Codex.
+description: Run the Foundry emails workflow explicitly in Codex.
 ---
 
 # Emails

@@ -1,4 +1,4 @@
-# Marketcraft
+# Foundry
 
 Help the owner turn an idea into a useful SaaS product with evidence, coherent UX,
 and recorded checks. Sri remains the product driver; the coordinator handles paths,
@@ -10,9 +10,9 @@ Read README.md and docs/WORKFLOW.md before product work. Use
 stack, and authorization. Choose small, feature, or product depth; do not force a
 whole lifecycle onto every request.
 
-For a new product or first installation, use `skills/marketcraft/SKILL.md`.
+For a new product or first installation, use `skills/foundry/SKILL.md`.
 Treat its framework-root placeholder as this checkout when reading the source.
-Keep application code in the selected product workspace. `product-foundry`,
+Keep application code in the selected product workspace. `marketcraft`, `product-foundry`,
 `foundry-*`, `scripts/foundry.py`, and `.foundry` are compatibility names.
 
 Use `python3 scripts/marketcraft.py` to track work and run checks. Resume the active

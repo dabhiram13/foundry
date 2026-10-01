@@ -1,6 +1,6 @@
 ---
 name: foundry-resume
-description: Run the Marketcraft resume workflow explicitly in Codex.
+description: Run the Foundry resume workflow explicitly in Codex.
 ---
 
 # Resume
@@ -9,7 +9,7 @@ Read `docs/WORKFLOW.md` first, then inspect `python3 scripts/marketcraft.py stat
 
 ## Authority
 
-This is a Marketcraft native lifecycle skill. The runtime's verification receipts are authoritative.
+This is a Foundry native lifecycle skill. The runtime's verification receipts are authoritative.
 
 Use docs/WORKFLOW-CONTRACTS.md for current records and applicable artifact gates.
 Choose small/feature/product depth, reuse current handoffs, and keep accepted

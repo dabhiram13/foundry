@@ -1,6 +1,6 @@
 ---
 name: foundry-trace
-description: Run the Marketcraft trace workflow explicitly in Codex.
+description: Run the Foundry trace workflow explicitly in Codex.
 ---
 
 # Trace

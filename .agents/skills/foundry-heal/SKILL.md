@@ -1,6 +1,6 @@
 ---
 name: foundry-heal
-description: Run the Marketcraft heal workflow explicitly in Codex.
+description: Run the Foundry heal workflow explicitly in Codex.
 ---
 
 # Heal

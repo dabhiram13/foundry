@@ -1,6 +1,6 @@
 # Codex hooks
 
-Marketcraft uses one small dispatcher, `scripts/hooks.py`, for each configured lifecycle event. The dispatcher is optional guidance around the explicit workflow in `docs/WORKFLOW.md`; it is not the workflow engine and missing hooks never prove a run complete.
+Foundry uses one small dispatcher, `scripts/hooks.py`, for each configured lifecycle event. The dispatcher is optional guidance around the explicit workflow in `docs/WORKFLOW.md`; it is not the workflow engine and missing hooks never prove a run complete.
 
 ## Enable and review
 

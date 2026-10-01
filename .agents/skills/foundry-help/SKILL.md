@@ -1,6 +1,6 @@
 ---
 name: foundry-help
-description: Explain the current Marketcraft next step, available capabilities, and remaining evidence.
+description: Explain the current Foundry next step, available capabilities, and remaining evidence.
 ---
 
 # Help

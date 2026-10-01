@@ -1,6 +1,6 @@
 # Briefroom: disposable SaaS journey fixture
 
-This is a small workshop-planning app used to evaluate Marketcraft's checks. It is
+This is a small workshop-planning app used to evaluate Foundry's checks. It is
 **not a production starter** and is never installed into generated products.
 
 The real components are a loopback HTTP server, SQLite persistence, password

@@ -1,6 +1,6 @@
 ---
 name: foundry-skeleton
-description: Run the Marketcraft skeleton workflow explicitly in Codex.
+description: Run the Foundry skeleton workflow explicitly in Codex.
 ---
 
 # Skeleton

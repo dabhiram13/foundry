@@ -1,6 +1,6 @@
 # Journey evaluation
 
-Marketcraft's SaaS evaluation exercises a real local application and preserves
+Foundry's SaaS evaluation exercises a real local application and preserves
 revision-bound HTTP and browser evidence. The application is a **fixed disposable
 fixture**. A green result does not prove that a native agent generated the app,
 selected the right skills, or delivered a production integration.
@@ -35,6 +35,14 @@ optimistic fixture label.
 Requirements: Python 3.11+, Git, POSIX process groups and `ps` (macOS/Linux/WSL),
 IPv4 loopback permission, Node.js, an existing Playwright or playwright-core package,
 and Chromium/Chrome. No evaluation command installs or downloads anything.
+
+Container verification requires an init process that reaps orphaned descendants.
+CI uses Docker `--init`. For an existing container whose PID 1 does not reap
+children, run checks beneath an available Tini subreaper, for example
+`/usr/local/bin/docker-init -s -g -- python3 scripts/marketcraft.py verify`
+for an active run, or the same prefix before a unittest command. Use the actual
+installed Tini path. This preserves the child-termination assertions; a terminated
+but unreaped zombie still has a PID and must not be called successful cleanup.
 
 When the package and browser are installed conventionally, Node resolves the
 package and Playwright uses its matching installed Chromium. Explicit overrides

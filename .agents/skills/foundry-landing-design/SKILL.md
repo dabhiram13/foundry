@@ -1,6 +1,6 @@
 ---
 name: foundry-landing-design
-description: Run the Marketcraft landing-design workflow explicitly in Codex.
+description: Run the Foundry landing-design workflow explicitly in Codex.
 ---
 
 # Landing Design

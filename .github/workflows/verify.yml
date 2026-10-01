@@ -1,4 +1,4 @@
-name: Verify Marketcraft
+name: Verify Foundry
 on:
   push:
   pull_request:
@@ -8,7 +8,9 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --init
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified 2026-09-29

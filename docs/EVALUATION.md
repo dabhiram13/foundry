@@ -44,6 +44,13 @@ for an active run, or the same prefix before a unittest command. Use the actual
 installed Tini path. This preserves the child-termination assertions; a terminated
 but unreaped zombie still has a PID and must not be called successful cleanup.
 
+After checkout, CI adds only `$GITHUB_WORKSPACE` to the job user's global
+`safe.directory` list. The pinned checkout action uses temporary global Git
+configuration for its own commands and removes it before later steps. The explicit
+job entry lets the index scanner inspect the mounted checkout despite container
+ownership differences; it does not trust unrelated repositories or disable Git's
+ownership checks. The scanner inherits the job environment unchanged.
+
 When the package and browser are installed conventionally, Node resolves the
 package and Playwright uses its matching installed Chromium. Explicit overrides
 support existing installations without hardcoding a developer's filesystem:

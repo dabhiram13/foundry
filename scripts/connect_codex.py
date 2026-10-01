@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make Product Foundry available as a conversational Codex skill."""
+"""Make Marketcraft and its Product Foundry compatibility entry available to Codex."""
 import argparse
 import os
 from pathlib import Path
@@ -9,22 +9,24 @@ from foundry import Error, atomic_text, reject_symlink_components
 
 def connect(source, skills_directory):
     source = Path(source).resolve()
-    destination = Path(os.path.abspath(Path(skills_directory).expanduser())) / 'product-foundry'
-    reject_symlink_components(destination)
+    skills_directory = Path(os.path.abspath(Path(skills_directory).expanduser()))
+    names = ['marketcraft', 'product-foundry'] if (source / 'skills/marketcraft').is_dir() else ['product-foundry']
     payload = {}
-    for name in ('SKILL.md', 'agents/openai.yaml'):
-        template = source / 'skills/product-foundry' / name
-        payload[name] = template.read_text().replace('{{FRAMEWORK_ROOT}}', str(source))
-    for name, text in payload.items():
-        target = destination / name
+    for entry in names:
+        destination = skills_directory / entry
+        reject_symlink_components(destination)
+        for name in ('SKILL.md', 'agents/openai.yaml'):
+            template = source / 'skills' / entry / name
+            payload[destination / name] = template.read_text().replace('{{FRAMEWORK_ROOT}}', str(source))
+    for target, text in payload.items():
         reject_symlink_components(target)
         if target.exists() and (not target.is_file() or target.read_text() != text):
             raise Error(f'Existing skill preserved: {target}. Reconcile it before reconnecting.')
-    for name, text in payload.items():
-        atomic_text(destination / name, text)
-    print('Product Foundry is connected to Codex.')
-    print('In a new Codex chat, say: Use Product Foundry to start a product called NAME. My idea is ...')
-    return destination
+    for target, text in payload.items():
+        atomic_text(target, text)
+    print('Marketcraft is connected to Codex; Product Foundry remains a compatible name.')
+    print('In a new Codex chat, say: Use Marketcraft to start a product called NAME. My idea is ...')
+    return skills_directory / names[0]
 
 
 def main():
@@ -35,7 +37,7 @@ def main():
     try:
         connect(Path(__file__).resolve().parents[1], args.skills_directory)
     except (Error, OSError, ValueError) as exc:
-        parser.exit(1, f'Could not connect Product Foundry: {exc}\n')
+        parser.exit(1, f'Could not connect Marketcraft: {exc}\n')
 
 
 if __name__ == '__main__':

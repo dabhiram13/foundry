@@ -1,12 +1,19 @@
 ---
 name: foundry-start
-description: Understand the requested product work, inspect existing context, and choose the appropriate Product Foundry workflow.
+description: Choose the next useful Marketcraft action from the idea, evidence, scope, and current capability.
 ---
 
 # Start
 
-Read `docs/WORKFLOW.md` and inspect the repository and runtime status. Classify the request as research, planning, installation, implementation, verification, or release; do not expand its authority.
+Read docs/WORKFLOW.md, docs/WORKFLOW-CONTRACTS.md, docs/PROVIDERS.md, repository
+instructions, owner documents, and current status. Identify research, planning,
+installation, implementation, review, or release authority. Choose small, feature,
+or product depth; use the read-only guide and available capabilities to recommend
+the next useful step. Do not require every stage or expand scope.
 
-For an existing active run, inspect its spec and partial work before selecting a new feature. For a new product, establish the user, core outcome, constraints, and consequential unknowns. Ask only about unresolved decisions that materially change the product; resolve routine implementation choices from repository context and handle paths and configuration yourself.
-
-Route to the smallest relevant workflow. Research only decision-changing uncertainty; scope before substantial implementation; continue existing authorization without another blanket approval. Start a durable run only for authorized implementation with a concrete local spec. Return a proposal as a proposal when the request was planning-only.
+Reconcile an active run and partial work before choosing another feature. Reuse
+current evidence/artifacts. Ask only about consequential unknowns or ambiguous
+targets, not routine paths and configuration. Preserve user model and reasoning.
+Missing capabilities stay explicit; they do not authorize provider switching,
+spending, installs, or publishing. Start implementation only within existing
+authority and with a concrete local spec.

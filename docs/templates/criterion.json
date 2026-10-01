@@ -1,0 +1,15 @@
+{
+  "id": "criterion-v1",
+  "kind": "criterion",
+  "title": "Observable acceptance behavior",
+  "source": {"kind": "local", "ref": "docs/specs/REPLACE_WITH_SPEC.md", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "observed",
+  "status": "proposed",
+  "stage": "verify",
+  "required": true,
+  "expected": "REPLACE_WITH_BEHAVIOR_AND_FAILURE_CASES",
+  "method": "command",
+  "command": ["python3", "REPLACE_WITH_REAL_TEST.py"],
+  "inputs": ["REPLACE_WITH_APPLICATION_INPUT"],
+  "contracts": []
+}

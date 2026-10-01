@@ -1,0 +1,15 @@
+{
+  "id": "handoff-v1",
+  "kind": "artifact",
+  "title": "Concrete stage handoff",
+  "source": {"kind": "local", "ref": "docs/project/REPLACE_WITH_ARTIFACT.md", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "observed",
+  "status": "proposed",
+  "path": "docs/project/REPLACE_WITH_ARTIFACT.md",
+  "stage": "flows",
+  "owner": "REPLACE_WITH_RESPONSIBLE_ROLE",
+  "next_action": "REPLACE_WITH_SCOPED_NEXT_STEP",
+  "criteria": [],
+  "contracts": [],
+  "inputs": []
+}

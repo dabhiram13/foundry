@@ -1,6 +1,6 @@
 # Codex hooks
 
-Product Foundry uses one small dispatcher, `scripts/hooks.py`, for each configured lifecycle event. The dispatcher is optional guidance around the explicit workflow in `docs/WORKFLOW.md`; it is not the workflow engine and missing hooks never prove a run complete.
+Marketcraft uses one small dispatcher, `scripts/hooks.py`, for each configured lifecycle event. The dispatcher is optional guidance around the explicit workflow in `docs/WORKFLOW.md`; it is not the workflow engine and missing hooks never prove a run complete.
 
 ## Enable and review
 
@@ -10,8 +10,8 @@ The hook command resolves the Git root before launching the dispatcher, and the 
 
 ## Behavior
 
-- `SessionStart` and `PostCompact` point Codex to `docs/WORKFLOW.md`, the active `.foundry` run, and `python3 scripts/foundry.py status`.
-- `PreCompact` atomically saves a small `checkpoint.json` beside the active run state. It does not copy the transcript or emit unsupported context.
+- `SessionStart` and `PostCompact` point Codex to `docs/WORKFLOW.md`, the active `.foundry` run, `python3 scripts/marketcraft.py status` and `context`. Saved records do not override the owner's current authorization.
+- `PreCompact` atomically saves a small `checkpoint.json` beside the active run state with spec/verification references and commands for recovering durable context. It does not copy the transcript or establish evidence freshness; the context command checks that when read.
 - `Stop` reports a still-active run as a warning. It never claims success and never forces another model turn.
 - `Interrupt` exits immediately without a continuation decision, so user interruption is always honored.
 - `PreToolUse` parses native `apply_patch` `Add`, `Update`, `Delete`, and `Move to` headers. It denies paths that resolve outside the project. While a run is active, an optional `brief_budget.include` list in `.foundry/project.json` limits edits to matching shell-style path patterns.

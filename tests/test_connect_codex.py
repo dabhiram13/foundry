@@ -1,4 +1,5 @@
 import importlib.util
+import shutil
 import sys
 import tempfile
 import unittest
@@ -83,6 +84,21 @@ class ConnectCodexTests(unittest.TestCase):
                 connect_codex.connect(source, skills)
 
             self.assertEqual(list(outside.iterdir()), [])
+
+    def test_canonical_and_legacy_entries_are_preflighted_together(self):
+        with self.temporary_directory() as directory:
+            base = Path(directory)
+            source = self.make_source(base)
+            shutil.copytree(source / 'skills/product-foundry', source / 'skills/marketcraft')
+            skills = base / 'skills'
+            (skills / 'product-foundry').mkdir(parents=True)
+            (skills / 'product-foundry/SKILL.md').write_text('owner customization')
+            with self.assertRaises(connect_codex.Error):
+                connect_codex.connect(source, skills)
+            self.assertFalse((skills / 'marketcraft').exists())
+            (skills / 'product-foundry/SKILL.md').unlink()
+            self.assertEqual(connect_codex.connect(source, skills), skills / 'marketcraft')
+            self.assertTrue((skills / 'product-foundry/SKILL.md').is_file())
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 ---
 name: foundry-monitor
-description: Run the Product Foundry monitor workflow explicitly in Codex.
+description: Run the Marketcraft monitor workflow explicitly in Codex.
 ---
 
 # Monitor

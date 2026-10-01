@@ -1,9 +1,11 @@
 {
-  "name": "Product Foundry",
+  "name": "Marketcraft",
   "checks": [
     {"name": "behavior", "command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"], "cwd": ".", "timeout": 180, "required": true},
     {"name": "catalog", "command": ["python3", "scripts/check_catalog.py"], "cwd": ".", "timeout": 120, "required": true},
     {"name": "web-app", "command": ["python3", "-m", "unittest", "test_app", "-v"], "cwd": "tests/fixtures/web_app", "timeout": 60, "required": true},
+    {"name": "evaluation-contract", "command": ["python3", "-m", "unittest", "discover", "-s", "tests/fixtures/saas_app", "-p", "test_evaluator.py", "-v"], "cwd": ".", "timeout": 60, "required": true},
+    {"name": "saas-journey", "command": ["python3", "scripts/evaluate_journey.py", "--output-dir", ".foundry/state/evaluations"], "cwd": ".", "timeout": 240, "required": true, "inputs": ["tests/fixtures/saas_app", "scripts/evaluate_journey.py", "package-lock.json"], "environment": ["MARKETCRAFT_NODE", "MARKETCRAFT_PLAYWRIGHT_MODULE", "MARKETCRAFT_BROWSER_EXECUTABLE"]},
     {"name": "secrets", "command": ["python3", "scripts/security_scan.py", "--whole-tracked"], "cwd": ".", "timeout": 120, "required": true}
   ]
 }

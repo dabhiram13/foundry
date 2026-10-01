@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Briefroom · Marketcraft evaluation</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to main content</a>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Briefroom home">Briefroom<span>WORKSHOP PLANNING</span></a>
+    <button id="logout" type="button" class="secondary" hidden>Sign out</button>
+  </header>
+  <main id="main" tabindex="-1">
+    <p class="eyebrow">FROM A ROUGH IDEA TO A USEFUL SESSION</p>
+    <h1>A little structure.<br>A better workshop.</h1>
+    <p class="intro">Save your workshop idea, create an outline, and pick up where you left off.</p>
+    <p class="fixture-note">Local evaluation app. Demo credits and outlines are simulated; no payment or external AI is used.</p>
+    <div id="error" class="notice error" role="alert" tabindex="-1" hidden></div>
+    <p id="status" class="notice status" role="status" aria-live="polite"></p>
+    <section id="auth" class="panel" aria-labelledby="auth-heading" hidden>
+      <h2 id="auth-heading">Make room for your next idea</h2>
+      <p>Create a local account, or sign in to your saved briefs.</p>
+      <form id="auth-form">
+        <label for="email">Email address</label>
+        <input id="email" type="email" name="email" autocomplete="email" required maxlength="254">
+        <label for="password">Password</label>
+        <input id="password" type="password" name="password" autocomplete="current-password" required minlength="12" maxlength="128" aria-describedby="password-help">
+        <p id="password-help" class="hint">Use at least 12 characters. For this disposable app, use a test password.</p>
+        <div class="actions">
+          <button type="submit" name="intent" value="register">Create account</button>
+          <button type="submit" name="intent" value="login" class="secondary">Sign in</button>
+        </div>
+      </form>
+    </section>
+    <section id="workspace" aria-label="Your workshop workspace" hidden>
+      <div class="workspace-grid">
+        <section class="panel" aria-labelledby="new-heading">
+          <p class="eyebrow">01 / CAPTURE</p>
+          <h2 id="new-heading">What will you teach?</h2>
+          <form id="brief-form">
+            <label for="title">Workshop idea</label>
+            <input id="title" name="title" type="text" maxlength="200" required aria-describedby="title-help">
+            <p id="title-help" class="hint">A short, specific title. You can create an outline after saving.</p>
+            <button type="submit">Save brief</button>
+          </form>
+          <aside class="plan" aria-label="Your plan">
+            <p id="account-email" class="account-email"></p>
+            <p id="balance"></p>
+            <button id="upgrade" type="button" class="secondary">Enable demo plan (no charge)</button>
+            <p class="hint">The demo plan includes 3 outline credits. Saving briefs is free.</p>
+          </aside>
+        </section>
+        <section class="panel" aria-labelledby="saved-heading">
+          <p class="eyebrow">02 / DEVELOP</p>
+          <h2 id="saved-heading">Your saved briefs</h2>
+          <div id="empty" class="empty" hidden>
+            <p class="empty-title">A blank page is a good start.</p>
+            <p>Save your first workshop idea. It will be here when you return.</p>
+          </div>
+          <ul id="briefs" class="briefs"></ul>
+        </section>
+      </div>
+    </section>
+  </main>
+  <footer>Briefroom is a disposable Marketcraft journey fixture, not a production product.</footer>
+</body>
+</html>

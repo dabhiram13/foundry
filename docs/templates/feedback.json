@@ -1,0 +1,12 @@
+{
+  "id": "feedback-v1",
+  "kind": "feedback",
+  "title": "Customer problem and scoped followup",
+  "source": {"kind": "customer", "ref": "REPLACE_WITH_MINIMAL_PRIVATE_SOURCE_REFERENCE", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "observed",
+  "status": "proposed",
+  "criteria": [],
+  "reproduction": "docs/project/REPLACE_WITH_REPRODUCTION.md",
+  "next_task": "REPLACE_WITH_LOCAL_REPRODUCTION_OR_REGRESSION_TASK",
+  "operating_scope": "local_only"
+}

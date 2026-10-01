@@ -1,0 +1,14 @@
+{
+  "id": "market-signal-v1",
+  "kind": "evidence",
+  "title": "Dated market observation",
+  "source": {"kind": "url", "ref": "https://example.invalid/replace-with-primary-source", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "observed",
+  "status": "proposed",
+  "claim": "REPLACE_WITH_WHAT_THE_SOURCE_ACTUALLY_SUPPORTS",
+  "segment": "REPLACE_WITH_BUYER_SEGMENT",
+  "workflow": "REPLACE_WITH_CONCRETE_JOB",
+  "confidence": "low",
+  "counterevidence": [],
+  "references": []
+}

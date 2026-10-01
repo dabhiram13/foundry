@@ -1,0 +1,11 @@
+{
+  "id": "assumption-v1",
+  "kind": "assumption",
+  "title": "A belief still requiring evidence",
+  "source": {"kind": "observation", "ref": "REPLACE_WITH_ORIGIN_OF_HYPOTHESIS", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "inferred",
+  "status": "proposed",
+  "validation": "REPLACE_WITH_CHEAP_DISCONFIRMING_TEST",
+  "references": [],
+  "counterevidence": []
+}

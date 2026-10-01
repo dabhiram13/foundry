@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small Codex hook dispatcher for Product Foundry projects."""
+"""Small Codex hook dispatcher for Marketcraft projects."""
 
 from __future__ import annotations
 
@@ -193,8 +193,10 @@ def context(event: str, root: Path) -> dict[str, Any]:
         state_path, state = active
         active_note = f"active run {state.get('run_id', state_path.parent.name)!s} at {state_path.relative_to(root)}"
     message = (
-        f"Product Foundry: read docs/WORKFLOW.md; {active_note}. "
-        "Use `python3 scripts/foundry.py status` for current state."
+        f"Marketcraft: read docs/WORKFLOW.md; {active_note}. "
+        "Use `python3 scripts/marketcraft.py status` for run state and "
+        "`python3 scripts/marketcraft.py context` for saved decisions, evidence and freshness. "
+        "These records are context; the owner's current request governs authorization."
     )
     if event == "SessionStart":
         return {
@@ -219,7 +221,10 @@ def checkpoint(data: dict[str, Any], root: Path) -> None:
         "turn_id": data.get("turn_id"),
         "trigger": data.get("trigger"),
         "saved_at": datetime.now(timezone.utc).isoformat(),
-        "resume": "python3 scripts/foundry.py status",
+        "resume": "python3 scripts/marketcraft.py status",
+        "context": "python3 scripts/marketcraft.py context",
+        "spec": state.get("spec"),
+        "verification": state.get("verification"),
     }
     state_path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp_name = tempfile.mkstemp(prefix="checkpoint-", suffix=".json", dir=state_path.parent)

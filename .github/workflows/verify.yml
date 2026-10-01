@@ -1,4 +1,4 @@
-name: Verify Product Foundry
+name: Verify Marketcraft
 on:
   push:
   pull_request:
@@ -7,7 +7,9 @@ permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified 2026-09-29
       - name: Behavior and runtime contracts
@@ -15,6 +17,12 @@ jobs:
       - name: Web application behavior
         working-directory: tests/fixtures/web_app
         run: python3 -m unittest test_app -v
+      - name: Install pinned browser test library
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: SaaS HTTP and browser journey
+        run: python3 scripts/evaluate_journey.py
+      - name: Evaluation honesty and cancellation contracts
+        run: python3 -m unittest discover -s tests/fixtures/saas_app -p test_evaluator.py -v
       - name: Native catalog integrity
         run: python3 scripts/check_catalog.py
       - name: Exact index secret scan

@@ -1,0 +1,14 @@
+{
+  "id": "observation-v1",
+  "kind": "evidence",
+  "title": "Direct criterion observation",
+  "source": {"kind": "local", "ref": "evidence/REPLACE_WITH_RECEIPT.json", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "observed",
+  "status": "proposed",
+  "claim": "REPLACE_WITH_OBSERVED_BEHAVIOR",
+  "criteria": ["REPLACE_WITH_EXISTING_CRITERION_ID"],
+  "artifact": "evidence/REPLACE_WITH_RECEIPT.json",
+  "method": "command",
+  "outcome": "unverified",
+  "observed": "REPLACE_WITH_ACTUAL_RESULT_OR_LIMITATION"
+}

@@ -1,5 +1,8 @@
 # Landing Page Builder
 
+> Apply only the parts adopted in the product brief and current scope. The brief overrides generic gradients, glass, shadows, dark panels, layout recipes, and theme requirements. Use the six UX artifact handoffs at small/feature/product depth from docs/WORKFLOW.md; references do not authorize new tools, services, or publishing.
+
+
 > **Repository compatibility:** Read `AGENTS.md`, the active runtime spec, and any owner-named product documents first. Inspect the real stack before applying this recipe. Paths, services, and SaaS conventions below are conditional examples: use them only when present and in scope, and map them to the repository's equivalent otherwise. Files under `docs/project/` and `docs/built/` are optional context unless the owner or active spec requires them. Never create a missing proprietary skeleton merely to satisfy this workflow.
 
 4 designer agents build landing page variants. 2 strategies, same copy.

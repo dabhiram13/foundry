@@ -1,0 +1,15 @@
+{
+  "id": "experiment-v1",
+  "kind": "experiment",
+  "title": "Bounded learning experiment",
+  "source": {"kind": "owner", "ref": "REPLACE_WITH_REQUEST_REFERENCE", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "inferred",
+  "status": "proposed",
+  "hypothesis": "REPLACE_WITH_FALSIFIABLE_BUYER_OR_CHANNEL_HYPOTHESIS",
+  "metric": "REPLACE_WITH_METRIC_AND_DENOMINATOR",
+  "success_condition": "REPLACE_WITH_CONTINUE_CONDITION",
+  "stop_condition": "REPLACE_WITH_TIME_SPEND_OR_DISCONFIRMING_LIMIT",
+  "operating_scope": "proposal_only",
+  "references": [],
+  "outcome_evidence": []
+}

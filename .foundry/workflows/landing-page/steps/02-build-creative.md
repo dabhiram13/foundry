@@ -1,5 +1,8 @@
 # Step 2: Build (Catalog-Creative — Designers 3-4)
 
+> Apply only the parts adopted in the product brief and current scope. The brief overrides generic gradients, glass, shadows, dark panels, layout recipes, and theme requirements. Use the six UX artifact handoffs at small/feature/product depth from docs/WORKFLOW.md; references do not authorize new tools, services, or publishing.
+
+
 > **Repository compatibility:** Read `AGENTS.md`, the active runtime spec, and any owner-named product documents first. Inspect the real stack before applying this recipe. Paths, services, and SaaS conventions below are conditional examples: use them only when present and in scope, and map them to the repository's equivalent otherwise. Files under `docs/project/` and `docs/built/` are optional context unless the owner or active spec requires them. Never create a missing proprietary skeleton merely to satisfy this workflow.
 
 Build a landing page from the component catalog. You are NOT cloning a template — you are composing sections from proven components.
@@ -93,7 +96,7 @@ Server Component. Dynamic imports for below-fold sections. Metadata with title/d
 
 ## Section Contrast (MANDATORY)
 
-Your page MUST have at least one dark rounded card section:
+If the adopted direction calls for a dark rounded card section, this is one option:
 
 ```tsx
 {/* Dark card section */}

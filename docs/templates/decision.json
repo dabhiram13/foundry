@@ -1,0 +1,11 @@
+{
+  "id": "decision-v1",
+  "kind": "decision",
+  "title": "A consequential product choice",
+  "source": {"kind": "owner", "ref": "REPLACE_WITH_DECISION_REFERENCE", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "inferred",
+  "status": "proposed",
+  "rationale": "REPLACE_WITH_EVIDENCE_AND_TRADEOFF",
+  "references": [],
+  "counterevidence": []
+}

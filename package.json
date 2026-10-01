@@ -1,0 +1,12 @@
+{
+  "name": "marketcraft-evaluation",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Pinned browser tooling for Marketcraft's optional local setup and required CI journey gate",
+  "devDependencies": {
+    "playwright": "1.63.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

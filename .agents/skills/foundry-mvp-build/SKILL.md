@@ -12,3 +12,10 @@ Follow the workflow's coordination rules. Plan shared interfaces before parallel
 Build the smallest complete user journey first. Configure real project checks, exercise changed behavior, and preserve existing tests and owner changes. Investigate failed checks; do not weaken them to obtain a pass.
 
 Before completion, compare each accepted criterion with implemented behavior and evidence. Seek independent review for substantial changes when available. Update relevant work notes before final verification, then run the runtime's verify and complete commands. Report unverified integrations and remaining product decisions explicitly.
+
+Use docs/WORKFLOW-CONTRACTS.md for current records and applicable artifact gates.
+Choose small/feature/product depth, reuse current handoffs, and keep accepted
+criteria linked to decisions, evidence, or explicit assumptions. UI changes use
+the relevant six UX artifacts from WORKFLOW.md. The adopted product brief governs
+aesthetics. Reviewers return findings; the coordinator owns final lifecycle
+transitions. Missing evidence stays UNVERIFIED and failed repairs preserve FAIL.

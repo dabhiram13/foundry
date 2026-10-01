@@ -1,72 +1,100 @@
-# Product Foundry
+# Marketcraft
 
-Start and build products with Codex through conversation. Give it a product name
-and idea; Codex handles the framework files, application setup, and check configuration.
+Build a SaaS product through conversation, from a focused idea to a tested customer
+journey. Start with a proven market, then use customer and competitor evidence to
+choose an advantage in experience, service, or pricing. You remain the product
+driver; Codex coordinates the next useful action and records evidence.
+
 Requires Python 3.11+, Git, and Codex on macOS or Linux (WSL on Windows).
 
-## Start a product
+## Start with an idea
 
-In a new Codex chat, say:
+> Use Marketcraft to explore a tutor booking product. Tutors need fewer missed
+> appointments; I want a simpler booking experience than their current tools.
 
-> Use Product Foundry to start a product called Tutor Booking. My idea is a booking
-> application where tutors publish available slots and students book lessons.
+You can also ask for a small fix, a feature, a review, or help with an existing
+product. Marketcraft selects small, feature, or product depth. It reuses current
+artifacts and asks about consequential decisions; every request does not need
+market research, a redesign, or a release. Planning and review requests keep their
+scope. A guide recommendation never authorizes an external action.
 
-The entry skill uses your local framework checkout. New products go beside that
-checkout by default. Describe another location normally if you prefer, such as
-"put it on my Desktop." Existing projects can use "add Product Foundry to this project."
+For new products, the default folder is beside this framework checkout. Describe
+another location normally. Codex resolves paths, setup, and actual project checks.
+Application code belongs in its product workspace. After setup, open that folder
+as a separate Codex workspace for ongoing work.
 
-Codex handles installation, product scope, application setup, and the actual test
-and build commands. Installation-only requests leave application code and its
-existing configuration unchanged. It asks about product decisions when needed. You do not need
-to type folder paths, pick workflow commands, or edit configuration JSON.
+## What the workflow preserves
 
-After setup, Codex shows the product folder. Open it as a separate Codex workspace
-for ongoing work, then describe features and fixes normally. Completion requires
-passing required checks on the current files; results stay local and completed
-feature notes go in `docs/built/`.
+- Dated evidence and explicit assumptions feed a switching, pricing, channel, and
+  unit-economics thesis, then a bounded product brief and observable criteria.
+- UX work moves through framing, flows/states, realistic prototypes, visual
+  direction, a working slice, and rendered usability/accessibility evidence at
+  the depth the change needs.
+- The coordinator owns integration. Independent reviewers return findings;
+  builders repair within scope. Failed repairs cannot turn failures into passes.
+- Run/check evidence and guided records support resuming work. Local verification,
+  deployment, and owner acceptance remain separate facts.
 
-## Connect on another computer
+These instructions and local contracts improve continuity; they do not constitute
+a fully autonomous business, prove demand, or guarantee native agent delivery.
+See [Workflow](docs/WORKFLOW.md), [record and artifact contracts](docs/WORKFLOW-CONTRACTS.md),
+[provider boundaries](docs/PROVIDERS.md), and [validation limits](docs/VALIDATION.md).
+The [runtime guide](docs/RUNTIME.md) explains freshness, interruption and update recovery.
 
-Clone this repository once, then run this command from its root:
+## Connect Codex
+
+Clone this repository once and run from its root:
 
 ```sh
 python3 scripts/connect_codex.py
 ```
 
-This adds the Product Foundry entry skill to your Codex user skills. Start a new
-chat if the current chat does not see it yet. The connection records this checkout's
-location automatically. If you move the checkout, reconcile the existing entry
-skill and connect it again. Local edits to the entry skill are preserved.
+The connection records this checkout's location in your user entry skills.
+`marketcraft` is the canonical entry; `product-foundry` remains a compatibility
+entry. Start a new chat if needed for discovery. Reconnect after moving the checkout;
+local entry-skill edits are preserved. Model and reasoning settings remain yours.
+Provider capability reporting does not silently switch a subscription workflow to
+API billing or grant credentials. Consult [Providers](docs/PROVIDERS.md).
 
-## Customize and update
+## Install, customize, and update
 
-Ask Codex to enable a needed library skill, add a workflow, or update the framework
-in a product. [The catalog](docs/CATALOG.md) lists what is available;
-[the customization guide](docs/CUSTOMIZATION.md) covers the underlying files.
-Updates stop before changing files if they conflict with local edits.
+Conversational setup resolves these commands internally. For direct control:
 
-[Research and next build plan](docs/RESEARCH.md) records the reviewed skills,
-harness designs, and proposed evaluation, capability-pack, and dashboard work.
-The development stages and coordinator responsibilities are in
-[Workflow](docs/WORKFLOW.md); those instructions complement the runtime checks.
+```sh
+python3 scripts/marketcraft.py install TARGET
+python3 scripts/marketcraft.py status
+```
 
-Optional Codex hooks still need review through `/hooks`. Ask Codex to help enable
-the staged-secret Git hook when wanted. Each product keeps its own files and status.
+Use an absolute target outside another repository; add `--update` only for an
+intended framework update. Installation-only requests preserve application code
+and configuration. Updates stop on conflicting local edits.
 
-## Manual installation
+The old `scripts/foundry.py` command, `product-foundry` entry, `foundry-*` workflow
+names, and `.foundry` data directory remain supported. The product name change
+requires no repository-path, remote, or existing state migration.
 
-For direct control, `scripts/foundry.py install TARGET` installs into a separate
-product folder. Add `--update` for an existing installation. Use an absolute folder
-path outside another repository. Normal conversational setup resolves this internally.
+[Catalog](docs/CATALOG.md) lists roles and references. [Customization](docs/CUSTOMIZATION.md)
+covers real project checks and selective adoption. Optional hooks need native
+review through `/hooks`; they are guidance, not a security boundary. No new skill,
+account, dependency, recurring job, or release is implied by an idea request.
 
 ## Check the framework
 
 ```sh
 python3 -m unittest discover -s tests -v
 python3 -m unittest discover -s tests/fixtures/web_app -v
+python3 -m unittest discover -s tests/fixtures/saas_app -p test_evaluator.py -v
+python3 scripts/evaluate_journey.py
 python3 scripts/check_catalog.py
 python3 scripts/security_scan.py --whole-tracked
 ```
 
-[Validation](docs/VALIDATION.md) explains what these checks cover.
-[License notices](THIRD_PARTY_NOTICES.md) identify notices to retain when copying.
+[Journey evaluation](docs/EVALUATION.md) documents existing browser prerequisites,
+explicit dependency setup, evidence artifacts and limitations. Missing browser
+capabilities make the required journey gate unverified and nonzero. CI uses pinned
+Playwright 1.63.0 and its matching browser image; evaluation itself never installs.
+
+[Validation](docs/VALIDATION.md) separates these checks from live product evidence.
+[Provenance](docs/PROVENANCE.md) records the supplied framework history and retained
+limits; [license notices](THIRD_PARTY_NOTICES.md) identify notices to preserve.
+[Research](docs/RESEARCH.md) is a dated design input, not proof of implementation.

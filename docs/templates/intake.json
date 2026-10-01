@@ -1,0 +1,16 @@
+{
+  "id": "brief-v1",
+  "kind": "brief",
+  "title": "Product or change brief",
+  "source": {"kind": "owner", "ref": "REPLACE_WITH_REQUEST_REFERENCE", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "observed",
+  "status": "proposed",
+  "goal": "REPLACE_WITH_USEFUL_OUTCOME",
+  "buyer": "REPLACE_WITH_SPECIFIC_USER_OR_BUYER",
+  "intent": "plan",
+  "complexity": "small",
+  "surface": "cli",
+  "constraints": [],
+  "capabilities": [],
+  "references": []
+}

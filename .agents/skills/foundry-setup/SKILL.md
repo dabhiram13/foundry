@@ -1,6 +1,6 @@
 ---
 name: foundry-setup
-description: Run the Product Foundry setup workflow explicitly in Codex.
+description: Run the Marketcraft setup workflow explicitly in Codex.
 ---
 
 # Setup

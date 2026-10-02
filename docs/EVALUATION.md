@@ -97,6 +97,8 @@ are not collected. An interrupted run does not start the next stage.
 | Input/security boundary | CSRF/Host/Origin checks, malformed bodies, limits, invalid keys/routes, safe user-text rendering | HTTP negatives; browser runtime observation |
 | Empty/loading/error UI | Useful empty state, live loading status, disabled pending action, focused error with retry | Screenshots `01` through `05`; browser criteria |
 | Keyboard and mobile | Keyboard signup/save/retry, skip link, logical result/error focus, labelled inputs, 44px buttons, no 375px overflow | Browser `UX-LOADING-KEYBOARD`, `MOBILE-A11Y`; mobile screenshot |
+| Guided review and recovery | Review, back/edit, reload draft resume, invalid-title focus and save recovery | Browser `GUIDED-EDIT-RESUME`; review screenshot |
+| Meaningful activation | First committed outline once per account; retry/restart/concurrent/later saves cannot duplicate it; rollback emits nothing | 14 HTTP tests in total; browser `ACTIVATION-ONCE` |
 | Evidence honesty | Missing browser cannot pass; empty success without report fails; canceled/timed-out detached children stop | `test_evaluator.py` |
 
 The provider and plan are controlled doubles. Authentication, tenant filtering,
@@ -113,7 +115,7 @@ SHA-256. The browser report includes browser/Node/Playwright versions, criterion
 results, expected versus unexpected failed requests, console/page errors and
 targeted accessibility observations.
 
-The browser directory retains twelve screenshots, `trace.zip`, `browser.json` and
+The browser directory retains thirteen screenshots, `trace.zip`, `browser.json` and
 the local server log. Inspect the screenshots for visual coherence, content and
 layout; replay the trace for step-by-step behavior using the already installed
 Playwright trace viewer. Automated checks cannot substitute for that judgment,
@@ -150,3 +152,8 @@ negative cases should remain blocked or unverified. A generated app can reuse
 these **criteria**, but must configure checks against its own implementation.
 Running this fixed fixture alongside an unrelated broken application is not
 evidence that the application works.
+
+The current full journey has 13 browser criteria. Use the [UX rubric](UX-RUBRIC.md)
+for visual and interaction review, keeping automated observations distinct from
+human judgment. Activation data uses a synthetic local event and no analytics
+vendor; it does not establish acquisition, retention or commercial demand.

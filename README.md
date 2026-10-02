@@ -200,6 +200,18 @@ not prove native agent-generated delivery, live provider/billing integrations,
 production readiness, full accessibility conformance, or customer demand.
 See [validation boundaries](docs/VALIDATION.md).
 
+## Optional evidence improvements
+
+For a narrow demoable slice, the [quality contract](docs/WORKFLOW-CONTRACTS.md#optional-narrow-slice-quality-and-market-context)
+binds public-interface red/green evidence to unchanged tests and changed product
+code. Optional market fields keep the customer job, alternatives, channel,
+activation and next decision grounded in dated sources. The [UX rubric](docs/UX-RUBRIC.md)
+adds review/back/edit/resume and recovery checks. [Local qualification](docs/QUALIFICATION.md)
+persists candidate evaluations and permits explicit selection only after current
+checks against a qualified baseline. These features do not authorize live probes
+or automatic promotion. [Adaptation sources](docs/ADAPTATIONS.md) record the pinned
+upstream ideas and their limits.
+
 ## Compatibility and provenance
 
 `marketcraft` and `product-foundry` remain legacy entry aliases. Both

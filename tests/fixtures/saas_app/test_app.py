@@ -3,6 +3,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from http.client import HTTPConnection, RemoteDisconnected
 import json
+import sqlite3
 from pathlib import Path
 import tempfile
 import threading
@@ -221,6 +222,53 @@ class JourneyTests(unittest.TestCase):
         for path in ("/app.py", "/../app.py", "/api/briefs/nope", "/api/briefs/99999999999999999999999999"):
             self.assertEqual(self.request(path=path, session=session)[0], 404)
         self.assertEqual(self.request(session=session)[2]["account"]["credits"], 3)
+
+    def test_activation_rolls_back_when_operation_commit_fails(self):
+        session = self.register()
+        brief = self.save(session)
+        self.upgrade(session)
+        with sqlite3.connect(self.db_path) as db:
+            db.execute("CREATE TRIGGER reject_operation BEFORE INSERT ON operations "
+                       "BEGIN SELECT RAISE(ABORT, 'fixture storage failure'); END")
+        self.assertEqual(self.outline(session, brief)[0], 500)
+        self.assertEqual(self.request(path="/api/activation", session=session)[2]["count"], 0)
+        self.assertEqual(self.request(session=session)[2]["account"]["credits"], 3)
+        self.assertIsNone(self.request(path=f"/api/briefs/{brief['id']}", session=session)[2]["brief"]["outline"])
+        with sqlite3.connect(self.db_path) as db:
+            db.execute("DROP TRIGGER reject_operation")
+        self.assertEqual(self.outline(session, brief)[0], 200)
+        self.assertEqual(self.request(path="/api/activation", session=session)[2]["count"], 1)
+
+    def test_activation_commits_once_across_failure_retry_restart_and_tenants(self):
+        def activation(session):
+            status, _, body = self.request(path="/api/activation", session=session)
+            self.assertEqual(status, 200)
+            self.assertEqual(set(body), {"event", "count"})
+            self.assertEqual(body["event"], "first_outline_saved")
+            return body["count"]
+        self.assertEqual(self.request(path="/api/activation")[0], 401)
+        alice, bob = self.register(), self.register("bob@example.test")
+        brief = self.save(alice)
+        self.assertEqual(activation(alice), 0)
+        self.assertEqual(self.outline(alice, brief)[0], 402)
+        self.upgrade(alice)
+        self.provider.fail_next()
+        self.assertEqual(self.outline(alice, brief)[0], 503)
+        self.assertEqual(activation(alice), 0)
+        with self.assertRaises(RemoteDisconnected):
+            self.outline(alice, brief, headers={"X-Fixture-Drop-Response": "once"})
+        self.stop_server()
+        self.start_server()
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            responses = list(pool.map(lambda _: self.outline(alice, brief), range(4)))
+        self.assertEqual([response[0] for response in responses], [200] * 4)
+        self.assertEqual(activation(alice), 1)
+        self.assertEqual(activation(bob), 0)
+        self.assertEqual(self.outline(alice, brief, "another-outline")[0], 200)
+        self.assertEqual(activation(alice), 1)
+        self.upgrade(bob)
+        self.assertEqual(self.outline(bob, self.save(bob))[0], 200)
+        self.assertEqual(activation(bob), 1)
 
     def test_html_has_basic_semantics_and_security_headers(self):
         status, headers, html = self.request(path="/")

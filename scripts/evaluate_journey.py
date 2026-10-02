@@ -188,7 +188,7 @@ def main():
                     if status == "PASS":
                         required = {"UX-LOADING-KEYBOARD", "AUTH-EMPTY", "ENTITLEMENT", "PROVIDER-FAILURE",
                                     "SAVE-RETRY", "RETURN-RESTART", "MOBILE-A11Y", "TENANT-UI", "BROWSER-RUNTIME",
-                                    "REFRESH-RETRY-SESSION", "REFRESH-RETRY-LIST"}
+                                    "REFRESH-RETRY-SESSION", "REFRESH-RETRY-LIST", "GUIDED-EDIT-RESUME", "ACTIVATION-ONCE"}
                         passed = {criterion.get("id") for criterion in evidence.get("criteria", []) if criterion.get("status") == "PASS"}
                         if not required <= passed:
                             raise ValueError("Browser report is missing required journey criteria")

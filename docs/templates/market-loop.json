@@ -1,0 +1,20 @@
+{
+  "id": "quote-market-assumption-v1",
+  "kind": "evidence",
+  "title": "Small quote-tool opportunity hypothesis",
+  "source": {"kind": "owner", "ref": "REPLACE_WITH_SCOPE_REFERENCE", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "inferred",
+  "status": "proposed",
+  "claim": "Unvalidated hypothesis; synthetic exercise is not customer demand",
+  "market": {
+    "customer": "REPLACE_WITH_CUSTOMER_SEGMENT_NOT_PII",
+    "job": "REPLACE_WITH_RECURRING_JOB",
+    "alternative": "REPLACE_WITH_COMPETITOR_OR_WORKAROUND",
+    "differentiation": "REPLACE_WITH_SMALLEST_USEFUL_DIFFERENCE",
+    "channel": "REPLACE_WITH_CHANNEL_HYPOTHESIS",
+    "activation_event": "REPLACE_WITH_OBSERVABLE_FIRST_VALUE_EVENT",
+    "decision": "REPLACE_WITH_BOUNDED_NEXT_EXPERIMENT",
+    "next_review": "REPLACE_WITH_ISO_DATE",
+    "evidence_kind": "assumption"
+  }
+}

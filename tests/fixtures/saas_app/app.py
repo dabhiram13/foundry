@@ -154,6 +154,7 @@ class Handler(BaseHTTPRequestHandler):
         routes = {
             "/api/register": ("POST",), "/api/login": ("POST",),
             "/api/logout": ("POST",), "/api/session": ("GET",),
+            "/api/activation": ("GET",),
             "/api/briefs": ("GET", "POST"), "/api/fixture/plan": ("POST",),
         }
         item = re.fullmatch(r"/api/briefs/([1-9][0-9]{0,17})(/outline)?", path)
@@ -195,6 +196,9 @@ class Handler(BaseHTTPRequestHandler):
             account_id = session["id"]
             if path == "/api/session":
                 return Result({"account": account_data(session), "csrf": session["csrf"]})
+            if path == "/api/activation":
+                count = db.execute("SELECT COUNT(*) FROM activation_events WHERE account_id = ?", (account_id,)).fetchone()[0]
+                return Result({"event": "first_outline_saved", "count": count})
             if path == "/api/logout":
                 if payload:
                     raise APIError(400, "Logout takes no fields.")
@@ -237,6 +241,8 @@ class Handler(BaseHTTPRequestHandler):
             outline = self.server.provider.compose(brief["title"])
             db.execute("UPDATE briefs SET outline = ? WHERE id = ? AND account_id = ?", (outline, brief["id"], account_id))
             db.execute("UPDATE accounts SET credits = credits - 1 WHERE id = ?", (account_id,))
+            db.execute("INSERT OR IGNORE INTO activation_events(account_id, event) VALUES (?, ?)",
+                       (account_id, "first_outline_saved"))
             response = {"brief": {**brief_data(brief), "outline": outline},
                         "credits": session["credits"] - 1, "request_id": key}
             db.execute("INSERT INTO operations VALUES (?, ?, ?, ?)",
@@ -295,6 +301,9 @@ def create_server(db_path, port=0, provider=None):
             CREATE TABLE IF NOT EXISTS briefs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL,
                 title TEXT NOT NULL, outline TEXT);
+            CREATE TABLE IF NOT EXISTS activation_events (
+                account_id INTEGER PRIMARY KEY, event TEXT NOT NULL
+                CHECK(event = 'first_outline_saved'));
             CREATE TABLE IF NOT EXISTS operations (
                 account_id INTEGER NOT NULL, request_id TEXT NOT NULL,
                 brief_id INTEGER NOT NULL, response TEXT NOT NULL,

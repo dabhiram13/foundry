@@ -13,6 +13,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import time
 import tempfile
 import uuid
 
@@ -21,11 +22,11 @@ EXCLUDED = {".git", "__pycache__", ".venv", "node_modules", ".next", "coverage",
 MANAGED = [".agents/skills", ".codex/agents", ".codex/hooks.json", ".codex/config.toml",
            ".foundry/workflows", ".foundry/philosophy", ".foundry/references", ".foundry/migrations",
            "library", "scripts/foundry.py", "scripts/marketcraft.py", "scripts/workflow.py", "scripts/providers.py",
-           "scripts/hooks.py", "scripts/security_scan.py",
+           "scripts/hooks.py", "scripts/security_scan.py", "scripts/test_runner.py", "scripts/qualification.py",
            "scripts/check_catalog.py", ".githooks/pre-commit", "docs/WORKFLOW.md",
            "docs/CATALOG.md", "docs/CUSTOMIZATION.md", "docs/HOOKS.md", "docs/WORKFLOW-CONTRACTS.md",
            "docs/PROVIDERS.md", "docs/PROVENANCE.md", "docs/templates",
-           "docs/RUNTIME.md",
+           "docs/RUNTIME.md", "docs/QUALIFICATION.md", "docs/UX-RUBRIC.md", "docs/ADAPTATIONS.md",
            ".foundry/LICENSE-framework", ".foundry/THIRD_PARTY_NOTICES.md"]
 AGENTS_START = "<!-- product-foundry:start -->"
 AGENTS_END = "<!-- product-foundry:end -->"
@@ -344,6 +345,11 @@ def checks(root):
                 raise Error(f"{c['name']}: {key} must be a list of nonempty strings")
         for relative in c.get("inputs", []):
             within(root, relative)
+        if "test_report" in c:
+            relative = c["test_report"]
+            if not isinstance(relative, str) or not relative or Path(relative).is_absolute() or ".git" in Path(relative).parts:
+                raise Error(f"{c['name']}: test_report must be a project-relative output file")
+            within(root, relative)
         if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) for name in c.get("environment", [])):
             raise Error(f"{c['name']}: invalid environment variable name")
     return items
@@ -365,12 +371,19 @@ def declared_revisions(root, check):
 def run_check(root, check, log):
     command = check["command"]
     started = now()
+    clock = time.monotonic()
+    check_run_id = str(uuid.uuid4())
+    environment = None
+    if "test_report" in check:
+        environment = dict(os.environ, FOUNDRY_CHECK_ID=check_run_id,
+                           FOUNDRY_TEST_REPORT=str(within(root, check["test_report"])))
     proc = None
     interrupted = False
     input_revisions = declared_revisions(root, check)
     try:
         proc = subprocess.Popen(command, cwd=within(root, check.get("cwd", ".")),
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True,
+                                env=environment)
         output, _ = proc.communicate(timeout=check.get("timeout", 120))
         code, status = proc.returncode, "passed" if proc.returncode == 0 else "failed"
     except (subprocess.TimeoutExpired, KeyboardInterrupt) as exc:
@@ -384,12 +397,41 @@ def run_check(root, check, log):
         code, status = None, "interrupted" if interrupted else "timed_out"
     except OSError as exc:
         output, code, status = str(exc).encode(), None, "unavailable"
+    report_fields = {}
+    if "test_report" in check:
+        try:
+            report = within(root, check["test_report"])
+            data = read_json(report)
+            if not isinstance(data, dict) or set(data) != {"run_id", "tests"} or data["run_id"] != check_run_id:
+                raise Error("Test report does not identify this execution")
+            counts = data["tests"]
+            if not isinstance(counts, dict) or set(counts) != {"executed", "passed", "failed", "skipped"}:
+                raise Error("Test report needs executed, passed, failed and skipped counts")
+            if any(type(value) is not int or value < 0 for value in counts.values()):
+                raise Error("Test counts must be nonnegative integers")
+            if counts["executed"] <= 0 or counts["executed"] != counts["passed"] + counts["failed"]:
+                raise Error("Test report needs nonzero, consistent executed counts")
+            # Preserve each execution alongside its log; the configured producer
+            # output can be reused without destroying retained red/green evidence.
+            saved_report = log.with_suffix(".tests.json")
+            atomic_json(saved_report, data)
+            report_fields = {"tests": counts, "check_run_id": check_run_id,
+                             "test_report": str(saved_report.relative_to(root)),
+                             "test_report_sha256": digest(saved_report.read_bytes())}
+            if counts["failed"] or counts["skipped"]:
+                raise Error("Required test report contains failed or skipped tests")
+        except (Error, OSError, ValueError, TypeError) as exc:
+            report_fields["test_report_error"] = str(exc)
+            if status == "passed":
+                status = "failed"
     atomic_text(log, redact(output.decode(errors="replace")))
     return {"name": check["name"], "command": command, "cwd": check.get("cwd", "."),
             "timeout": check.get("timeout", 120), "required": check.get("required", True),
             "input_revisions": input_revisions, "input_revisions_after": declared_revisions(root, check),
             "started_at": started, "finished_at": now(), "exit_code": code, "status": status,
-            "log": str(log.relative_to(root)), "log_sha256": digest(log.read_bytes())}, interrupted
+            "duration_seconds": time.monotonic() - clock,
+            "log": str(log.relative_to(root)), "log_sha256": digest(log.read_bytes()),
+            **report_fields}, interrupted
 
 
 @contextlib.contextmanager
@@ -465,6 +507,28 @@ def completion_evidence(root, state):
             raise Error("Receipt does not match current run and inputs")
         if check.get("required", True) and (receipt.get("status") != "passed" or receipt.get("exit_code") != 0):
             raise Error("Required check did not pass")
+        # Optional checks can fail before producing a report. Once a report is
+        # retained, however, its binding must remain valid even for optional checks.
+        retained_report = any(key in receipt for key in
+                              ("test_report", "test_report_sha256", "check_run_id", "tests"))
+        if "test_report" in check and (check.get("required", True)
+                                       or receipt.get("status") == "passed" or retained_report):
+            report = within(root, receipt.get("test_report", ""))
+            if not report.is_file() or digest(report.read_bytes()) != receipt.get("test_report_sha256"):
+                raise Error("Receipt test report missing or changed")
+            data = read_json(report)
+            nonce = receipt.get("check_run_id")
+            if (not isinstance(nonce, str) or not nonce or not isinstance(data, dict)
+                    or set(data) != {"run_id", "tests"} or data["run_id"] != nonce
+                    or data["tests"] != receipt.get("tests")):
+                raise Error("Receipt test report does not match its execution and counts")
+            counts = data["tests"]
+            if (not isinstance(counts, dict) or set(counts) != {"executed", "passed", "failed", "skipped"}
+                    or any(type(value) is not int or value < 0 for value in counts.values())
+                    or counts["executed"] <= 0 or counts["executed"] != counts["passed"] + counts["failed"]):
+                raise Error("Receipt test report has invalid executed counts")
+            if check.get("required", True) and (counts["failed"] or counts["skipped"]):
+                raise Error("Required test report contains failed or skipped tests")
         log = within(root, receipt.get("log", ""))
         if not log.is_file() or digest(log.read_bytes()) != receipt.get("log_sha256"):
             raise Error("Receipt log missing or changed")
@@ -800,6 +864,7 @@ def main():
     sys.modules.setdefault("foundry", sys.modules[__name__])
     import workflow
     import providers
+    import qualification
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project", default=".", help="Project directory (also works from a subdirectory)")
     sub = parser.add_subparsers(dest="action", required=True)
@@ -808,14 +873,14 @@ def main():
     p = sub.add_parser("enable-skill"); p.add_argument("name")
     for name in ["status", "resume", "pause", "verify", "complete", "recover", "doctor"]:
         sub.add_parser(name)
-    for module in (workflow, providers):
+    for module in (workflow, providers, qualification):
         module.add_commands(sub)
     args = parser.parse_args()
     try:
         if args.action == "install":
             return install(Path(__file__).resolve().parent.parent, args.target, args.update)
         root = project_root(args.project)
-        for module in (workflow, providers):
+        for module in (workflow, providers, qualification):
             if args.action in module.ACTIONS:
                 return module.run(root, args)
         if args.action == "start": start(root, args.slug, args.spec)

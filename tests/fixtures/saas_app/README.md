@@ -8,10 +8,17 @@ hashing, opaque sessions, CSRF checks and per-account ownership. Each account is
 one tenant. Plan enablement and outline composition are explicitly deterministic
 fakes. Nothing connects to a live payment, AI, mail or identity provider.
 
-The journey is: create account → see a useful empty state → save a brief → encounter
+The journey is: create account → see a useful empty state → draft/review/back/edit and resume on reload → save a brief → encounter
 the plan boundary → enable a fake demo plan → recover from a failed outline without
 losing credit → save an outline → return after a server restart → sign out and see
 a different account's isolated workspace.
+
+The first successfully committed outline records `first_outline_saved` once per
+account in the same SQLite transaction. Failures do not activate; retries, later
+outlines and restart do not duplicate it. `/api/activation` requires authentication
+and returns only the current account’s event name/count. No PII event payload or
+analytics vendor is involved; synthetic activation is not customer validation.
+Drafts are tab-session scoped and cleared on signout.
 
 The browser suite also aborts each follow-up read after a committed outline. A
 visible retry must keep the same operation key until the refreshed result is

@@ -1,0 +1,21 @@
+{
+  "id": "save-quote-quality-v1",
+  "kind": "criterion",
+  "title": "One saved quote survives reopening",
+  "source": {"kind": "owner", "ref": "REPLACE_WITH_OWNER_SCOPE", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "observed",
+  "status": "proposed",
+  "stage": "verify",
+  "required": true,
+  "expected": "The public CLI returns the saved quote after reopening",
+  "method": "command",
+  "command": ["python3", "tests/check_quote.py"],
+  "inputs": ["app.py", "docs/specs/quote.md"],
+  "quality": {
+    "slice": "Create, save and reopen one quote",
+    "public_interface": "CLI create/show commands",
+    "oracle": "Literal expected quote from the accepted specification",
+    "sensitivity": "The same assertion fails before persistence is implemented",
+    "test_inputs": ["tests/check_quote.py"]
+  }
+}

@@ -8,6 +8,7 @@ import copy
 import datetime as dt
 import fcntl
 import json
+import math
 from pathlib import Path
 import re
 import sys
@@ -30,12 +31,12 @@ COMMON = {"id", "kind", "title", "source", "basis", "status", "supersedes", "exp
           "references", "contracts", "inputs", "counterevidence", "accepted_by", "acceptance_ref",
           "confidence", "segment", "workflow"}
 FIELDS = {
-    "brief": {"goal", "buyer", "intent", "complexity", "surface", "constraints", "capabilities"},
+    "brief": {"goal", "buyer", "intent", "complexity", "surface", "constraints", "capabilities", "market"},
     "assumption": {"validation"},
     "decision": {"rationale"},
     "artifact": {"path", "stage", "owner", "next_action", "criteria"},
-    "criterion": {"stage", "required", "expected", "method", "command"},
-    "evidence": {"claim", "artifact", "method", "outcome", "observed", "criteria", "check"},
+    "criterion": {"stage", "required", "expected", "method", "command", "quality"},
+    "evidence": {"claim", "artifact", "method", "outcome", "observed", "criteria", "check", "quality", "market"},
     "experiment": {"hypothesis", "metric", "success_condition", "stop_condition", "operating_scope", "outcome_evidence"},
     "feedback": {"reproduction", "criteria", "next_task", "operating_scope"},
 }
@@ -150,6 +151,38 @@ def _validate(root, payload, earlier, stored=False):
         _require(item["intent"] in ("plan", "implement", "review"), "intent must be plan, implement or review")
         _require(item["complexity"] in ("small", "feature", "product"), "complexity must be small, feature or product")
         _require(item["surface"] in ("cli", "api", "web"), "surface must be cli, api or web")
+    if "market" in item:
+        market = item["market"]
+        fields = {"customer", "job", "alternative", "differentiation", "channel",
+                  "activation_event", "decision", "next_review", "evidence_kind"}
+        _require(isinstance(market, dict) and set(market) == fields,
+                 "market requires customer, job, alternative, differentiation, channel, activation_event, decision, next_review, evidence_kind")
+        _require(all(_text(value) for value in market.values()), "market fields must be nonempty text")
+        _date(market["next_review"], "market.next_review")
+        _require(market["evidence_kind"] in ("assumption", "synthetic", "source", "customer"), "Unknown market evidence_kind")
+        if market["evidence_kind"] in ("assumption", "synthetic"):
+            _require(item["basis"] == "inferred", "Assumptions and synthetic market feedback must remain inferred")
+        if market["evidence_kind"] == "customer":
+            _require(source["kind"] == "customer" and item["basis"] == "observed",
+                     "Customer market evidence requires observed customer provenance")
+        _require(_date(market["next_review"], "market.next_review") >= _date(source["observed_at"], "source.observed_at"),
+                 "market.next_review precedes its observation")
+    if "quality" in item:
+        quality = item["quality"]
+        if kind == "criterion":
+            fields = {"slice", "public_interface", "oracle", "sensitivity", "test_inputs"}
+            _require(isinstance(quality, dict) and set(quality) == fields,
+                     "quality requires slice, public_interface, oracle, sensitivity and test_inputs")
+            _require(all(_text(quality[key]) for key in fields - {"test_inputs"}), "quality descriptions must be nonempty")
+            tests = quality["test_inputs"]
+            _require(isinstance(tests, list) and tests and all(_text(v) for v in tests), "quality.test_inputs needs test files")
+            quality["test_inputs"] = [_local(root, name) for name in tests]
+            _require(len(set(quality["test_inputs"])) == len(tests), "Duplicate quality.test_inputs")
+            _require(item.get("method") == "command", "Quality contracts require command evidence")
+        else:
+            _require(isinstance(quality, dict) and set(quality) == {"red"}, "quality evidence requires a red receipt")
+            quality["red"] = _local(root, quality["red"])
+            _require(item.get("method") == "command", "Quality evidence requires command receipts")
     if kind == "criterion":
         _require(isinstance(item["required"], bool), "required must be a boolean")
         _require(item["inputs"] or item["contracts"], "A criterion needs declared inputs or contract references")
@@ -207,6 +240,10 @@ def _paths(item):
     paths.update(item[key] for key in ("path", "artifact", "reproduction") if key in item)
     if item["source"]["kind"] == "local":
         paths.add(item["source"]["ref"])
+    quality = item.get("quality", {})
+    paths.update(quality.get("test_inputs", []))
+    if "red" in quality:
+        paths.add(quality["red"])
     return paths
 
 
@@ -276,10 +313,17 @@ def record(root, payload):
         paths = _paths(item)
         if item.get("method") == "command" and item.get("artifact"):
             receipt = _receipt(root, item)
-            if receipt.get("log"):
-                paths.add(_local(root, receipt["log"]))
+            for field in ("log", "test_report"):
+                if receipt.get(field):
+                    paths.add(_local(root, receipt[field]))
             if isinstance(receipt.get("input_revisions"), dict):
                 paths.update(_local(root, path) for path in receipt["input_revisions"])
+        if "red" in item.get("quality", {}):
+            red = foundry.read_json(foundry.within(root, item["quality"]["red"]))
+            _require(isinstance(red, dict), "Red evidence must be a JSON receipt")
+            for field in ("log", "test_report"):
+                if red.get(field):
+                    paths.add(_local(root, red[field]))
         revisions = {}
         for name in sorted(paths):
             path = foundry.within(root, name)
@@ -309,6 +353,8 @@ def _states(root, data):
     clock = dt.datetime.now(dt.timezone.utc)
     for item in data["records"]:
         reasons = []
+        if item.get("market") and _date(item["market"]["next_review"], "market.next_review") <= clock:
+            reasons.append("Market evidence review date has passed")
         if item.get("expires_at") and _date(item["expires_at"], "expires_at") <= clock:
             reasons.append("Evidence review/expiry date has passed")
         for name, expected in item["input_revisions"].items():
@@ -363,6 +409,57 @@ def _criterion_inputs(criterion, records):
     return inputs
 
 
+def _quality_observation(root, evidence, criterion, green):
+    """Validate declared execution evidence, not test semantics or editor honesty."""
+    quality = evidence.get("quality", {})
+    _require("red" in quality, "Quality pass needs retained red evidence")
+    _require(quality["red"] != evidence["artifact"], "Red and green must be separate receipts")
+    red = foundry.read_json(foundry.within(root, quality["red"]))
+    _require(isinstance(red, dict), "Red evidence must be a receipt")
+    for receipt, failed in ((red, True), (green, False)):
+        _require(receipt.get("command") == criterion["command"], "Red/green commands must match criterion")
+        counts = receipt.get("tests")
+        _require(isinstance(counts, dict) and set(counts) == {"executed", "passed", "failed", "skipped"}
+                 and all(type(v) is int and v >= 0 for v in counts.values()), "Quality evidence needs integer test counts")
+        _require(counts["executed"] > 0 and counts["executed"] == counts["passed"] + counts["failed"]
+                 and counts["skipped"] == 0, "Quality evidence needs executed tests without skipped coverage")
+        _require((counts["failed"] > 0) == failed, "Red must fail tests and green must pass them")
+        duration = receipt.get("duration_seconds")
+        try:
+            valid_duration = type(duration) in (int, float) and math.isfinite(duration) and duration >= 0
+        except OverflowError:
+            valid_duration = False
+        _require(valid_duration,
+                 "Quality duration must be finite and nonnegative")
+        _require(type(receipt.get("exit_code")) is int and (receipt["exit_code"] != 0) == failed
+                 and receipt.get("status") == ("failed" if failed else "passed"), "Red/green command result is invalid")
+        before = receipt.get("input_revisions")
+        _require(isinstance(before, dict) and before and before == receipt.get("input_revisions_after"),
+                 "Red/green inputs must be captured and stable during execution")
+        _require(all(_text(name) and isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{64}", revision)
+                     for name, revision in before.items()), "Red/green input hashes are invalid")
+        for name in before:
+            _local(root, name)
+        for field, hash_field in (("log", "log_sha256"), ("test_report", "test_report_sha256")):
+            name = _local(root, receipt.get(field))
+            path = foundry.within(root, name)
+            _require(name in evidence["input_revisions"] and path.is_file()
+                     and foundry.digest(path.read_bytes()) == receipt.get(hash_field), "Quality artifact changed or was not pinned")
+            if field == "test_report":
+                report = foundry.read_json(path)
+                _require(isinstance(report, dict) and report.get("tests") == counts
+                         and _text(receipt.get("check_run_id")) and report.get("run_id") == receipt["check_run_id"],
+                         "Test report differs from receipt counts or execution identity")
+    _require(red["check_run_id"] != green["check_run_id"], "Red and green must be separate executions")
+    _require(set(red["input_revisions"]) == set(green["input_revisions"]), "Red and green must cover the same inputs")
+    _require(red["tests"]["executed"] == green["tests"]["executed"], "Red and green must execute the same test count")
+    _require(red["log_sha256"] != green["log_sha256"], "Red and green cannot reuse the same log")
+    _require(red["input_revisions"] != green["input_revisions"], "Red and green need different implementation revisions")
+    for name in criterion["quality"]["test_inputs"]:
+        _require(red["input_revisions"].get(name) == green["input_revisions"].get(name)
+                 == criterion["input_revisions"][name], "Sensitivity test must remain unchanged between red and green")
+
+
 def _observation(root, evidence, criterion, records):
     if evidence["basis"] != "observed" or evidence["status"] != "accepted":
         return "unverified", "Evidence is inferred or proposed"
@@ -395,6 +492,8 @@ def _observation(root, evidence, criterion, records):
             log = foundry.within(root, name)
             _require(log.is_file() and foundry.digest(log.read_bytes()) == receipt.get("log_sha256"), "Receipt log changed or missing")
             _require(name in evidence["input_revisions"], "Receipt log was not pinned when evidence was recorded")
+            if "quality" in criterion:
+                _quality_observation(root, evidence, criterion, receipt)
         except (foundry.Error, OSError, ValueError, TypeError) as exc:
             return "unverified", str(exc)
     return "pass", "Recorded observation and its declared input/contract revisions are current"

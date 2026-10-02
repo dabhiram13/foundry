@@ -44,8 +44,15 @@
             <label for="title">Workshop idea</label>
             <input id="title" name="title" type="text" maxlength="200" required aria-describedby="title-help">
             <p id="title-help" class="hint">A short, specific title. You can create an outline after saving.</p>
-            <button type="submit">Save brief</button>
+            <button type="submit">Review brief</button>
           </form>
+          <section id="brief-review" aria-labelledby="review-heading" hidden>
+            <h3 id="review-heading" tabindex="-1">Review your brief</h3>
+            <p id="review-title"></p>
+            <p class="hint">Saving is free. Create an outline afterwards.</p>
+            <button id="save-brief" type="button">Save brief</button>
+            <button id="edit-brief" type="button" class="secondary">Back to edit</button>
+          </section>
           <aside class="plan" aria-label="Your plan">
             <p id="account-email" class="account-email"></p>
             <p id="balance"></p>

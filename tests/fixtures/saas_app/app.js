@@ -1,6 +1,16 @@
 /* This UI exercises the real fixture API. It never inserts user content as HTML. */
 const byId = (id) => document.getElementById(id);
 let csrf = "";
+let draftKey = "";
+let savedBriefPendingRefresh = false;
+function rememberDraft() {
+  if (draftKey) sessionStorage.setItem(draftKey, byId("title").value);
+}
+function editDraft() {
+  byId("brief-review").hidden = true;
+  byId("brief-form").hidden = false;
+  byId("title").focus();
+}
 const pendingKeys = new Map();
 
 async function api(path, options = {}) {
@@ -88,6 +98,10 @@ async function renderBriefs() {
 
 async function enterWorkspace(session) {
   csrf = session.csrf;
+  // Scope disposable drafts to this authenticated session, not account PII.
+  draftKey = `briefroom-draft:${csrf}`;
+  byId("title").value = sessionStorage.getItem(draftKey) || "";
+  editDraft();
   renderAccount(session.account);
   byId("auth").hidden = true;
   byId("workspace").hidden = false;
@@ -109,15 +123,41 @@ byId("auth-form").addEventListener("submit", (event) => {
   });
 });
 
+byId("title").addEventListener("input", () => {
+  byId("title").setCustomValidity("");
+  rememberDraft();
+});
+byId("edit-brief").addEventListener("click", editDraft);
 byId("brief-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  busy(event.target.querySelector("button"), "Saving brief…", async () => {
-    await api("/api/briefs", { method: "POST", body: JSON.stringify({ title: byId("title").value }) });
-    byId("title").value = "";
+  const input = byId("title");
+  input.setCustomValidity(input.value.trim() ? "" : "Enter a workshop idea, not just spaces.");
+  if (!input.reportValidity()) return;
+  rememberDraft();
+  clearError();
+  byId("review-title").textContent = input.value.trim();
+  byId("brief-form").hidden = true;
+  byId("brief-review").hidden = false;
+  byId("review-heading").focus();
+});
+byId("save-brief").addEventListener("click", async (event) => {
+  byId("edit-brief").disabled = true;
+  await busy(event.target, savedBriefPendingRefresh ? "Refreshing briefs…" : "Saving brief…", async () => {
+    if (!savedBriefPendingRefresh) {
+      await api("/api/briefs", { method: "POST", body: JSON.stringify({ title: byId("title").value }) });
+      // A successful POST is final. Retrying a failed display read must not
+      // submit the cleared title or create another brief.
+      savedBriefPendingRefresh = true;
+      byId("title").value = "";
+      sessionStorage.removeItem(draftKey);
+    }
     await renderBriefs();
+    savedBriefPendingRefresh = false;
+    editDraft();
     announce("Brief saved. Create an outline when you are ready.");
-    byId("title").focus();
   });
+  event.target.textContent = savedBriefPendingRefresh ? "Refresh saved briefs" : "Save brief";
+  byId("edit-brief").disabled = savedBriefPendingRefresh;
 });
 
 byId("upgrade").addEventListener("click", (event) => busy(event.target, "Enabling demo plan…", async () => {
@@ -129,6 +169,13 @@ byId("upgrade").addEventListener("click", (event) => busy(event.target, "Enablin
 
 byId("logout").addEventListener("click", (event) => busy(event.target, "Signing out…", async () => {
   await api("/api/logout", { method: "POST", body: "{}" });
+  sessionStorage.removeItem(draftKey);
+  draftKey = "";
+  savedBriefPendingRefresh = false;
+  byId("save-brief").textContent = "Save brief";
+  byId("edit-brief").disabled = false;
+  byId("title").value = "";
+  editDraft();
   csrf = "";
   pendingKeys.clear();
   byId("briefs").replaceChildren();

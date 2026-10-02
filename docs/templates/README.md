@@ -17,3 +17,18 @@ Read [the contract](../WORKFLOW-CONTRACTS.md) for field meanings and gate limits
 - `opportunity-thesis.md`: commercial case and disconfirming experiment.
 - `design-handoff.md`: six UX handoffs at appropriate depth.
 - `release-maintenance.md`: authorized release, recovery and outcome loop.
+
+Opt-in additions reuse the same record/gate commands:
+
+- `quality-criterion.json`: one demoable public-interface slice, independent oracle,
+  sensitivity description and unchanged test file inputs.
+- `quality-observation.json`: references separate retained red and green runtime
+  receipts. Populate from actual executions using the configured `test_report`
+  protocol; placeholders and self-reported success are not execution evidence.
+- `market-loop.json`: customer/job, current workaround, smallest differentiation,
+  channel, first-value event, decision and dated next review. Keep unknown demand
+  inferred; synthetic exercises are not customer validation.
+
+These optional contracts do not require a task graph or a second context ledger.
+Quality checks establish receipt consistency and freshness, not semantic test
+independence: a reviewer must still reject assertions that merely restate code.

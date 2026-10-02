@@ -153,3 +153,13 @@ and assumptions. Propose the next smallest improvement or experiment. Feedback
 records and recommendations do not authorize implementation, monitoring, messaging,
 publishing, or spending. Recurring maintenance needs its own request. Honor
 interruptions; hooks must never force work to continue.
+
+## Bounded evidence improvements
+
+Prefer one demoable slice and a failing public-interface assertion before the
+implementation. Preserve the same tests through green, and turn recurring
+failures into executable regressions. Optional quality and market records are
+documented in [workflow contracts](WORKFLOW-CONTRACTS.md); ordinary small tasks
+do not need extra records. Review [UX recovery](UX-RUBRIC.md) for guided interfaces.
+Use [qualification](QUALIFICATION.md) only when a measured artifact comparison
+is useful; selection is explicit, local and separate from deployment.

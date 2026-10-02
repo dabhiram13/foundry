@@ -91,3 +91,28 @@ undergoes containment and symlink validation. Explicit file inputs remain tracke
 including bytecode files, and other generated artifacts such as `dist` contents
 remain included when their directory is declared. Missing declared inputs fail.
 Cold verification does not require disabling Python bytecode generation.
+
+## Nonempty test execution reports
+
+Checks may opt into `test_report`, a project-relative JSON output path. The
+framework's behavior check uses `scripts/test_runner.py --start tests` with
+`.foundry/state/test-reports/framework.json`. The runtime supplies
+`FOUNDRY_TEST_REPORT` and a fresh `FOUNDRY_CHECK_ID` to that process. The producer
+must emit exactly:
+
+```json
+{"run_id": "VALUE_OF_FOUNDRY_CHECK_ID", "tests": {"executed": 3, "passed": 3, "failed": 0, "skipped": 0}}
+```
+
+Counts must be nonnegative integers, with positive `executed = passed + failed`.
+Zero coverage, stale IDs, missing reports, failed tests or skipped tests cannot
+pass. The bundled unittest producer counts test methods (multiple failed subtests
+are one failed method); skips and expected failures fail the strict check.
+Each receipt preserves a separate report copy, its hash, execution ID, counts
+and measured duration. Completion revalidates that retained report. Checks
+without this opt-in retain their existing exit-status contract.
+
+These are execution-integrity checks, not semantic proof: trusted test code can
+write dishonest counts or tautological assertions. Review public-interface
+assertions and demonstrate sensitivity with a deliberate defect. Keep producer
+outputs outside declared source inputs; use runtime state for transient reports.

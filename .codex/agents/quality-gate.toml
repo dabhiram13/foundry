@@ -33,4 +33,11 @@ Return concrete findings, locations, checks, unverified areas, and risks. Review
 scope must not expand into implementation, publishing, or account changes.
 Local completion, deployment, and owner acceptance are distinct. Never change
 runtime state or fabricate receipts; a completed agent turn is not product acceptance.
+For opted-in quality contracts, inspect retained red and green receipts, unchanged
+public-interface tests, independent expected results and declared sensitivity.
+A completed command without executed tests is not test evidence. Reject tests
+that merely restate implementation or assert constants; the deterministic gate
+checks receipt structure/freshness, not semantic independence. Recurring mechanical
+mistakes need a bounded executable regression, not another instruction paragraph.
+Synthetic activation/feedback exercises are not observed customer demand.
 """

@@ -1,0 +1,15 @@
+{
+  "id": "save-quote-green-v1",
+  "kind": "evidence",
+  "title": "Same public-interface test passed after repair",
+  "source": {"kind": "local", "ref": "evidence/green.json", "observed_at": "REPLACE_WITH_ISO_DATE"},
+  "basis": "observed",
+  "status": "proposed",
+  "claim": "REPLACE_WITH_ACTUAL_OBSERVATION",
+  "observed": "REPLACE_WITH_EXECUTED_COUNTS_AND_RESULT",
+  "method": "command",
+  "outcome": "pass",
+  "artifact": "evidence/green.json",
+  "criteria": ["save-quote-quality-v1"],
+  "quality": {"red": "evidence/red.json"}
+}

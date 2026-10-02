@@ -115,3 +115,18 @@ personas. A local test cannot prove profitable acquisition, willingness to pay,
 retention, or live billing. Keep local, deployed, and owner-accepted outcomes
 separate. Use failures to improve the smallest relevant contract and rerun the
 regression before activating a new skill or widening automation.
+
+## Optional evidence and qualification additions
+
+The current local framework additionally rejects missing/empty/stale execution
+reports and changed retained report evidence, binds optional red/green quality
+observations, validates optional commercial provenance and review dates, and
+persists bounded candidate/evaluation/explicit-selection records. The fixture
+adds guided review/back/edit/resume, save-refresh recovery and a transactional
+first-outline activation event. These are local mechanisms, not independent
+semantic judges, customer evidence or a live provider qualification.
+
+Regression sensitivity deliberately disables quality checks, threshold/freshness
+checks, draft persistence and activation insertion in isolated copies. The
+corresponding assertions must fail. Exact counts, elapsed times and current
+aggregate status belong to saved run receipts, not earlier historical totals.

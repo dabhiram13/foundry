@@ -249,3 +249,29 @@ material; unknown usage is unknown.
 [Templates](templates/README.md) contain placeholders that must be grounded in the
 actual request and source files before recording. They do not install services or
 represent preapproved decisions.
+
+## Optional narrow-slice quality and market context
+
+A command criterion can opt into `quality` with five fields: `slice` (one demoable
+outcome), `public_interface`, `oracle` (observable assertion), `sensitivity` (the
+defect that must make it fail), and `test_inputs` (nonempty project-relative test
+files). Evidence supplies `quality.red` with the failing receipt path; its usual
+`artifact` identifies the green receipt. Configure the runtime check with
+`test_report` as described in [runtime reporting](RUNTIME.md).
+
+The gate requires real nonempty execution counts, no skipped coverage, separate
+red/green execution identities and logs, matching command/input coverage and test
+counts, unchanged test sources, and a changed implementation revision. It pins
+both reports and their logs. This supports public-interface red → green work and
+recurring error regression checks without requiring a new task graph. It cannot
+judge whether an assertion is tautological; independent review and deliberate
+fault sensitivity remain necessary. Existing criteria need no migration.
+
+A brief or evidence record may include `market` with `customer`, `job`,
+`alternative`, `differentiation`, `channel`, `activation_event`, `decision`,
+`next_review`, and `evidence_kind`. All are required when opting in. The existing
+source supplies dated provenance. `evidence_kind` is `assumption`, `synthetic`, `source`, or
+`customer`: the first two require inferred basis; customer evidence requires an
+observed customer source. Review dates cannot precede observation; elapsed review
+makes the record stale. Avoid PII; a synthetic activation demonstrates instrumented
+behavior, not customer demand. See [fillable templates](templates/README.md).

@@ -59,4 +59,12 @@ convert an unresolved product decision into an approved requirement.
 Return plan/brief paths, contract decisions, parallelizable work, and blockers.
 The parent coordinates builders and review and owns lifecycle transitions.
 Never edit .foundry/state/ directly.
+Plan one independently demoable slice through the required layers at a time.
+Name its public interface, independent expected result, and a falsifying test.
+For opted-in quality criteria, declare quality.slice, public_interface, oracle,
+sensitivity and test_inputs; retain the failing execution before repair and rerun
+the same test afterward. Use the runtime test_report protocol for execution counts.
+Do not create a task graph for a trivial change. Keep customer/job, alternative,
+smallest differentiation, channel, activation event and next review in the existing
+brief/evidence market fields; label unknown demand and synthetic feedback honestly.
 """

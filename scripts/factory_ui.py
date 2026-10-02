@@ -129,14 +129,20 @@ def make_server(service, port=0):
             pass
 
         def send(self, status, content, mime='application/json'):
-            body = (json.dumps(content) if mime == 'application/json' else content).encode()
+            if mime == 'application/json':
+                body = json.dumps(content).encode()
+            elif isinstance(content, bytes):
+                body = content
+            else:
+                body = content.encode()
             self.send_response(status)
-            self.send_header('Content-Type', mime + '; charset=utf-8')
+            charset = '; charset=utf-8' if mime.startswith('text/') or mime == 'application/json' else ''
+            self.send_header('Content-Type', mime + charset)
             self.send_header('Content-Length', str(len(body)))
             self.send_header('Cache-Control', 'no-store')
             self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Referrer-Policy', 'no-referrer')
-            self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+            self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
             self.end_headers()
             self.wfile.write(body)
 
@@ -157,12 +163,20 @@ def make_server(service, port=0):
                     params = parse_qs(parsed.query)
                     content = service.factory.artifact(params['id'][0], params['path'][0])
                     self.send(200, {'content': content})
-                elif parsed.path in ('/', '/app.js', '/style.css'):
-                    name = {'/': 'index.html', '/app.js': 'app.js', '/style.css': 'style.css'}[parsed.path]
-                    content = (ROOT / 'app' / name).read_text()
+                elif parsed.path in ('/', '/app.js', '/vendor.js', '/style.css',
+                                     '/assets/foundry-mark.png'):
+                    name, mime, binary = {
+                        '/': ('index.html', 'text/html', False),
+                        '/app.js': ('app.js', 'text/javascript', False),
+                        '/vendor.js': ('vendor.js', 'text/javascript', False),
+                        '/style.css': ('style.css', 'text/css', False),
+                        '/assets/foundry-mark.png': ('assets/foundry-mark.png', 'image/png', True),
+                    }[parsed.path]
+                    path = ROOT / 'app' / name
+                    content = path.read_bytes() if binary else path.read_text()
                     if name == 'index.html':
                         content = content.replace('__FOUNDRY_TOKEN__', token)
-                    self.send(200, content, {'index.html':'text/html', 'app.js':'text/javascript', 'style.css':'text/css'}[name])
+                    self.send(200, content, mime)
                 else:
                     self.send(404, {'error': 'Not found'})
             except PermissionError as exc:

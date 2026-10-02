@@ -14,5 +14,10 @@
   },
   "scripts": {
     "build:panel": "python3 scripts/build_panel.py"
+  },
+  "dependencies": {
+    "dompurify": "3.4.16",
+    "lucide": "1.49.0",
+    "marked": "18.0.14"
   }
 }

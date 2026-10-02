@@ -66,6 +66,19 @@ class FactoryUITests(unittest.TestCase):
             self.request('/api/create', {'name':'Blocked','idea':'Blocked','credential_env':{'ACCESS_TOKEN':'blocked'}})
         self.assertEqual(error.exception.code, 400)
 
+    def test_static_vendor_and_logo_are_strictly_served(self):
+        with urlopen(self.url + '/vendor.js') as response:
+            self.assertEqual(response.headers.get_content_type(), 'text/javascript')
+            self.assertIn(b'foundryUI', response.read())
+        with urlopen(self.url + '/assets/foundry-mark.png') as response:
+            self.assertEqual(response.headers.get('Content-Type'), 'image/png')
+            self.assertIn("img-src 'self' data:", response.headers['Content-Security-Policy'])
+            self.assertEqual(response.read(),
+                             (self.service.root / 'app/assets/foundry-mark.png').read_bytes())
+        with self.assertRaises(HTTPError) as error:
+            urlopen(self.url + '/assets/missing.png')
+        self.assertEqual(error.exception.code, 404)
+
     def test_account_switch_is_blocked_while_a_stage_runs(self):
         self.service.jobs['fixture'] = {'status':'running','error':None}
         for action in ['sign-in', 'sign-out']:
@@ -113,5 +126,9 @@ class FactoryUITests(unittest.TestCase):
                     self.assertFalse(result.is_error)
                     self.assertEqual(json.loads(result.content[0].text)['projects'], [])
                     panel = await client.read_resource('ui://foundry/factory')
-                    self.assertIn('Your software factory', panel.contents[0].text)
+                    html = panel.contents[0].text
+                    self.assertTrue('id="create-form"' in html, 'Factory panel contains the product entry form')
+                    self.assertTrue('data:image/png;base64,' in html, 'Panel includes the logo offline')
+                    self.assertFalse('/assets/foundry-mark.png' in html, 'Panel must not request a local logo route')
+                    self.assertFalse('src="/vendor.js"' in html, 'Panel must include its own vendor bundle')
         asyncio.run(asyncio.wait_for(check(), timeout=15))

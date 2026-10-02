@@ -10,8 +10,10 @@ Read README.md and docs/WORKFLOW.md before product work. Use
 stack, and authorization. Choose small, feature, or product depth; do not force a
 whole lifecycle onto every request.
 
-For a new product or first installation, use `skills/foundry/SKILL.md`.
-Treat its framework-root placeholder as this checkout when reading the source.
+For a new product, use the local factory documented in README.md: `./foundry`.
+The controller owns stage dispatch and lifecycle integration; scope and design
+reviews belong to the owner. For an existing-product CLI installation, consult
+`skills/foundry/SKILL.md` and resolve its framework-root placeholder to this checkout.
 Keep application code in the selected product workspace. `marketcraft`, `product-foundry`,
 `foundry-*`, `scripts/foundry.py`, and `.foundry` are compatibility names.
 

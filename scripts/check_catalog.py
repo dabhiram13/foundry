@@ -42,6 +42,9 @@ def text_files(root: Path):
     if not root.exists():
         return
     for path in root.rglob("*"):
+        # The catalog checks shipped instructions, not machine-specific runtime evidence.
+        if ".foundry" in path.parts and "state" in path.parts[path.parts.index(".foundry") + 1:]:
+            continue
         if not path.is_file():
             continue
         try:

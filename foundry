@@ -1,0 +1,16 @@
+#!/bin/sh
+# First use prepares an isolated runtime, then opens the local factory.
+set -eu
+foundry_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+foundry_python="$foundry_root/.venv/bin/python"
+if [ ! -x "$foundry_python" ]; then
+  python3 -m venv "$foundry_root/.venv"
+fi
+foundry_digest=$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$foundry_root/requirements.txt")
+if [ ! -f "$foundry_root/.venv/.requirements-sha256" ] || [ "$(cat "$foundry_root/.venv/.requirements-sha256")" != "$foundry_digest" ]; then
+  "$foundry_python" -m pip install -r "$foundry_root/requirements.txt"
+  printf '%s' "$foundry_digest" > "$foundry_root/.venv/.requirements-sha256"
+fi
+PATH="$foundry_root/.venv/bin:$PATH"
+export PATH
+exec "$foundry_python" "$foundry_root/scripts/factory_ui.py" "$@"

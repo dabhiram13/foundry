@@ -48,6 +48,9 @@ emit({"type":"result", "status":"completed", "output":{"ok":True, "resumed":r["o
 
 class ProviderTests(unittest.TestCase):
     def setUp(self):
+        runtime = mock.patch.object(providers, "codex_executable", return_value="codex")
+        runtime.start()
+        self.addCleanup(runtime.stop)
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name).resolve()
         (self.root / ".foundry").mkdir()
@@ -83,6 +86,11 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(result["usage"]["input_tokens"], 11)
         self.assertIsNone(result["usage"]["api_dollars"])
         self.assertIsNone(result["usage"]["subscription_allowance_remaining"])
+
+    def test_chatgpt_credential_is_bound_to_its_adapter(self):
+        with self.assertRaisesRegex(providers.Error, "only reach"):
+            providers.execute(self.root, self.request(), credential_env={"ACCESS_TOKEN":"private-fixture-token"})
+        self.assertFalse((self.root / ".foundry/state/providers/tasks").exists())
 
     def test_missing_capability_rejected_before_process_launch(self):
         with self.assertRaisesRegex(providers.Error, "browser"):
@@ -303,16 +311,17 @@ class ProviderTests(unittest.TestCase):
             providers.prepare(self.root, {"prompt":"work", "billing":{"mode":"subscription"}})
 
     def test_codex_event_protocol_through_fake_executable_and_resume(self):
-        self.fake.write_text('''import json, sys
+        self.fake.write_text(f"#!{sys.executable}\n" + '''import json, sys
 prompt = sys.stdin.read()
 with open("codex-argv.jsonl", "a") as f: f.write(json.dumps(sys.argv[1:]) + "\\n")
 print(json.dumps({"type":"thread.started", "thread_id":"codex-session"}))
 print(json.dumps({"type":"item.completed", "item":{"type":"agent_message", "text":'{"ok":true}'}}))
 print(json.dumps({"type":"turn.completed", "usage":{"input_tokens":19, "output_tokens":5}}))
 ''')
+        self.fake.chmod(0o700)
         request = {"prompt":"inspect", "billing":{"mode":"subscription","confirmed":True},
                    "budget":{"max_attempts":2}, "output_schema":{"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"]}}
-        with mock.patch.dict(providers.CODEX, {"command":[sys.executable,str(self.fake)]}):
+        with mock.patch.object(providers, "codex_executable", return_value=str(self.fake)):
             first = providers.execute(self.root, request)
             result = providers.execute(self.root, request, first["task_id"])
         self.assertEqual(result["status"], "completed")
@@ -427,6 +436,14 @@ print(json.dumps({"type":"turn.completed", "usage":{"input_tokens":19, "output_t
         for value in [float("nan"), -1, True]:
             with self.subTest(value=value), self.assertRaises(providers.Error):
                 providers.execute(self.root, self.request(budget={"max_elapsed_seconds":value}))
+
+
+class RuntimeSelectionTests(unittest.TestCase):
+    def test_owner_executable_override_and_portable_path_fallback(self):
+        with mock.patch.dict(os.environ, {"FOUNDRY_CODEX": "owner-runtime"}):
+            self.assertEqual(providers.codex_executable(), "owner-runtime")
+        with mock.patch.dict(os.environ, {"FOUNDRY_CODEX": ""}), mock.patch.object(sys, "platform", "linux"):
+            self.assertEqual(providers.codex_executable(), "codex")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,55 @@
+// Exercise the actual UI + HTTP + factory + lifecycle with a clearly bounded provider double.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawn } = require('node:child_process');
+const { chromium } = require(process.env.MARKETCRAFT_PLAYWRIGHT_MODULE || 'playwright');
+const root = path.resolve(__dirname, '..');
+const temp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'foundry-browser-'));
+const python = process.env.FOUNDRY_PYTHON || path.join(root, '.venv/bin/python');
+const source = `import json,sys\nfrom pathlib import Path\nfrom scripts.factory_ui import Service,make_server\nsys.path.insert(0,'tests')\nfrom test_factory import FAKE\nbase=Path(sys.argv[1]).resolve()\nfake=base/'fake.py';fake.write_text(FAKE)\nclass FixtureService(Service):\n def dispatch(self,action,data):\n  result=super().dispatch(action,data)\n  if action=='create':\n   project=Path(result['path'])\n   (project/'.foundry/providers.json').write_text(json.dumps({'adapters':[{'name':'fixture','kind':'agent-runtime','command':[sys.executable,str(fake)],'capabilities':['jsonl','cancel','permissions','resume'],'billing_modes':['local']}]}))\n   result=self.factory.configure(result['id'],adapter='fixture')\n  return result\nservice=FixtureService(products_dir=base/'products',data_dir=base/'data')\nserver=make_server(service)\nprint('http://127.0.0.1:'+str(server.server_port),flush=True)\nserver.serve_forever()\n`;
+const server = spawn(python, ['-u', '-c', source, temp], { cwd: root, stdio: ['ignore','pipe','pipe'] });
+let browser, diagnostics = '';
+server.stderr.on('data', chunk => { diagnostics += chunk; });
+(async () => {
+ try {
+  const url = await new Promise((resolve, reject) => { let data=''; server.stdout.on('data', c => { data+=c; if(data.includes('\n'))resolve(data.trim().split('\n')[0]); }); server.once('exit', code => reject(Error('Server stopped '+code+' '+diagnostics))); setTimeout(() => reject(Error('Server startup timed out '+diagnostics)),20000).unref(); });
+  browser = await chromium.launch({ headless:true, ...(process.env.MARKETCRAFT_BROWSER_EXECUTABLE ? { executablePath:process.env.MARKETCRAFT_BROWSER_EXECUTABLE } : {}) });
+  const page = await browser.newPage({viewport:{width:1380,height:950}});
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto(url);
+  await page.getByLabel('Product name').fill('Studio notes');
+  await page.getByLabel('What should it do?').fill('Help a studio owner keep one useful note locally.');
+  await page.getByRole('button',{name:'Create product',exact:true}).click();
+  await page.getByRole('heading',{name:'Studio notes',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Continue with Research',exact:true}).click();
+  await page.getByRole('button',{name:'Approve and continue',exact:true}).waitFor({timeout:30000});
+  assert.equal(await page.locator('#stage-caption').textContent(),'Scope stage');
+  await page.getByRole('button',{name:'Open',exact:true}).last().click();
+  await page.locator('#artifact-content').filter({hasText:'Acceptance criteria'}).waitFor();
+  await page.getByRole('button',{name:'Close document'}).click();
+  await page.getByRole('button',{name:'Approve and continue',exact:true}).click();
+  await page.locator('#stage-caption').filter({hasText:'Design stage'}).waitFor({timeout:30000});
+  await page.getByRole('button',{name:'Approve and continue',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Approve and continue',exact:true}).click();
+  await page.locator('#outputs').filter({hasText:'docs/product/release.md'}).waitFor({timeout:45000});
+  assert.equal(await page.locator('#status').textContent(),'Completed');
+  assert.equal(await page.getByRole('button',{name:/Continue with|Approve and continue/}).count(),0);
+  await page.getByRole('button',{name:'Specialists & settings'}).click();
+  await page.getByRole('heading',{name:'Account & runtime',exact:true}).waitFor();
+  await page.getByPlaceholder('Use your runtime default').fill('owner-selected-model');
+  await page.getByLabel('Reasoning',{exact:true}).selectOption('high');
+  await page.getByRole('button',{name:'Save settings',exact:true}).click();
+  await page.getByText('Runtime and specialist preferences saved.').waitFor();
+  const output = path.join(root, 'output/playwright'); fs.mkdirSync(output,{recursive:true});
+  await page.screenshot({path:path.join(output,'factory-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:path.join(output,'factory-mobile.png'),fullPage:true});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mobile layout overflows');
+  await page.reload();
+  await page.getByRole('heading',{name:'Studio notes',exact:true}).waitFor();
+  assert.deepEqual(errors,[]);
+  console.log('Factory browser journey passed: creation, two owner reviews, real product checks, release handoff, model settings, reload, desktop/mobile. Provider: fixture, no live inference.');
+ } finally { if(browser)await browser.close(); server.kill('SIGTERM'); await new Promise(resolve=>server.once('exit',resolve)); fs.rmSync(temp,{recursive:true,force:true}); }
+})().catch(error=>{console.error(error);process.exitCode=1;});

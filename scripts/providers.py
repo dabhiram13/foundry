@@ -15,6 +15,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import uuid
 
@@ -32,6 +33,17 @@ DEFAULT_BUDGET = {"max_attempts": 1, "max_concurrency": 1,
 CODEX = {"name": "codex", "kind": "agent-runtime", "command": ["codex"],
          "protocol": "codex-jsonl", "billing_modes": ["subscription", "api"],
          "capabilities": sorted(CAPABILITIES - {"browser"})}
+
+
+def codex_executable():
+    """Use the desktop app's matching runtime when available; an owner override wins."""
+    explicit = os.environ.get("FOUNDRY_CODEX")
+    if explicit:
+        return explicit
+    bundled = Path("/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex")
+    if sys.platform == "darwin" and bundled.is_file() and os.access(bundled, os.X_OK):
+        return str(bundled)
+    return "codex"
 
 
 class Error(ValueError):
@@ -119,7 +131,12 @@ def _tasks(root):
 
 def registry(root):
     """Metadata is a capability claim by trusted installed code, not a sandbox."""
-    result = {"codex": dict(CODEX)}
+    result = {"codex": {**CODEX, "command": [codex_executable()]}, "chatgpt": {
+        **CODEX, "name": "chatgpt", "protocol": "marketcraft-jsonl-v1",
+        "command": [sys.executable, str(Path(__file__).with_name("chatgpt_runtime.py"))],
+        "billing_modes": ["subscription"],
+        # The plan preview does not support native multi_agent. Local tools still work.
+        "capabilities": sorted(CAPABILITIES - {"browser", "structured_output"})}}
     path = _path(root, ".foundry/providers.json")
     if not path.exists():
         return result
@@ -132,7 +149,7 @@ def registry(root):
             raise Error("Each local adapter needs name, kind, command, capabilities and billing_modes")
         name = adapter["name"]
         if not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", name) or name in result:
-            raise Error("Adapter names must be unique; codex is reserved")
+            raise Error("Adapter names must be unique; codex and chatgpt are reserved")
         command = adapter["command"]
         if not isinstance(command, list) or not command or not all(isinstance(x, str) and x and "\0" not in x for x in command):
             raise Error("Adapter command must be an argv list, never a shell string")
@@ -307,9 +324,9 @@ def build_command(adapter, settings, schema_path=None, session_id=None):
 class Redactor:
     SENSITIVE = re.compile(r"(?:secret|password|passwd|api[_-]?key|authorization|cookie|credential|private[_-]?key|^token$|access[_-]?token|refresh[_-]?token)", re.I)
 
-    def __init__(self):
+    def __init__(self, environment=None):
         # Only environment values already inherited by this process; never read credential files.
-        self.values = sorted({value for key, value in os.environ.items()
+        self.values = sorted({value for key, value in (environment or os.environ).items()
                               if self.SENSITIVE.search(key) and len(value) >= 4}, key=len, reverse=True)
 
     def clean(self, value):
@@ -406,8 +423,15 @@ def _event(data, adapter, attempt, task):
         attempt["error"] = error if isinstance(error, dict) else {"message": str(error)}
 
 
-def _process(root, adapter, settings, request, task, attempt):
-    redactor = Redactor()
+def _process(root, adapter, settings, request, task, attempt, credential_env=None):
+    environment = dict(os.environ)
+    if credential_env:
+        environment.update(credential_env)
+    if adapter["name"] in {"codex", "chatgpt"} and settings["billing"]["mode"] == "subscription":
+        # Never let a plan connection silently use API-key credentials.
+        environment.pop("OPENAI_API_KEY", None)
+        environment.pop("CODEX_API_KEY", None)
+    redactor = Redactor(environment)
     directory = _path(root, f"{STATE}/evidence/{task['task_id']}/{attempt['number']}")
     directory.mkdir(parents=True, mode=0o700)
     schema_path = None
@@ -460,11 +484,12 @@ def _process(root, adapter, settings, request, task, attempt):
 
     try:
         with os.fdopen(log_fd, "w") as log:
-            for signum in [signal.SIGINT, signal.SIGTERM]:
-                handlers[signum] = signal.signal(signum, interrupted)
+            if threading.current_thread() is threading.main_thread():
+                for signum in [signal.SIGINT, signal.SIGTERM]:
+                    handlers[signum] = signal.signal(signum, interrupted)
             try:
                 process = subprocess.Popen(command, cwd=root, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE, start_new_session=True)
+                                           stderr=subprocess.PIPE, start_new_session=True, env=environment)
             except OSError:
                 attempt["error"] = {"code": "unavailable", "message": "Adapter executable could not be started"}
                 attempt["usage"]["api_dollars"] = 0.0  # No child was launched.
@@ -546,9 +571,18 @@ def _process(root, adapter, settings, request, task, attempt):
         attempt["elapsed_seconds"] = round(time.monotonic() - started, 6)
 
 
-def execute(root, request, task_id=None):
+def execute(root, request, task_id=None, *, credential_env=None, on_started=None):
+    # Private host seam. Credentials are neither request fields nor persisted settings.
+    if credential_env is not None and (not isinstance(credential_env, dict) or
+            set(credential_env) != {"ACCESS_TOKEN"} or
+            not isinstance(credential_env["ACCESS_TOKEN"], str) or not credential_env["ACCESS_TOKEN"]):
+        raise Error("Only a private ACCESS_TOKEN environment override is supported")
     root = Path(root).resolve()
     adapter, settings = prepare(root, request)
+    if credential_env and adapter["name"] != "chatgpt":
+        raise Error("ChatGPT credentials can only reach the ChatGPT adapter")
+    if adapter["name"] == "chatgpt" and not credential_env:
+        raise Error("Connect ChatGPT before running the ChatGPT adapter")
     identifier = task_id or str(uuid.uuid4())
     _task_path(root, identifier)
     with _lock(root, f"{STATE}/leases/{identifier}.lock", False):
@@ -580,8 +614,10 @@ def execute(root, request, task_id=None):
             cancel = _path(root, f"{STATE}/cancel/{identifier}.json")
             cancel.unlink(missing_ok=True)
             _save(root, task)
+        if on_started:
+            on_started(identifier)
         try:
-            outcome = _process(root, adapter, settings, request, task, attempt)
+            outcome = _process(root, adapter, settings, request, task, attempt, credential_env)
         except (OSError, ValueError, KeyboardInterrupt):
             # No inferred rollback: the child may have committed an effect before failure.
             outcome = "unknown"

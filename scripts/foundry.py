@@ -20,6 +20,7 @@ import uuid
 VERSION = "0.2.0"
 EXCLUDED = {".git", "__pycache__", ".venv", "node_modules", ".next", "coverage", "dist", "build"}
 MANAGED = [".agents/skills", ".codex/agents", ".codex/hooks.json", ".codex/config.toml",
+           "scripts/chatgpt_runtime.py",
            ".foundry/workflows", ".foundry/philosophy", ".foundry/references", ".foundry/migrations",
            "library", "scripts/foundry.py", "scripts/marketcraft.py", "scripts/workflow.py", "scripts/providers.py",
            "scripts/hooks.py", "scripts/security_scan.py", "scripts/test_runner.py", "scripts/qualification.py",
@@ -744,7 +745,9 @@ def install(source, target, update):
                 accepted_modes = {old_modes.get(rel)}
                 if pending:
                     accepted_modes.add(incoming_modes[rel])
-                changed_mode = rel in old_modes and (dest.stat().st_mode & 0o777) not in accepted_modes
+                if pending and rel not in old:
+                    accepted_modes = {incoming_modes[rel]}
+                changed_mode = (rel in old_modes or (pending and rel not in old)) and (dest.stat().st_mode & 0o777) not in accepted_modes
                 if changed_content or changed_mode:
                     conflicts.append(rel)
         # Removed managed files are deleted only when still byte-identical to our previous installation.

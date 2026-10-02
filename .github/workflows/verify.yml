@@ -16,6 +16,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified 2026-09-29
       - name: Trust checked-out workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Install factory runtime dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq python3-venv
+          python3 -m venv /tmp/foundry-env
+          /tmp/foundry-env/bin/python -m pip install -r requirements.txt
+          echo "/tmp/foundry-env/bin" >> "$GITHUB_PATH"
       - name: Behavior and runtime contracts
         run: python3 -m unittest discover -s tests -v
       - name: Web application behavior
@@ -23,6 +30,14 @@ jobs:
         run: python3 -m unittest test_app -v
       - name: Install pinned browser test library
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build and check plugin panel
+        run: |
+          npm run build:panel
+          git diff --exit-code -- app/panel.html
+      - name: Factory UI journey
+        env:
+          FOUNDRY_PYTHON: /tmp/foundry-env/bin/python
+        run: node tests/factory_browser.cjs
       - name: SaaS HTTP and browser journey
         run: python3 scripts/evaluate_journey.py
       - name: Evaluation honesty and cancellation contracts

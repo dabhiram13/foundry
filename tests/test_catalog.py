@@ -43,6 +43,16 @@ class CatalogValidatorTests(unittest.TestCase):
             any("missing framework reference" in error for error in validate(self.project))
         )
 
+    def test_runtime_evidence_is_not_shipped_catalog_content(self):
+        path = self.project / ".foundry/state/runs/run.json"
+        path.parent.mkdir(parents=True)
+        path.write_text('{"cwd":"/Users/fixture/Documents/product"}')
+        self.assertEqual(validate(self.project), [])
+        shipped = self.project / ".foundry/philosophy/wrong.md"
+        shipped.parent.mkdir(parents=True)
+        shipped.write_text('/Users/fixture/Documents/product')
+        self.assertTrue(any('source-machine path' in error for error in validate(self.project)))
+
 
 if __name__ == "__main__":
     unittest.main()

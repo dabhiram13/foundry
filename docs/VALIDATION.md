@@ -4,6 +4,43 @@ Run the framework checks documented in README.md. Treat each result as evidence
 for its exercised boundary; a green catalog or runtime test does not prove a SaaS
 customer journey, market demand, native delegation, or a live provider integration.
 
+## Local factory release evidence — 2026-10-01
+
+The local factory, browser UI, original ChatGPT OAuth bridge and private MCP
+package were developed from `32d5a87d9b42e41d57cbc55cbe3d951d16d41a2f`.
+Current runnable checks cover these boundaries:
+
+- Framework tests cover stage dispatch, two exact-document approval gates,
+  real lifecycle/workflow verification, custom adapter registration, model
+  settings, recovery and cancellation. Independent review found and repaired
+  late-cancel corruption of committed completion and false background-job status.
+- Authentication tests verify real signed JWTs against controlled OAuth/JWKS
+  endpoints and a controlled secure-store boundary. Account A → sign-out →
+  account B now requests a fresh client while retaining the stable host ID.
+  A separate temporary dummy Keychain entry was written, read and deleted on
+  this macOS host; no owner credential was copied.
+- The Factory browser journey exercises real loopback HTTP, workspace creation,
+  research/scope/design artifacts, two owner reviews, actual product checks,
+  release handoff, saved specialist settings, desktop and mobile interaction.
+  Its agent executable is a declared double; this does not prove agent delivery.
+- The packaged stdio server exposes 11 tools and delivers its bundled panel.
+  A fresh plugin-data directory independently bootstrapped pinned dependencies
+  and completed an actual MCP initialization. Both manifests validate against
+  their declared schemas. Host marketplace installation/rendering is separate.
+- Existing web tests passed 12 checks; evaluator contracts passed five checks;
+  the representative SaaS HTTP/browser evaluation passed all required stages
+  and 13 browser criteria. Its inference and plan remain controlled doubles.
+- The panel rebuild is reproducible; catalog checks pass for 37 workflows,
+  67 optional references and 28 roles. The staged Git index passed the configured
+  high-confidence secret scan.
+
+Live owner OAuth consent, a successful turn through Foundry's new ChatGPT token
+route, native host plugin installation, a second commercial provider and public
+or deployed release remain separately qualified outcomes. The owner-authorized
+native notes trial uses the existing Codex login and has its own product/evidence;
+its result must be recorded explicitly rather than inferred from these fixtures.
+GitHub Actions status belongs to the pushed revision, not this local evidence.
+
 ## Coverage
 
 - Runtime and hook tests exercise installation/update preservation, project

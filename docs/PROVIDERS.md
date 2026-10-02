@@ -1,10 +1,11 @@
 # Provider and runtime adapters
 
-Foundry keeps the owner's interactive Codex session as its normal coordinator.
-Nothing here replaces that session, changes authentication, connects an account,
-selects a paid plan, or starts another agent automatically. Use this optional seam
-when an explicitly authorized task needs a separate local agent process or a
-bounded model call. The coordinator owns task selection and integration.
+Foundry's local factory dispatches authorized stages through this process boundary.
+The lower-level commands also remain available to an interactive coordinator.
+Starting a factory run uses the selected runtime and its account allowance;
+creating a workspace does not. The controller owns stage selection, result
+integration and real checks. Authentication and product verification remain
+separate from a provider's successful turn.
 
 ## Two different contracts
 
@@ -13,7 +14,9 @@ bounded model call. The coordinator owns task selection and integration.
 | `agent-runtime` | Start/resume a session, apply declared permissions/tools, return events, cancel owned local processes | Product correctness, release authority, rollback of external effects |
 | `bounded-model` | Return a narrow result from one structured request | Agent tools, browser access, permission management, durable agent sessions |
 
-Codex is the built-in default agent runtime. An explicitly registered local command
+Codex is the built-in default agent runtime. The optional `chatgpt` adapter uses
+Foundry's separate local OAuth connection and Codex App Server; see
+[ChatGPT setup](CHATGPT.md). An explicitly registered local command
 can implement either kind. This is a working process protocol, not a universal
 provider SDK: another provider needs an adapter executable that implements and
 qualifies the contract. Listing a capability is a claim by reviewed adapter code;
@@ -90,7 +93,13 @@ resolved model null. Codex defaults to the narrower read-only sandbox; a task ma
 explicitly request `workspace-write`. Bypass flags, extra writable directories and
 arbitrary Codex configuration overrides are not exposed by this adapter.
 
-Command construction follows the inspected local `codex-cli 0.142.3` help:
+On macOS, Foundry prefers the executable bundled with the desktop app, then the
+`codex` command on PATH. `FOUNDRY_CODEX` explicitly selects another executable.
+This avoids an older PATH installation failing to read a newer owner config;
+Foundry does not change that config. The local bundled runtime inspected for this
+release is `0.159.2`; version/login inspection is not a live inference test.
+
+Command construction retains the tested CLI contract:
 `codex exec --json --sandbox ... [--output-schema FILE] -`; continuation uses
 `codex exec resume --json -c 'sandbox_mode="..."' SESSION_ID -`. Resume's CLI has
 no `--sandbox` flag. Prompts go through stdin, not process arguments. The runner
@@ -104,7 +113,7 @@ schema features are rejected before launch, rather than silently ignored.
 
 ## Registering a local command
 
-Put reviewed adapter metadata in `.foundry/providers.json`. `codex` is reserved;
+Put reviewed adapter metadata in `.foundry/providers.json`. `codex` and `chatgpt` are reserved;
 the command list executes directly with no shell expansion, from the product root.
 
 ```json
@@ -153,6 +162,13 @@ task. Concurrency limits apply to this project's provider tasks; an active task'
 lower limit cannot be bypassed by starting one with a higher limit. Unknown tasks
 occupy a slot until reconciled. Interactive sessions outside this module are not
 counted. These are local operating bounds, not account-wide billing controls.
+
+The ChatGPT adapter requires a plan-usage token obtained by the local sign-in
+bridge. It is injected only into that child process, never saved in a provider
+request or exposed to the UI. Subscription routes remove `OPENAI_API_KEY` and
+`CODEX_API_KEY` from their child environment. The new route does not enable an
+API-billed fallback or native multi-agent execution. The existing Codex route
+supports native specialists subject to the selected runtime and account.
 
 Billing mode must be explicitly selected from the adapter's advertised modes:
 `subscription`, `api` or `local`. The runner never inspects credentials and cannot

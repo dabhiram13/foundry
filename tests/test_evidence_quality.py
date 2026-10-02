@@ -17,7 +17,7 @@ class EvidenceQualityTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         (self.root / 'app.py').write_text('print("wrong")\n')
         (self.root / 'test.py').write_text('import subprocess,sys\np=subprocess.run([sys.executable,"app.py"],capture_output=True,text=True)\nassert p.stdout.strip() == "saved", p.stdout\nprint("one public CLI assertion passed")\n')
         self.command = [sys.executable, 'test.py']

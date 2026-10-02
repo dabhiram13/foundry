@@ -2,11 +2,17 @@
   "name": "foundry-evaluation",
   "version": "0.2.0",
   "private": true,
-  "description": "Pinned browser tooling for Foundry's optional local setup and required CI journey gate",
+  "description": "Pinned factory plugin panel build and browser verification tools",
   "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@openai/mcp-extensions": "0.1.0",
+    "esbuild": "0.28.2",
     "playwright": "1.63.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:panel": "python3 scripts/build_panel.py"
   }
 }

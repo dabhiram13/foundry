@@ -298,6 +298,30 @@ class RuntimeTests(unittest.TestCase):
                 self.assertEqual(foundry.install(source, target, True), 1)
             self.assertEqual(tree(target), before)
 
+    def test_interrupted_update_preserves_new_file_mode_edits(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(foundry, "MANAGED", ["payload", "scripts/foundry.py"]):
+            base = Path(tmp).resolve()
+            source = self.make_source(base)
+            target = base / "target"
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(foundry.install(source, target, False), 0)
+            new = source / "payload/new.sh"
+            new.write_text("echo useful\n")
+            new.chmod(0o644)
+            original = foundry.atomic_json
+            def crash(path, data):
+                if Path(path).name == "install.json":
+                    raise OSError("simulated crash after new file copy")
+                return original(path, data)
+            with mock.patch.object(foundry, "atomic_json", side_effect=crash), redirect_stdout(io.StringIO()):
+                with self.assertRaises(OSError):
+                    foundry.install(source, target, True)
+            installed = target / "payload/new.sh"
+            installed.chmod(0o755)
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(foundry.install(source, target, True), 1)
+            self.assertEqual(installed.stat().st_mode & 0o777, 0o755)
+
     def test_install_preserves_existing_repository_settings(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
             foundry, "MANAGED", ["payload", "scripts/foundry.py"]

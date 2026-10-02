@@ -76,13 +76,39 @@ to real required checks, and the workflow gate must pass against current receipt
 [Platform research and remaining distribution work](docs/FACTORY-PLAN.md) records
 what the latest releases enable and what still needs external qualification.
 
-## Use it as a local plugin
+## Install it as a private local plugin
 
 This repository includes `plugin.json`, `mcp.json`, an MCP server, an embedded
-panel with global/sidebar and thread entrypoints, and a private repo marketplace
-at `.agents/plugins/marketplace.json`. Open this repo in a supported ChatGPT/Codex
-client, refresh or restart it, find **Foundry private** in Plugins, and enable
-Foundry. The host may ask you to trust the local MCP executable.
+panel with global/sidebar and thread entrypoints, and a repo marketplace at
+`.agents/plugins/marketplace.json`.
+
+The primary local setup is Codex in the ChatGPT desktop app:
+
+1. Open this checkout as a trusted local Codex project, then restart the desktop
+   app so it discovers the repo marketplace.
+2. Open the Plugins Directory (or run `/plugins` where the command is
+   available), select the **Foundry private** source, open **Foundry**, and choose
+   **Install**. Review and trust the local MCP command when prompted.
+3. Start a **new chat** after installation. Open Foundry from its sidebar entry
+   when the host shows it, or select Foundry for the chat and ask: “Open Foundry
+   and help me scope a new product idea.”
+
+A current Codex CLI can register and install the same local package from the
+checkout without a hard-coded path:
+
+```sh
+codex plugin marketplace add "$PWD"
+codex plugin add foundry@foundry-private
+codex plugin list
+```
+
+Run those commands from the Foundry repository root. If the `plugin` command is
+missing, use the Plugins directory in the current desktop app; an older `codex`
+earlier on `PATH` may not have plugin support. The official
+[plugin packaging guide](https://developers.openai.com/plugins/build/plugins)
+documents local marketplaces, and the
+[extension guide](https://developers.openai.com/plugins/build/extensions)
+documents global and conversation entrypoints.
 
 The plugin launches the same factory through the official MCP SDK. It keeps its
 Python environment and state in the host's writable `PLUGIN_DATA`, and products
@@ -91,11 +117,29 @@ runtime dependencies. Local plugin products and standalone products use separate
 registries. Owner approvals and account controls are app-only tools; model-facing
 tools create, inspect, run, read artifacts, and request cancellation.
 
-This is **private local packaging**, not a published universal-directory plugin.
-ChatGPT web cannot directly run this laptop's stdio server. Public distribution
-needs an approved HTTPS service, tenant isolation, publisher information, and
-OpenAI review. Local MCP protocol and resource delivery have runnable checks;
-client installation and actual sidebar rendering must be checked in that client.
+An installed plugin can be used from a new desktop chat without reopening this
+repository, but it creates products in the plugin-managed products directory. It
+does not attach Foundry to whichever repository happens to be open. Use
+`./foundry` for the standalone UI, or `./foundry --products-dir PATH` when a
+specific local products parent is required.
+
+This is **private local packaging**. It can be distributed through a local or
+Git-backed marketplace for supported Codex clients without deploying an HTTPS
+service. Publishing it only to a ChatGPT workspace is a separate admin action
+and keeps it inside that workspace.
+
+Publishing to the universal public Plugins Directory has additional package,
+publisher, review, and listing requirements. If the public plugin includes live
+MCP tools, that server must run at a stable, publicly reachable HTTPS endpoint;
+ChatGPT web cannot launch this laptop's stdio process. Such a hosted service also
+needs appropriate tenant, authentication, authorization, and state boundaries.
+See the official [submission guide](https://developers.openai.com/plugins/deploy/submission)
+and [MCP deployment requirements](https://developers.openai.com/plugins/build/mcp-server).
+
+The local launcher, MCP initialization, 11-tool inventory, and bundled panel
+resource delivery have been exercised. The refreshed final panel still needs a
+visual and interaction check in Codex desktop after the redesign is installed
+and a new chat is started.
 
 ## Providers and specialists
 

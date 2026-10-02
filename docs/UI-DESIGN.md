@@ -1,7 +1,8 @@
 # Foundry workspace design
 
 Foundry uses genuine [shadcn/ui](https://ui.shadcn.com/) components, React, and
-Tailwind. The owner selected a Notion-like document workspace with shadcn controls.
+Tailwind. The owner approved the neutral Figtree foundation, an original landing, and a
+coherent six-stage workspace with shadcn controls on 2026-10-02.
 The earlier Tabler direction is superseded and its dependency and assets removed.
 No paid Figma assets are included. [The design system](DESIGN-SYSTEM.md) owns the
 layout, tokens, typography, component rules, responsive behavior, and skill usage.
@@ -15,7 +16,7 @@ Radix-backed shadcn dialogs. Review documents render as sanitized Markdown, with
 approval tied to the exact scope/design bytes that the owner opened.
 
 The monochrome vector mark at `app/assets/foundry-mark.svg` is the master logo.
-Lucide React supplies SVG interface icons. Geist is bundled locally. The browser
+Lucide React supplies SVG interface icons. Figtree 400/500/600 and 28 licensed static plush portraits are bundled locally. The browser
 and MCP panel run the same React application; the panel embeds its CSS, script,
 font, mark, and tool bridge. There are no font, image, icon, or CSS CDN requests.
 
@@ -35,9 +36,12 @@ The product above is a controlled test fixture, not a live AI-built release.
 controls with fake credentials, provider failure/retry/stop, owner review,
 settings persistence/recovery, specialist overrides/inheritance, documents,
 release handoff and the UI-to-MCP tool bridge. It uses real local Factory/Service
-boundaries with a controlled provider. It checks desktop/tablet/mobile/480px,
+boundaries with a controlled provider. It checks desktop, 1024/900/768px tablet, 480/390/360px narrow layouts,
 keyboard/focus, reduced motion, overflow, script errors and content sanitization.
-It does not prove live account access, AI product quality or public deployment.
+Delayed document navigation, slow snapshots, out-of-order polling and repeated creation
+are also covered. It does not prove live account access, AI product quality or public deployment.
+The [neutral redesign verification record](NEUTRAL-UI-VERIFICATION.md) contains
+current screenshots, independent review and native-host qualification limits.
 The configured framework checks also exercise execution, security boundaries and
 the separate sample SaaS journey. Generated screenshots are in output/playwright/.
 
@@ -65,3 +69,7 @@ established. The next useful benchmark is one real product built from a fixed
 brief: score acceptance criteria, successful user journeys, setup effort,
 recovery from one failure, and the ability to maintain the result. Add a reusable
 service recipe only after that product demonstrates the need and integration.
+
+The approved compact stage rail and single work panel refinement, including its
+current behavior and build evidence, is recorded in
+[stage workspace verification](STAGE-WORKSPACE-VERIFICATION.md).

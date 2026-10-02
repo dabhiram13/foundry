@@ -17,6 +17,22 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# A finite UI asset map, not an arbitrary file server. Origin/token guards are unchanged.
+STATIC_ASSETS = {
+    '/': ('index.html', 'text/html', False),
+    '/app.js': ('app.js', 'text/javascript', False),
+    '/style.css': ('style.css', 'text/css', False),
+    '/assets/foundry-mark.svg': ('assets/foundry-mark.svg', 'image/svg+xml', True),
+    '/assets/geist-latin-wght-normal.woff2': ('assets/geist-latin-wght-normal.woff2', 'font/woff2', True),
+}
+for _weight in (400, 500, 600):
+    _name = f'assets/figtree-latin-{_weight}-normal.woff2'
+    STATIC_ASSETS['/' + _name] = (_name, 'font/woff2', True)
+for _asset in sorted((ROOT / 'app/assets/bots').glob('*.png')):
+    if _asset.is_file() and _asset.resolve().parent == (ROOT / 'app/assets/bots').resolve():
+        _name = _asset.relative_to(ROOT / 'app').as_posix()
+        STATIC_ASSETS['/' + _name] = (_name, 'image/png', True)
+
 
 class Service:
     def __init__(self, root=ROOT, products_dir=None, data_dir=None):
@@ -168,15 +184,8 @@ def make_server(service, port=0):
                 elif parsed.path == '/api/artifact':
                     params = parse_qs(parsed.query)
                     self.send(200, service.factory.artifact_record(params['id'][0], params['path'][0]))
-                elif parsed.path in ('/', '/app.js', '/style.css', '/assets/foundry-mark.svg',
-                                     '/assets/geist-latin-wght-normal.woff2'):
-                    name, mime, binary = {
-                        '/': ('index.html', 'text/html', False),
-                        '/app.js': ('app.js', 'text/javascript', False),
-                        '/style.css': ('style.css', 'text/css', False),
-                        '/assets/foundry-mark.svg': ('assets/foundry-mark.svg', 'image/svg+xml', True),
-                        '/assets/geist-latin-wght-normal.woff2': ('assets/geist-latin-wght-normal.woff2', 'font/woff2', True),
-                    }[parsed.path]
+                elif parsed.path in STATIC_ASSETS:
+                    name, mime, binary = STATIC_ASSETS[parsed.path]
                     path = ROOT / 'app' / name
                     content = path.read_bytes() if binary else path.read_text()
                     if name == 'index.html':

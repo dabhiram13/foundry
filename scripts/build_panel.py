@@ -8,8 +8,7 @@ root = Path(__file__).resolve().parents[1]
 app = root / 'app'
 esbuild = str(root / 'node_modules/.bin/esbuild')
 tailwind = str(root / 'node_modules/.bin/tailwindcss')
-font_source = root / 'node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2'
-font_asset = app / 'assets/geist-latin-wght-normal.woff2'
+font_names = [f'figtree-latin-{weight}-normal.woff2' for weight in (400, 500, 600)]
 
 
 def bundle(source, output, *, tsconfig=False):
@@ -20,7 +19,9 @@ def bundle(source, output, *, tsconfig=False):
     subprocess.run(command, check=True)
 
 
-font_asset.write_bytes(font_source.read_bytes())
+for name in font_names:
+    source = root / 'node_modules/@fontsource/figtree/files' / name
+    (app / 'assets' / name).write_bytes(source.read_bytes())
 subprocess.run([tailwind, '-i', str(app / 'src/globals.css'), '-o', str(app / 'style.css'),
                 '--minify'], cwd=root, check=True)
 bundle('src/main.tsx', 'app.js', tsconfig=True)
@@ -31,15 +32,14 @@ try:
     html = (app / 'index.html').read_text()
     style = (app / 'style.css').read_text()
     asset_data = {}
-    for name, mime in (('foundry-mark.svg', 'image/svg+xml'),):
-        path = app / 'assets' / name
-        if path.is_file():
-            data = 'data:' + mime + ';base64,' + base64.b64encode(path.read_bytes()).decode()
-            asset_data['/assets/' + name] = data
-            html = html.replace('/assets/' + name, data)
-            style = style.replace('/assets/' + name, data)
-    font = 'data:font/woff2;base64,' + base64.b64encode(font_asset.read_bytes()).decode()
-    style = style.replace('/assets/geist-latin-wght-normal.woff2', font)
+    mime_types = {'.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2'}
+    for path in sorted((app / 'assets').rglob('*')):
+        if path.is_file() and path.suffix in mime_types:
+            url = '/' + path.relative_to(app).as_posix()
+            data = 'data:' + mime_types[path.suffix] + ';base64,' + base64.b64encode(path.read_bytes()).decode()
+            asset_data[url] = data
+            html = html.replace(url, data)
+            style = style.replace(url, data)
     style_link = '<link rel="stylesheet" href="/style.css">'
     html = html.replace(style_link, '<style>' + style + '</style>')
     html = html.replace('<script src="/app.js" defer></script>', '')

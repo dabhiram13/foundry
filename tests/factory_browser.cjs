@@ -106,7 +106,7 @@ server.serve_forever()
 `;
 
 const server = spawn(python, ['-u', '-c', source, temp], {cwd:root, stdio:['ignore', 'pipe', 'pipe']});
-let browser, diagnostics = '';
+let browser, page, diagnostics = '';
 server.stderr.on('data', chunk => { diagnostics += chunk; });
 
 async function control(page, data) {
@@ -135,10 +135,28 @@ async function assertNoOverflow(page, label) {
       setTimeout(() => reject(Error(`Server startup timed out: ${diagnostics}`)), 20000).unref();
     });
     browser = await chromium.launch({headless:true, ...(process.env.MARKETCRAFT_BROWSER_EXECUTABLE ? {executablePath:process.env.MARKETCRAFT_BROWSER_EXECUTABLE} : {})});
-    const page = await browser.newPage({viewport:{width:1380, height:950}});
+    page = await browser.newPage({viewport:{width:1380, height:950}});
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
+    // Slow transports must deliver initial state even beyond the two-second poll cadence.
+    let initialSnapshots=0;
+    const slowInitial=async route=>{
+      initialSnapshots++;
+      const response=await route.fetch();
+      await new Promise(resolve=>setTimeout(resolve,2600));
+      await route.fulfill({response});
+    };
+    await page.route('**/api/snapshot',slowInitial);
     await page.goto(url);
+    // Standalone entry is the real landing; the embedded panel opens the workspace directly.
+    await page.getByRole('heading', {name:'A good idea. A clear way to build it.', exact:true}).waitFor();
+    await page.getByRole('tab', {name:'03 Design', exact:true}).click();
+    await page.getByRole('heading', {name:'Give the idea a clear shape.', exact:true}).waitFor();
+    await page.getByRole('button', {name:'Open workspace', exact:true}).first().click();
+
+    await page.getByRole('button',{name:'Create product',exact:true}).waitFor({timeout:10000});
+    await page.unroute('**/api/snapshot',slowInitial);
+    assert.equal(initialSnapshots,1,'Periodic snapshots overlapped on a slow connection');
 
     // Account controls are available before a product exists, without live credentials.
     await page.locator('#account-button').click();
@@ -166,6 +184,59 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('button', {name:'Continue with Research', exact:true}).click();
     await page.getByRole('button', {name:'Review Scope', exact:true}).waitFor({timeout:30000});
 
+    // Stage inspection is navigation only: it cannot advance or approve the workflow.
+    const stageRail = page.getByRole('list', {name:'Product stages'});
+    assert.equal(await stageRail.getByRole('button').count(), 6);
+    assert.equal(await stageRail.locator('[aria-current="step"]').textContent(), '2ScopeYour review');
+    await stageRail.getByRole('button', {name:'Design Upcoming', exact:true}).click();
+    await page.getByRole('heading', {name:'Shape the product experience', exact:true}).waitFor();
+    assert.equal(await page.locator('#stage-work-panel #actions button').count(), 0, 'Future stage offered execution');
+    assert.match(await page.locator('#owner-guidance').textContent(), /No document saved/);
+    assert.equal(await stageRail.locator('[aria-current="step"]').getAttribute('aria-pressed'), 'false');
+    await stageRail.getByRole('button', {name:'Research Complete', exact:true}).click();
+    await page.locator('#stage-work-panel #actions').getByRole('button', {name:'Open Research', exact:true}).click();
+    await page.locator('#artifact-content').waitFor();
+    assert.equal(await page.locator('#artifact-approve').count(), 0, 'Past stage offered approval');
+    await page.getByRole('button', {name:'Close document'}).click();
+    await page.locator('#artifact').waitFor({state:'detached'});
+    await stageRail.getByRole('button', {name:'Research Complete', exact:true}).click();
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-current')), 'step');
+    await page.keyboard.press('Enter');
+    await page.getByRole('button', {name:'Review Scope', exact:true}).waitFor();
+    const keyboardFocus = await stageRail.locator('[aria-current="step"]').evaluate(el => ({visible:el.matches(':focus-visible'), outline:getComputedStyle(el).outlineWidth}));
+    assert.deepEqual(keyboardFocus, {visible:true, outline:'2px'});
+    await page.locator('#stage-title').click();
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('#stages [aria-pressed="true"]')).backgroundColor === 'rgb(226, 226, 226)');
+    const selection = await stageRail.locator('[aria-pressed="true"]').evaluate(el => {
+      const style=getComputedStyle(el);
+      return {height:el.getBoundingClientRect().height, background:style.backgroundColor, border:style.borderLeftWidth, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
+    });
+    assert.deepEqual(selection, {height:56, background:'rgb(226, 226, 226)', border:'0px', shadow:'none', focus:false, before:'none', after:'none'}, 'Selection has a permanent bar, heavy border or incorrect row size');
+    assert.equal(await page.locator('#stage-work-panel .surface').count(), 0, 'Work panel contains nested cards');
+
+    // A pending review also belongs to its visible stage and product tab.
+    for (const navigation of ['stage','tab']) {
+      let releaseDocument, documentStarted, documentFinished;
+      const gate=new Promise(resolve=>{releaseDocument=resolve;});
+      const started=new Promise(resolve=>{documentStarted=resolve;});
+      const finished=new Promise(resolve=>{documentFinished=resolve;});
+      await page.route('**/api/artifact?*',async route=>{
+        const response=await route.fetch();documentStarted();await gate;
+        await route.fulfill({response});documentFinished();
+      },{times:1});
+      await page.getByRole('button',{name:'Review Scope',exact:true}).click();
+      await started;
+      if(navigation==='stage') await stageRail.getByRole('button',{name:'Design Upcoming',exact:true}).click();
+      else await page.getByRole('tab',{name:/Documents/}).click();
+      releaseDocument();await finished;
+      await page.waitForFunction(()=>document.getElementById('main').getAttribute('aria-busy')==='false');
+      assert.equal(await page.locator('#artifact').count(),0,`Delayed review reopened after ${navigation} navigation`);
+      await page.getByRole('tab',{name:'Overview',exact:true}).click();
+      if(navigation==='stage') await page.getByRole('button',{name:'Back to Scope',exact:true}).click();
+      await page.getByRole('button',{name:'Review Scope',exact:true}).waitFor();
+    }
+
     // Identical two-second polls keep keyboard focus and home/recent navigation works.
     await page.getByRole('button', {name:'Runtime & specialists', exact:true}).focus();
     await page.waitForTimeout(2300);
@@ -175,6 +246,29 @@ async function assertNoOverflow(page, label) {
     await page.getByText('Publishing stays your decision.', {exact:false}).waitFor();
     await page.locator('#recent-products').getByRole('button', {name:/Recovery workspace/}).click();
     assert.equal(await page.locator('#heading').textContent(), 'Recovery workspace');
+
+    // A delayed document cannot reopen after Home or browser history navigation.
+    for (const navigation of ['home', 'back']) {
+      let releaseDocument, documentStarted, documentFinished;
+      const gate = new Promise(resolve => { releaseDocument=resolve; });
+      const started = new Promise(resolve => { documentStarted=resolve; });
+      const finished = new Promise(resolve => { documentFinished=resolve; });
+      await page.route('**/api/artifact?*', async route => {
+        const response=await route.fetch(); documentStarted(); await gate;
+        await route.fulfill({response}); documentFinished();
+      }, {times:1});
+      await page.getByRole('button', {name:'Review Scope', exact:true}).click();
+      await started;
+      if (navigation==='home') await page.locator('#home-button').click();
+      else await page.goBack();
+      await page.getByRole('heading', {name:'Your workspace', exact:true}).waitFor();
+      releaseDocument(); await finished;
+      await page.getByRole('button', {name:'Create product', exact:true}).waitFor();
+      await page.waitForTimeout(350);
+      assert.equal(await page.locator('#artifact').count(), 0, `Delayed review reopened after ${navigation}`);
+      await page.locator('#recent-products').getByRole('button', {name:/Recovery workspace/}).click();
+      await page.waitForFunction(() => document.activeElement?.id==='heading');
+    }
 
     // Document rendering is sanitized; Escape and stale approvals are safe.
     fs.appendFileSync(path.join(temp, 'products/recovery-workspace/docs/specs/product.md'), '\n\n<img src=x onerror="window.__unsafe=1">\n<script>window.__unsafe=2</script>\n[Unsafe](javascript:alert(1))\n');
@@ -269,8 +363,35 @@ async function assertNoOverflow(page, label) {
     await page.locator('#new-product').click();
     await page.getByLabel('Product name').fill('Pause recovery');
     await page.getByLabel('What should it do?').fill('Prepare a reviewed incident brief while letting the owner stop and safely resume long-running work.');
+    assert.equal(await page.getByLabel('Product name').inputValue(), 'Pause recovery', 'Navigation stole focus while entering the brief');
+    assert.equal(await page.getByLabel('What should it do?').inputValue(), 'Prepare a reviewed incident brief while letting the owner stop and safely resume long-running work.');
+    // Hold an older polling snapshot until after creation has returned fresh state.
+    let releaseSnapshot, snapshotStarted, snapshotFinished;
+    const snapshotGate=new Promise(resolve=>{releaseSnapshot=resolve;});
+    const snapshotPending=new Promise(resolve=>{snapshotStarted=resolve;});
+    const snapshotDone=new Promise(resolve=>{snapshotFinished=resolve;});
+    let snapshotHeld=false;
+    const holdSnapshot=async route=>{
+      if(snapshotHeld) return route.continue();
+      snapshotHeld=true;
+      const response=await route.fetch(); snapshotStarted(); await snapshotGate;
+      await route.fulfill({response}); snapshotFinished();
+    };
+    await page.route('**/api/snapshot',holdSnapshot);
+    await snapshotPending;
+    let createRequests=0;
+    const countCreate=request=>{if(request.method()==='POST'&&request.url().endsWith('/api/create')) createRequests++;};
+    page.on('request',countCreate);
+    await page.route('**/api/create',async route=>{await new Promise(resolve=>setTimeout(resolve,300));await route.continue();},{times:1});
     await page.getByRole('button', {name:'Create product', exact:true}).click();
+    await page.getByRole('button', {name:'Create product', exact:true}).evaluate(button=>button.click());
     await page.getByRole('heading', {name:'Pause recovery', exact:true}).waitFor();
+    releaseSnapshot(); await snapshotDone;
+    await page.unroute('**/api/snapshot',holdSnapshot);
+    await page.waitForTimeout(350);
+    assert.equal(await page.locator('#heading').textContent(),'Pause recovery','An old poll replaced the newly created product');
+    assert.equal(createRequests,1,'Repeated create dispatched more than once');
+    page.off('request',countCreate);
     const pauseId = await page.evaluate(async () => {
       const response = await fetch('/api/snapshot', {headers:{'X-Foundry-Token':document.querySelector('meta[name="foundry-token"]').content}});
       return (await response.json()).projects.find(item => item.name === 'Pause recovery').id;
@@ -299,10 +420,14 @@ async function assertNoOverflow(page, label) {
     await page.locator('#products').getByRole('button', {name:'Recovery workspace', exact:true}).click();
     await control(page, {op:'append_artifact', id:recoveryId, path:'docs/product/research.md', text:'\n\n## Extended fixture evidence\n' + 'A reviewed local fixture observation keeps the document reader scrollable without representing live research.\n\n'.repeat(30)});
     await page.screenshot({path:path.join(output, 'factory-desktop.png'), fullPage:true});
-    for (const [width, height, label] of [[900,800,'Tablet'], [480,800,'MCP panel'], [390,844,'Mobile']]) {
+    for (const [width, height, label] of [[1024,900,'Tablet landscape'], [900,800,'Tablet'], [768,1024,'Tablet portrait'], [480,800,'MCP panel'], [390,844,'Mobile'], [360,760,'Narrow panel']]) {
       await page.setViewportSize({width, height});
       await assertNoOverflow(page, label);
       if (width <= 480) {
+        const navigationTarget=await page.locator('#mobile-menu').boundingBox();
+        assert.ok(navigationTarget.width>=44&&navigationTarget.height>=44,`${label} navigation target is too small`);
+        const breadcrumbTarget=await page.getByRole('button',{name:'Workspace',exact:true}).boundingBox();
+        assert.ok(breadcrumbTarget.height>=44,`${label} breadcrumb target is too small`);
         await page.waitForFunction(() => {
           const rail = document.getElementById('stages');
           const step = rail?.querySelector('[aria-current="step"]');
@@ -316,6 +441,17 @@ async function assertNoOverflow(page, label) {
         assert.equal(await page.locator('#artifact-content').evaluate(element => element.scrollHeight > element.clientHeight), true, `${label} document did not create a scroll region`);
         assert.equal(await page.locator('.artifact-footer').evaluate(element => { const box = element.getBoundingClientRect(); return box.top >= 0 && box.bottom <= innerHeight; }), true, `${label} review footer left the viewport`);
         await page.getByRole('button', {name:'Close document'}).click();
+        await page.locator('#artifact').waitFor({state:'detached'});
+        await page.evaluate(id=>{location.hash='product/'+id;},pauseId);
+        await page.getByRole('button',{name:'Review Scope',exact:true}).click();
+        const approval=page.locator('#artifact-approve');
+        await approval.waitFor();
+        assert.ok(await approval.evaluate(el=>el.scrollWidth<=el.clientWidth),`${label} approval label overflows`);
+        assert.ok(await page.locator('.artifact-footer').evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),`${label} approval footer is obscured`);
+        await page.getByRole('button', {name:'Close document'}).click();
+        await page.locator('#artifact').waitFor({state:'detached'});
+        await page.evaluate(id=>{location.hash='product/'+id;},recoveryId);
+        await page.getByRole('button',{name:'View release handoff',exact:true}).waitFor();
       }
     }
     await page.emulateMedia({reducedMotion:'reduce'});
@@ -378,6 +514,9 @@ async function assertNoOverflow(page, label) {
     assert.deepEqual(errors, []);
     console.log('Factory browser journey passed: account simulation, examples, two products, provider failure/retry, stop/retry, stale review defense, sanitized documents, release, settings recovery and inheritance, responsive/keyboard/reduced-motion checks, persistence, and MCP bridge routing. No live inference or credentials.');
     if (process.env.FOUNDRY_KEEP_BROWSER_FIXTURE) console.log(`Fixture preserved at ${temp}`);
+  } catch (error) {
+    if (page) { await page.screenshot({path:'/tmp/foundry-ui-failure.png',fullPage:true}).catch(()=>{}); console.error('UI failure state:', await page.locator('body').innerText().catch(()=>'')); }
+    throw error;
   } finally {
     if (browser) await browser.close();
     server.kill('SIGTERM');

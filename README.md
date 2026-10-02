@@ -24,7 +24,7 @@ Linux; Foundry's new ChatGPT credential storage currently requires macOS Keychai
 The existing Codex login route remains available on supported Codex platforms.
 
 1. Select **New product**, enter its name and idea, then **Create product**.
-2. Open **Account & runtime**. Use your existing Codex login, or **Continue with
+2. Open **Runtime & specialists** (or **Account** before creating a product). Use your existing Codex login, or **Continue with
    ChatGPT** and approve the requested identity and plan-usage permissions in your
    browser. Select **ChatGPT plan** for the product to use that new connection.
 3. Leave models blank to inherit your runtime defaults, or choose a coordinator
@@ -51,8 +51,9 @@ A live successful sign-in and completed turn are needed to prove account/model
 access. Unit tests do not supply the owner's consent.
 See [ChatGPT setup and availability](docs/CHATGPT.md).
 
-The UI uses real shadcn components in a Notion-like document workspace, with
-locally bundled Geist, Lucide SVG icons, and an original SVG mark. The
+The UI uses real shadcn components with the approved neutral foundation,
+locally bundled Figtree, Lucide SVG icons, 28 labeled plush role portraits and
+the existing canonical SVG mark. The standalone landing leads into the real workspace. The
 [design system](docs/DESIGN-SYSTEM.md) defines reusable tokens and component rules.
 [Design and verification boundaries](docs/UI-DESIGN.md) explain what has been tested.
 

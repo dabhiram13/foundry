@@ -110,6 +110,15 @@ class FactoryUITests(unittest.TestCase):
             self.assertEqual(response.headers.get('Content-Type'), 'font/woff2')
             self.assertEqual(response.read(),
                              (self.service.root / 'app/assets/geist-latin-wght-normal.woff2').read_bytes())
+        for asset, mime in [('figtree-latin-400-normal.woff2', 'font/woff2'),
+                            ('bots/designer.png', 'image/png')]:
+            with urlopen(self.url + '/assets/' + asset) as response:
+                self.assertEqual(response.headers.get_content_type(), mime)
+                self.assertEqual(response.read(), (self.service.root / 'app/assets' / asset).read_bytes())
+        for forbidden in ['/assets/bots/LICENSE.txt', '/assets/../src/main.tsx']:
+            with self.assertRaises(HTTPError) as denied:
+                urlopen(self.url + forbidden)
+            self.assertEqual(denied.exception.code, 404)
         with self.assertRaises(HTTPError) as error:
             urlopen(self.url + '/assets/missing.png')
         self.assertEqual(error.exception.code, 404)

@@ -1,203 +1,146 @@
-# Foundry design system
+# Foundry neutral foundation
 
-Status: implementation contract for the React/shadcn workspace. This file owns the
-visual system and component rules. Product behavior remains in the workflow and
-workspace specifications.
+The owner approved this foundation on 2026-10-02. It supersedes the earlier
+Geist/Notion-only layout contract and all rejected purple, Folk, Focus and modular
+logo proposals. The existing canonical mark is preserved. This is an adaptation
+of the supplied neutral board into the existing React, shadcn and Tailwind 4 app,
+not an Astryx component migration or a copy of another product's layout.
 
-## Direction
+## Approved source and ownership
 
-Foundry is a quiet product workspace, closer to a document tool than an admin
-dashboard. The persistent sidebar answers **where am I?** The page answers **what
-needs my attention?** The interface uses neutral light surfaces, compact controls,
-Geist, Lucide icons, and one black primary action. It does not use blue admin cards,
-marketing gradients, ornamental charts, large hero type, or a grid of equally
-prominent panels.
+The exact source identities and acceptance criteria are in
+[the implementation spec](specs/neutral-ui-redesign.md). The board (2880 × 2048),
+four-page PDF, JSON and CSS tokens were materialized on the implementing Mac and
+visually inspected before editing. Only the bot art direction was retained from
+the older rejected mockups.
 
-The structural reference is shadcn/ui's `sidebar-07`: a composable sidebar with a
-workspace header, grouped navigation, project rows, user controls, and an inset main
-surface. Foundry uses the Notion-like off-canvas variation: the desktop sidebar is
-either open or hidden rather than reduced to an icon rail. Notion contributes the information model: a collapsible
-workspace sidebar, page-like content, breadcrumbs, section headings, recent pages,
-and settings at the bottom. Foundry adapts those patterns to products and factory
-stages; it does not copy either product's branding or sample content.
+| Concern | Source of truth |
+|---|---|
+| Color, font, spacing, radius, motion | `app/src/globals.css` |
+| Owned accessible primitives | `app/src/components/ui/` |
+| Workspace composition and data | `app/src/main.tsx`, existing Factory/Service APIs |
+| Workspace layout | `app/src/workspace.css` |
+| Landing | `app/src/components/landing.tsx`, `app/src/landing.css` |
+| Actual 28 role identities | `app/src/components/specialists.tsx` |
+| Canonical mark | `app/assets/foundry-mark.svg` (unchanged) |
+| Standalone + embedded output | `scripts/build_panel.py` |
 
-Primary references:
+## Exact foundation
 
-- [shadcn Sidebar](https://ui.shadcn.com/docs/components/sidebar)
-- [shadcn `sidebar-07` registry entry](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry.json)
-- [shadcn Breadcrumb](https://ui.shadcn.com/docs/components/breadcrumb)
-- [Notion sidebar behavior](https://www.notion.com/help/navigate-with-the-sidebar)
+| Role | Value |
+|---|---|
+| Canvas / white surface | `#F1F1F1` / `#FFFFFF` |
+| Primary / secondary text | `#000000` / `#474747` |
+| Primary action / hover / pressed | `#1B1B1B` / `#262626` / `#111111` |
+| Selection / quiet surface | `#E2E2E2` / `#F1F1F1` |
+| Decorative divider / functional boundary | `#D4D4D4` / `#777777` |
+| Focus / disabled text | `#1B1B1B` / `#919191` |
+| Success / surface | `#166534` / `#F0FDF4` |
+| Warning / surface | `#854D0E` / `#FFFBEB` |
+| Error / surface | `#991B1B` / `#FEF2F2` |
 
-The installed UI search returned a generic marketing-page pattern, teal/orange
-palette, and Roboto. Those recommendations do not fit the owner's specific
-Notion/shadcn brief and are rejected. Its density, accessibility, semantic-token,
-responsive, and SVG-icon checks still apply.
+Structural colors, including selection and focus, are achromatic. Status colors
+are paired with words and icons. A decorative divider is not the only visible
+boundary of a form control. The supplied specification records white-surface
+contrast ratios of 9.29:1 for secondary text, 17.22:1 for primary buttons and
+4.48:1 for functional borders. Disabled controls are visibly inactive, not normal
+body copy. Use a 2px charcoal focus outline with a 2px white separation.
 
-## Source and ownership
+Figtree 400/500/600 is self-hosted as WOFF2, under SIL OFL 1.1. The existing system
+monospace stack is reserved for paths, revisions and technical values. Internal
+page headings use 24/32 at 600 (-0.48px); sections 20/28 at 600 (-0.2px); body 14/20
+at 400; labels 14/20 at 500; supporting text 12/20. The landing uses a larger
+editorial display scale; document reading uses extra leading. Do not introduce
+unlicensed fonts or synthetic bold weights.
 
-| Concern | Owner | Rule |
-| --- | --- | --- |
-| Semantic color, type, radius, and sidebar tokens | `app/src/globals.css` | Define once as CSS variables; components consume names, never raw colors. |
-| shadcn primitives | `app/src/components/ui/` | Keep upstream composition and accessibility behavior. Change a primitive only when every use should change. |
-| Foundry layout and product-specific styling | `app/src/workspace.css` and composition components | Own page widths, stage layout, idea composer, document/activity tabs, and empty states. |
-| Brand mark | `app/assets/foundry-mark.svg` | Canonical vector asset for sidebar, app identity, and documentation. |
-| Product behavior and data | React workspace components and existing factory API | Styling must not duplicate state or bypass API review gates. |
+Spacing uses 4/8/12/16/24/32/48/64px. Corner radii are 6/10/12px, with a 28px overlay
+radius. Default surfaces have no shadow, grain or texture. Overlay elevation is
+limited to the supplied subtle black shadow. Bot artwork supplies the personality.
 
-Use `data-slot` and shadcn variants for stable component styling. Do not recreate a
-button, input, dialog, sheet, tabs, breadcrumb, tooltip, badge, separator, or sidebar
-primitive in workspace CSS.
+## Layout and truthful states
 
-## Tokens
+The standalone landing explains the actual six-stage flow, provides working
+workspace/create actions, and discloses the role library as guidance. It contains
+no pricing, testimonials, live metrics, borrowed company logos or autonomy claims.
+The embedded panel opens directly into the workspace.
 
-The checked-in variables in `app/src/globals.css` are the source of truth. This
-table records their intended meaning.
+A 240px desktop sidebar groups actual products. Below 768px it becomes one
+Radix Sheet; it is not duplicated in the DOM. Main content is centered, up to
+1200px for product work and 1024px for the idea composer. A compact 200px stage column sits beside one white work panel with a fine border,
+12px radius, clear header, light action band and separated documents. Stage rows
+are 56px with 22px markers; gray selection and label weight show the inspected
+stage. There are no persistent selection bars or stage connector lines. Keyboard
+focus remains a distinct temporary outline. Role guidance sits below the workspace. Recent
+products remain compact rows. Overview, Documents and Activity use a neutral
+segmented tab group; activity logs remain readable and unanimated.
 
-| Token | Current value | Use |
-| --- | --- | --- |
-| `--background` / `--card` / `--popover` | `oklch(1 0 0)` | Main page, document, modal, and menu surfaces. |
-| `--foreground` / `--card-foreground` | `oklch(0.145 0 0)` | Primary text and black actions. |
-| `--primary` | `oklch(0.205 0 0)` | The one dominant action on a view. |
-| `--primary-foreground` | `oklch(0.985 0 0)` | Text and icons on primary actions. |
-| `--secondary`, `--muted`, `--accent` | `oklch(0.97 0 0)` | Selected rows, quiet controls, hover, and subdued regions. |
-| `--muted-foreground` | `oklch(0.556 0 0)` | Supporting labels and metadata that still meet contrast. |
-| `--border` / `--input` | `oklch(0.922 0 0)` | Hairline separation and input boundaries. |
-| `--ring` | `oklch(0.708 0 0)` | Visible neutral focus rings. |
-| `--destructive` | `oklch(0.577 0.245 27.325)` | Destructive actions and errors only. |
-| `--sidebar` | `oklch(0.985 0 0)` | Sidebar surface. |
-| `--sidebar-accent` | `oklch(0.955 0 0)` | Hover and selected navigation rows. |
+Research → Scope → Design → Build → Verify → Release is the real state sequence.
+Stage buttons can inspect a past or upcoming stage without changing runtime state.
+No future document is invented. Overview exposes the actual next action, status,
+selected provider and saved evidence. A running indicator means the controller
+reports a real running job. The runtime does not report individual specialist
+activity, so role portraits remain static guidance, not 28 running workers.
 
-Do not introduce a general brand blue. Stage state uses text, icons, progress shape,
-and semantic labels; color is never the only signal. If a new status color becomes
-necessary, add a named semantic pair to `globals.css` and verify contrast before use.
+Account, runtime and specialist settings retain inheritance and failed-save drafts.
+Document review displays the reviewed revision, sanitized Markdown, and a stable
+approval footer. Approval sends the complete exact digest; stale or changed
+documents are rejected. Navigation invalidates pending document requests.
+Snapshots are ordered by applied response, and periodic polls do not overlap.
+Stop requests are described as requests until the runtime confirms interruption.
 
-Typography uses the locally bundled `Geist Variable`, then the system sans fallback.
-Code uses the system monospace stack; Foundry does not bundle a separate monospace
-font. Keep the hierarchy restrained:
+## Icons and specialist portraits
 
-- page title: 30/36, weight 650;
-- section title: 20/28, weight 600;
-- body and document text: 14/22;
-- controls and navigation: 13/20, weight 500 when active;
-- metadata: 12/16; never use tiny all-caps text as a substitute for hierarchy.
+Lucide supplies all interface icons, with 24-unit source geometry and stroke 2.
+Render at 16–20px for controls; decorative icons are hidden from assistive tech.
+Icon-only controls need accessible names. Do not replace UI icons with emoji.
 
-Spacing follows a 4px base: 4, 8, 12, 16, 20, 24, 32, 40, and 48. Use 12px between
-related controls, 24px between sections, and 32-48px for page-level separation. The
-base radius is `0.5rem`; use the existing `sm`, `md`, `lg`, and `xl` derivations.
-Avoid decorative shadow. Menus, dialogs, and sheets may use the shadcn elevation
-needed to distinguish an overlay.
+The 28 labeled portraits are original role configurations of the free MIT
+`bot-avatars` 0.2.2 renderer from [Libraries](https://libraries.dev/bots).
+They adapt the owner's plush bot direction through 18 silhouettes and distinct
+accessory combinations; they are not unchanged copies of the supplied artwork.
+Transparent 160px PNG exports render at 28–40px in dense UI, with larger landing
+feature images. `scripts/render_bot_assets.cjs` regenerates them deterministically.
+No avatar canvas renderer ships in the application. Full notices are retained in
+`app/assets/bots/LICENSE.txt` and `app/assets/licenses/Figtree-OFL.txt`.
 
-## Shell and page anatomy
+## Motion and accessibility
 
-- Desktop sidebar: `240px` (`15rem`) when open. The trigger hides it off canvas and
-  restores the full sidebar; there is no icon-only state. The mobile sheet is `18rem`.
-  The sidebar has a sticky header/footer and scrolling content. Products live in one
-  labeled group and expose the active row through `isActive`.
-- Workspace header: `48px` high. It contains the sidebar trigger, a real breadcrumb,
-  and only page-level actions. It has a bottom border and no oversized title block.
-- Main content: centered document column, maximum `56rem`, with 40px horizontal and
-  52px top padding on desktop. It steps down to 24px horizontally on tablet and 20px
-  on mobile.
-- Product page: product title and idea summary, horizontal six-stage progress, then
-  line-style `Overview`, `Documents`, and `Activity` tabs. The current step and action
-  live inside Overview. Activity is a related view rather than a permanent right-hand
-  dashboard card.
-- Home page: one sparse idea composer. Product name and description are primary;
-  examples are quiet fill actions. The black create button is the only dominant CTA.
-  Recent products render as page rows with name, current stage, and status.
-- Settings: use one contained `Dialog` on desktop and mobile. Its width is bounded by
-  the viewport and its body scrolls internally. Account, runtime, and specialists use
-  shadcn Tabs with an explicit initial value.
-- Artifact review: use a large `Dialog` with a readable document column and a stable
-  footer. The approval action stays visible without covering keyboard focus or text.
+| Interaction | Duration |
+|---|---|
+| Button/input feedback | 125ms |
+| Icon feedback | 160ms |
+| Avatar response to interaction | 180ms |
+| Tab/stage selection | 220ms |
+| Completion | 240ms |
+| Card/panel/dialog reveal | 300ms |
 
-Buttons use shadcn variants consistently: `default` for the primary black action,
-`outline` for secondary actions, `ghost` for navigation and inline utilities,
-`destructive` only for destructive work. Inputs are plain white fields with neutral
-borders and clear labels. Cards are reserved for bounded objects; do not wrap every
-section in a card.
+Prefer opacity and small transforms. Buttons, examples, navigation rows, stages,
+tabs, expanding role lists, sheets, dialogs and completion states give feedback.
+Do not animate reading text, continuously animate idle rosters, or move an approval
+button when its busy indicator appears. Only actual running work spins.
+Reduced motion uses zero duration and a single final iteration; retaining animation
+names lets Radix finish an in-progress close when the preference changes. It must
+not leave a hidden modal trapping focus. Landing decoration remains static.
 
-## Icons and mark
+Inputs/buttons are at least 40px high, with 44px touch targets in narrow layouts.
+At narrow widths the compact stage rows scroll horizontally within their own
+region; the page does not overflow. Settings
+and long documents scroll inside their dialog with the footer visible. Back/Forward
+focus the destination heading; New product focuses the name field. Dialog and
+Sheet primitives own focus trapping/Escape and restore the invoking control.
 
-Use Lucide React exclusively in application controls. Standard icons are 16px;
-top-level actions may use 18px. Keep stroke weight consistent. An icon beside visible
-text is decorative and receives `aria-hidden="true"`. An icon-only button has an
-accessible name and a tooltip when its meaning is not universal. Use no emoji,
-font-icon, or mixed outline/fill libraries.
+## Attribution and verification
 
-`app/assets/foundry-mark.svg` is the master mark. Preserve its geometry and native
-colors, provide clear space equal to the mark's visible height, and render it at no
-less than 24px. Use mark plus `Foundry` in the open sidebar. Do not recolor with CSS
-filters, distort, rotate, crop, add a
-shadow, or place it in a decorative tile. Raster exports are derivatives; update them
-from the SVG rather than editing them separately.
+[Astryx Neutral](https://astryx.atmeta.com/Neutral) informed the approved neutral
+foundation through the supplied board/tokens. This does not claim the entire
+Astryx system is grayscale. [Design Engineering](https://www.designeng.tools/)
+and [Transitions](https://transitions.dev/) informed motion cadence and restraint;
+no paid assets, Pro components or recipe source code were copied. Transitions'
+custom recipe license is not described as MIT. Existing shadcn, Radix, Lucide and
+MCP SDK notices remain in [dependency notices](../app/DEPENDENCY-NOTICES.md).
 
-## Responsive and interaction
-
-- At `768px` and above, the sidebar can be shown or hidden off canvas. Below `768px`,
-  use the sidebar's Sheet behavior. The page must not retain a hidden 240px offset.
-- At 480px and 390px, the header stays one row, the composer and settings become one
-  column, dialogs stay within the viewport, and footer actions wrap or stack.
-- The six-stage navigation remains horizontal. On narrow screens it scrolls inside
-  its own labeled region; the document body must never gain horizontal overflow.
-- Tables and long code blocks may scroll inside their content boundary. Long names
-  truncate visually while their accessible name remains intact.
-- Interactive targets are at least 36px in dense desktop chrome and 44px on touch
-  surfaces. Hover never reveals an action that has no keyboard equivalent.
-- Motion is limited to 150-200ms opacity, color, or small transform transitions.
-  Under `prefers-reduced-motion: reduce`, remove nonessential animation.
-
-Every interactive control uses the existing neutral `focus-visible` border and 3px
-ring. Never remove the outline without that replacement. Set page scroll padding to
-the 48px header height, keep focused elements at least partially unobscured, return
-focus to the trigger when a dialog closes, and move focus to the new page heading
-after product navigation. Dialog and Sheet primitives own focus trapping and Escape.
-
-## Review criteria
-
-These are acceptance criteria, not a record that testing passed:
-
-- The first view reads as a document workspace, with no blue admin-dashboard cards.
-- The sidebar is 240px when open, hides fully on desktop, and becomes an 18rem Sheet below 768px.
-- The 48px header uses `Breadcrumb`; the current page is not rendered as a link.
-- Page content is centered and no wider than 56rem except the artifact review dialog.
-- Home contains one sparse composer, one black primary action, useful examples, and real recent products.
-- Product stages are a horizontal six-step sequence with current, complete, blocked, and review states discernible without color alone.
-- Overview, Documents, and Activity are line Tabs above the current-step content.
-- Product metadata appears as text rows rather than equal-weight statistic cards.
-- Buttons, forms, tabs, dialogs, sheets, breadcrumbs, tooltips, badges, and sidebar behavior come from the shadcn primitives.
-- Geist, Lucide, images, and CSS load locally; no UI dependency loads from a CDN.
-- Lucide is the only application icon family, and every icon-only control has an accessible name.
-- The SVG mark is crisp at 24px and 32px, with clear space and no filter, shadow, gradient, or distortion.
-- Keyboard traversal follows visual order; focus remains visible around sticky headers and dialog footers.
-- Loading, empty, blocked, failure, cancelled, approval, and completed states use plain language and recovery actions.
-- Layout is checked at 1440, 1024, 768, 480, and 390px with no page-level horizontal overflow.
-- Reduced-motion mode, 200% zoom, long product names, long documents, and error recovery remain usable.
-
-## Using the installed skills
-
-Installed from the owner's GitHub stars:
-
-- **UI UX Pro Max** and **Brand**: [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), commit `09170eec67eefd46a7ae85de61b40c194020f997`.
-- **Prototype**: [mattpocock/skills](https://github.com/mattpocock/skills), commit `d81f3a183412e71a5b1e84ca21bc1a35eea03a60`.
-
-These are owner-local Codex skills, available by name on the next turn. They are
-not runtime dependencies of products or the Foundry plugin. Ask Codex to use
-`ui-ux-pro-max` for component/UX guidance, `brand` for identity work, or `prototype`
-when several interaction directions genuinely need exploration.
-
-For a new Foundry surface, read this file first. Then run the local, standard-library
-search tool with one narrow question; do not persist or force output over this contract:
-
-```bash
-python3 /Users/sridurga/.codex/skills/ui-ux-pro-max/scripts/search.py \
-  "sidebar breadcrumb tabs dialog" --stack shadcn
-
-python3 /Users/sridurga/.codex/skills/ui-ux-pro-max/scripts/search.py \
-  "keyboard focus dialog" --domain ux
-```
-
-Use `/Users/sridurga/.codex/skills/brand/SKILL.md` and its logo, color, typography,
-and consistency references when changing the mark or brand assets. Matt Pocock's
-installed `prototype` skill remains available for future ambiguous design questions;
-this implementation does not use its three-variant flow because the owner supplied a
-specific Notion/shadcn direction.
+See [UI design and verification boundaries](UI-DESIGN.md) and
+[the verification record](NEUTRAL-UI-VERIFICATION.md) for actual evidence and limits.
+Criteria include desktop/tablet/mobile/narrow panel, keyboard/focus, 200% zoom,
+reduced motion, long content, errors, interrupted/repeated actions, exact approval,
+shared build reproducibility and independent design/code review.

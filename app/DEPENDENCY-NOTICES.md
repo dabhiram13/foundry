@@ -726,3 +726,17 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
+
+
+## Neutral foundation assets (2026-10-02)
+
+- `@fontsource/figtree` 5.3.0 supplies Figtree Latin 400/500/600 WOFF2.
+  Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree).
+  Full SIL Open Font License 1.1: [assets/licenses/Figtree-OFL.txt](assets/licenses/Figtree-OFL.txt).
+- `bot-avatars` 0.2.2, Copyright (c) 2026 Jakub Antalik, MIT.
+  The 28 static PNGs are rendered role configurations; the renderer is a build tool,
+  not a running application canvas dependency. Full notice: [assets/bots/LICENSE.txt](assets/bots/LICENSE.txt).
+
+The canonical Foundry mark is unchanged. The approved neutral token adaptation
+and public motion references are described in [the design system](../docs/DESIGN-SYSTEM.md).
+No Folk assets, paid Pro components, or Transitions recipe source are bundled.

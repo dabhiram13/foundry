@@ -23,6 +23,8 @@ def build_server(service):
               'ui': {'csp': {'connectDomains': [], 'resourceDomains': []}}}))
     read = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
     write = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False)
+    external_read = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True)
+    external_write = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True)
     @apps.tool(resource_uri='ui://foundry/factory',
                meta={'openai/ui': {'entrypoints':[{'type':'global'}, {'type':'thread'}]}},
                annotations=read)
@@ -63,23 +65,23 @@ def build_server(service):
         """Save the owner's runtime and explicit specialist preferences."""
         return service.dispatch('configure', dict(id=id, adapter=adapter, model=model, reasoning=reasoning, roles=roles))
 
-    @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=write)
+    @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=external_write)
     def foundry_sign_in() -> dict:
         """Open the owner's browser to request ChatGPT identity and plan-usage consent."""
         return service.dispatch('sign-in', {})
 
-    @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=write)
+    @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=external_write)
     def foundry_sign_out() -> dict:
         """Revoke and clear the owner's Foundry ChatGPT credentials when no jobs are running."""
         return service.dispatch('sign-out', {})
 
-    @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=read)
+    @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=external_read)
     def foundry_models() -> dict:
         """Discover models for the selected ChatGPT account; a completed turn proves access for that request."""
         return {'models': service.dispatch('models', {})}
     server = MCPServer('Foundry', version='0.3.0', extensions=[apps, OpenAIExtensions()],
         instructions='Create and inspect local product workspaces. Scope/design approvals are owner decisions in the app. Never infer account permissions, spend, or publication approval from a completed stage.')
-    for fn, annotations in [(foundry_snapshot, read), (foundry_create, write), (foundry_run, write), (foundry_artifact, read), (foundry_cancel, write)]:
+    for fn, annotations in [(foundry_snapshot, read), (foundry_create, write), (foundry_run, external_write), (foundry_artifact, read), (foundry_cancel, write)]:
         server.add_tool(fn, annotations=annotations)
     return server
 

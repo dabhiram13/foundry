@@ -8,7 +8,8 @@ customer journey, market demand, native delegation, or a live provider integrati
 
 The local factory, browser UI, original ChatGPT OAuth bridge and private MCP
 package were developed from `32d5a87d9b42e41d57cbc55cbe3d951d16d41a2f`.
-Current runnable checks cover these boundaries:
+The settled suite passed 169 framework tests. Current runnable checks cover
+these boundaries:
 
 - Framework tests cover stage dispatch, two exact-document approval gates,
   real lifecycle/workflow verification, custom adapter registration, model
@@ -37,8 +38,12 @@ Current runnable checks cover these boundaries:
 Live owner OAuth consent, a successful turn through Foundry's new ChatGPT token
 route, native host plugin installation, a second commercial provider and public
 or deployed release remain separately qualified outcomes. The owner-authorized
-native notes trial uses the existing Codex login and has its own product/evidence;
-its result must be recorded explicitly rather than inferred from these fixtures.
+native notes trial used the existing Codex login. Its inherited-default research
+run hit the trial-only 300-second limit and correctly failed. A fresh qualification
+with requested project settings `gpt-6.1-sol` / `low` completed real research and
+scope turns in about 52 and 49 seconds, respectively, then stopped at the owner
+scope-review gate. The runtime did not report a resolved model. Design, build and
+product verification have not run; these are not end-to-end delivery evidence.
 GitHub Actions status belongs to the pushed revision, not this local evidence.
 
 ## Coverage

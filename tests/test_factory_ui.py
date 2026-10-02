@@ -90,6 +90,11 @@ class FactoryUITests(unittest.TestCase):
         self.assertEqual(meta['ui']['resourceUri'], 'ui://foundry/factory')
         self.assertEqual(meta['openai/ui']['entrypoints'], [{'type':'global'}, {'type':'thread'}])
         self.assertEqual(tools['foundry_approve'].meta['ui']['visibility'], ['app'])
+        for name in ('foundry_run', 'foundry_sign_in', 'foundry_sign_out', 'foundry_models'):
+            self.assertTrue(tools[name].annotations.open_world_hint, name)
+        for name in ('foundry_open', 'foundry_snapshot', 'foundry_create',
+                     'foundry_artifact', 'foundry_cancel', 'foundry_approve', 'foundry_configure'):
+            self.assertFalse(tools[name].annotations.open_world_hint, name)
         resources = asyncio.run(server.list_resources())
         self.assertTrue(any(str(item.uri) == 'ui://foundry/factory' for item in resources))
 

@@ -53,12 +53,15 @@ the approved selection transition settles. No product requirement was weakened.
 
 The final source is verified through the normal lifecycle command, with the
 existing project virtual environment first on PATH so Python child checks load
-the declared dependencies. No requirements are removed or receipts reused.
+the declared dependencies. No requirements are removed or receipts reused. An initial completion attempt
+omitted the recorded browser/Python environment and was correctly rejected as
+mismatched despite passing checks. Verification and completion were then run
+together with the same environment on the settled source and Git state.
 
 ```sh
-PATH="$PWD/.venv/bin:$PATH" \
-FOUNDRY_PYTHON="$PWD/.venv/bin/python" \
-MARKETCRAFT_BROWSER_EXECUTABLE='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' \
+export PATH="$PWD/.venv/bin:$PATH"
+export FOUNDRY_PYTHON="$PWD/.venv/bin/python"
+export MARKETCRAFT_BROWSER_EXECUTABLE='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 .venv/bin/python scripts/marketcraft.py verify
 .venv/bin/python scripts/marketcraft.py complete
 ```

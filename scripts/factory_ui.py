@@ -98,7 +98,13 @@ class Service:
                         environment = {'ACCESS_TOKEN': self.auth().access_token(self.auth_dir)}
             return self.background(identifier, run)
         if action == 'approve':
-            return self.factory.approve(data['id'])
+            if set(data) != {'id', 'reviewed_revision'}:
+                raise ValueError('Approval requires the reviewed document revision')
+            revision = data['reviewed_revision']
+            if (not isinstance(revision, str) or len(revision) != 64
+                    or any(char not in '0123456789abcdef' for char in revision)):
+                raise ValueError('Approval requires a valid reviewed document revision')
+            return self.factory.approve(data['id'], reviewed_revision=revision)
         if action == 'cancel':
             with self.lock:
                 if data['id'] in self.jobs:
@@ -142,7 +148,7 @@ def make_server(service, port=0):
             self.send_header('Cache-Control', 'no-store')
             self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Referrer-Policy', 'no-referrer')
-            self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+            self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
             self.end_headers()
             self.wfile.write(body)
 
@@ -161,16 +167,15 @@ def make_server(service, port=0):
                     self.send(200, service.snapshot())
                 elif parsed.path == '/api/artifact':
                     params = parse_qs(parsed.query)
-                    content = service.factory.artifact(params['id'][0], params['path'][0])
-                    self.send(200, {'content': content})
-                elif parsed.path in ('/', '/app.js', '/vendor.js', '/style.css',
-                                     '/assets/foundry-mark.png'):
+                    self.send(200, service.factory.artifact_record(params['id'][0], params['path'][0]))
+                elif parsed.path in ('/', '/app.js', '/style.css', '/assets/foundry-mark.svg',
+                                     '/assets/geist-latin-wght-normal.woff2'):
                     name, mime, binary = {
                         '/': ('index.html', 'text/html', False),
                         '/app.js': ('app.js', 'text/javascript', False),
-                        '/vendor.js': ('vendor.js', 'text/javascript', False),
                         '/style.css': ('style.css', 'text/css', False),
-                        '/assets/foundry-mark.png': ('assets/foundry-mark.png', 'image/png', True),
+                        '/assets/foundry-mark.svg': ('assets/foundry-mark.svg', 'image/svg+xml', True),
+                        '/assets/geist-latin-wght-normal.woff2': ('assets/geist-latin-wght-normal.woff2', 'font/woff2', True),
                     }[parsed.path]
                     path = ROOT / 'app' / name
                     content = path.read_bytes() if binary else path.read_text()

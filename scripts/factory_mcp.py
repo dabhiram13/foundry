@@ -47,7 +47,7 @@ def build_server(service):
 
     def foundry_artifact(id: str, path: str) -> dict:
         """Read a bounded product document. Paths must stay under that product's docs directory."""
-        return {'content': service.factory.artifact(id, path)}
+        return service.factory.artifact_record(id, path)
 
     def foundry_cancel(id: str) -> dict:
         """Request cancellation of an owned local task; the request is not proof it stopped."""
@@ -55,9 +55,9 @@ def build_server(service):
 
     # Only the app exposes owner decisions; agents must never approve their own work.
     @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=write)
-    def foundry_approve(id: str) -> dict:
-        """Record the owner's scope/design approval after they review the current artifact."""
-        return service.dispatch('approve', {'id': id})
+    def foundry_approve(id: str, reviewed_revision: str) -> dict:
+        """Approve the exact scope/design revision the owner reviewed in the app."""
+        return service.dispatch('approve', {'id': id, 'reviewed_revision': reviewed_revision})
 
     @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=write)
     def foundry_configure(id: str, adapter: str, model: str | None, reasoning: str | None,
@@ -79,7 +79,7 @@ def build_server(service):
     def foundry_models() -> dict:
         """Discover models for the selected ChatGPT account; a completed turn proves access for that request."""
         return {'models': service.dispatch('models', {})}
-    server = MCPServer('Foundry', version='0.3.0', extensions=[apps, OpenAIExtensions()],
+    server = MCPServer('Foundry', version='0.3.1', extensions=[apps, OpenAIExtensions()],
         instructions='Create and inspect local product workspaces. Scope/design approvals are owner decisions in the app. Never infer account permissions, spend, or publication approval from a completed stage.')
     for fn, annotations in [(foundry_snapshot, read), (foundry_create, write), (foundry_run, external_write), (foundry_artifact, read), (foundry_cancel, write)]:
         server.add_tool(fn, annotations=annotations)

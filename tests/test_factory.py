@@ -251,6 +251,37 @@ class FactoryTests(unittest.TestCase):
         self.assertNotIn("scope", project["approved_stages"])
         self.assertIn("changed", project["history"][-1]["note"])
 
+    def test_approval_rejects_document_changed_after_review(self):
+        project = self.create("Review Revision Product")
+        project = self.factory.run(project["id"])
+        project = self.factory.run(project["id"])
+        reviewed = self.factory.artifact_record(project["id"], "docs/specs/product.md")
+        spec = Path(project["path"]) / "docs/specs/product.md"
+        spec.write_text(spec.read_text() + "\n- AC-2: added after the owner read the document.\n")
+
+        with self.assertRaisesRegex(Error, "reviewed document changed"):
+            self.factory.approve(project["id"], reviewed_revision=reviewed["revision"])
+
+        current = self.factory.snapshot()["projects"][0]
+        self.assertEqual((current["stage"], current["status"]), ("scope", "awaiting_approval"))
+        self.assertNotIn("scope", current["approved_stages"])
+        latest = self.factory.artifact_record(project["id"], "docs/specs/product.md")
+        approved = self.factory.approve(project["id"], reviewed_revision=latest["revision"])
+        self.assertEqual(approved["stage"], "design")
+
+    def test_review_revision_uses_exact_crlf_artifact_bytes(self):
+        project = self.create("CRLF Review Product")
+        project = self.factory.run(project["id"])
+        project = self.factory.run(project["id"])
+        spec = Path(project["path"]) / "docs/specs/product.md"
+        spec.write_bytes(b"# Scope\r\n\r\n## Acceptance criteria\r\n\r\n- AC-1: exact bytes.\r\n")
+        reviewed = self.factory.artifact_record(project["id"], "docs/specs/product.md")
+
+        approved = self.factory.approve(project["id"], reviewed_revision=reviewed["revision"])
+
+        self.assertEqual(approved["stage"], "design")
+        self.assertEqual(approved["approved_revisions"]["scope"], reviewed["revision"])
+
     def test_products_directory_symlink_is_rejected(self):
         actual = self.base / "actual"
         actual.mkdir()

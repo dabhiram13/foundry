@@ -503,8 +503,14 @@ class Factory:
         path = foundry.within(root, relative)
         if not path.is_file() or path.is_symlink():
             raise Error(f"Stage did not produce required artifact: {relative}")
-        text = path.read_text(encoding="utf-8")
-        if not text.strip() or len(text.encode()) > MAX_ARTIFACT:
+        data = path.read_bytes()
+        if len(data) > MAX_ARTIFACT:
+            raise Error(f"Required artifact is empty or too large: {relative}")
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise Error(f"Required artifact is not UTF-8 text: {relative}") from exc
+        if not text.strip():
             raise Error(f"Required artifact is empty or too large: {relative}")
         return text
 
@@ -735,20 +741,27 @@ class Factory:
                 return self._replace(project)
             return self._replace(project)
 
-    def approve(self, identifier: str) -> dict:
+    def approve(self, identifier: str, reviewed_revision=_UNSET) -> dict:
         with providers._lock(self.storage_root, f"{LEASES}/{identifier}.lock", False):
-            return self._approve(identifier)
+            return self._approve(identifier, reviewed_revision)
 
-    def _approve(self, identifier: str) -> dict:
+    def _approve(self, identifier: str, reviewed_revision=_UNSET) -> dict:
         project = self._project(identifier)
         if project["status"] != "awaiting_approval" or project["stage"] not in {"scope", "design"}:
             raise Error("This project is not awaiting a scope or design approval")
         approved = project["stage"]
         artifact = "docs/specs/product.md" if approved == "scope" else "docs/product/design.md"
         text = self._require_artifact(Path(project["path"]), artifact)
+        current_revision = foundry.digest(text.encode())
+        if reviewed_revision is not _UNSET:
+            if (not isinstance(reviewed_revision, str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", reviewed_revision)):
+                raise Error("Reviewed document revision must be a SHA-256 digest")
+            if reviewed_revision != current_revision:
+                raise Error("The reviewed document changed; reopen the latest document before approving")
         if approved not in project["approved_stages"]:
             project["approved_stages"].append(approved)
-        project["approved_revisions"][approved] = foundry.digest(text.encode())
+        project["approved_revisions"][approved] = current_revision
         project["stage"] = "design" if approved == "scope" else "build"
         project["status"] = "completed"
         project["task_id"] = None
@@ -776,7 +789,7 @@ class Factory:
         project["history"].append({"at": _now(), "stage": project["stage"], "status": "interrupted", "note": "Owner interrupted before dispatch"})
         return self._replace(project)
 
-    def artifact(self, identifier: str, path: str) -> str:
+    def _artifact_bytes(self, identifier: str, path: str) -> bytes:
         project = self._project(identifier)
         relative = Path(path)
         if relative.is_absolute() or ".." in relative.parts or not relative.parts or relative.parts[0] != "docs":
@@ -787,7 +800,19 @@ class Factory:
         data = target.read_bytes()
         if len(data) > MAX_ARTIFACT:
             raise Error("Artifact exceeds the bounded read limit")
+        return data
+
+    def artifact(self, identifier: str, path: str) -> str:
+        data = self._artifact_bytes(identifier, path)
         try:
             return data.decode("utf-8")
         except UnicodeDecodeError as exc:
             raise Error("Artifact is not UTF-8 text") from exc
+
+    def artifact_record(self, identifier: str, path: str) -> dict:
+        data = self._artifact_bytes(identifier, path)
+        try:
+            content = data.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise Error("Artifact is not UTF-8 text") from exc
+        return {"content": content, "revision": foundry.digest(data)}

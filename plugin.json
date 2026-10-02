@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "foundry",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Turn an idea into a local product through research, owner reviews, implementation and saved verification.",
   "repository": "https://github.com/dabhiram13/foundry",
   "extensions": {
@@ -12,7 +12,7 @@
         "longDescription": "Create separate product workspaces, configure specialists, review scope and design, and track real product checks.",
         "category": "Productivity",
         "capabilities": ["Read", "Write"],
-        "brandColor": "#116d72",
+        "brandColor": "#202020",
         "defaultPrompt": ["Open Foundry and help me scope a new product idea."]
       }
     }

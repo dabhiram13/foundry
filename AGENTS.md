@@ -36,6 +36,13 @@ and keep model and reasoning settings inherited unless the owner changes them.
 Existing authorization remains valid; obtain only missing authority for spending,
 account connections, publishing, messages, or other external changes.
 
+For factory UI changes, read `docs/DESIGN-SYSTEM.md` and reuse the owned shadcn
+components in `app/src/components/ui/`. Keep tokens in `app/src/globals.css`,
+composition in `app/src/main.tsx`, and layout in `app/src/workspace.css`. Run the
+TypeScript check, rebuild browser/panel assets, and inspect desktop and mobile
+browser interactions. The design document also records the installed design
+skills and when to invoke them.
+
 For framework changes, run relevant checks under "Check the framework" in README.md.
 Each product needs its own application and service tests. Preserve copyright and
 license notices; docs/PROVENANCE.md records verified history and its limits.

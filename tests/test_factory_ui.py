@@ -50,11 +50,41 @@ class FactoryUITests(unittest.TestCase):
         self.assertEqual(project['stage'], 'research')
         artifact = self.request(f"/api/artifact?id={project['id']}&path=docs/product/idea.md")
         self.assertIn('Save one useful note', artifact['content'])
+        self.assertRegex(artifact['revision'], r'^[0-9a-f]{64}$')
         self.assertNotIn('ACCESS_TOKEN', json.dumps(listing))
         for path in ['../.env', '/etc/passwd', 'docs/../../../.env']:
             with self.assertRaises(HTTPError) as error:
                 self.request(f"/api/artifact?id={project['id']}&path={path}")
             self.assertEqual(error.exception.code, 400)
+
+    def test_ui_approval_requires_the_exact_reviewed_revision(self):
+        project = self.service.factory.create('Reviewed product', 'Require exact owner review.')
+        project['stage'] = 'scope'
+        project['status'] = 'awaiting_approval'
+        spec = Path(project['path']) / 'docs/specs/product.md'
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        spec.write_text('# Scope\n\n## Acceptance criteria\n\n- AC-1: reviewed.\n')
+        self.service.factory._replace(project)
+        reviewed = self.request(
+            f"/api/artifact?id={project['id']}&path=docs/specs/product.md")
+        with self.assertRaises(HTTPError) as missing_revision:
+            self.request('/api/approve', {
+                'id': project['id'], 'reviewed_revision': None})
+        self.assertEqual(missing_revision.exception.code, 400)
+        spec.write_text(spec.read_text() + '\n- AC-2: changed after review.\n')
+
+        with self.assertRaises(HTTPError) as error:
+            self.request('/api/approve', {
+                'id': project['id'], 'reviewed_revision': reviewed['revision']})
+        self.assertEqual(error.exception.code, 400)
+        current = self.service.factory.snapshot()['projects'][0]
+        self.assertEqual((current['stage'], current['status']), ('scope', 'awaiting_approval'))
+
+        latest = self.request(
+            f"/api/artifact?id={project['id']}&path=docs/specs/product.md")
+        approved = self.request('/api/approve', {
+            'id': project['id'], 'reviewed_revision': latest['revision']})
+        self.assertEqual(approved['stage'], 'design')
 
     def test_cross_origin_bad_host_and_missing_token_are_rejected(self):
         for headers in [{'Origin': 'https://attacker.invalid'}, {'Host': 'attacker.invalid'}, {'X-Foundry-Token': ''}]:
@@ -66,15 +96,20 @@ class FactoryUITests(unittest.TestCase):
             self.request('/api/create', {'name':'Blocked','idea':'Blocked','credential_env':{'ACCESS_TOKEN':'blocked'}})
         self.assertEqual(error.exception.code, 400)
 
-    def test_static_vendor_and_logo_are_strictly_served(self):
-        with urlopen(self.url + '/vendor.js') as response:
+    def test_static_react_bundle_logo_and_font_are_strictly_served(self):
+        with urlopen(self.url + '/app.js') as response:
             self.assertEqual(response.headers.get_content_type(), 'text/javascript')
-            self.assertIn(b'foundryUI', response.read())
-        with urlopen(self.url + '/assets/foundry-mark.png') as response:
-            self.assertEqual(response.headers.get('Content-Type'), 'image/png')
+            self.assertIn(b'createRoot', response.read())
+        with urlopen(self.url + '/assets/foundry-mark.svg') as response:
+            self.assertEqual(response.headers.get('Content-Type'), 'image/svg+xml')
             self.assertIn("img-src 'self' data:", response.headers['Content-Security-Policy'])
+            self.assertIn("font-src 'self' data:", response.headers['Content-Security-Policy'])
             self.assertEqual(response.read(),
-                             (self.service.root / 'app/assets/foundry-mark.png').read_bytes())
+                             (self.service.root / 'app/assets/foundry-mark.svg').read_bytes())
+        with urlopen(self.url + '/assets/geist-latin-wght-normal.woff2') as response:
+            self.assertEqual(response.headers.get('Content-Type'), 'font/woff2')
+            self.assertEqual(response.read(),
+                             (self.service.root / 'app/assets/geist-latin-wght-normal.woff2').read_bytes())
         with self.assertRaises(HTTPError) as error:
             urlopen(self.url + '/assets/missing.png')
         self.assertEqual(error.exception.code, 404)
@@ -127,8 +162,9 @@ class FactoryUITests(unittest.TestCase):
                     self.assertEqual(json.loads(result.content[0].text)['projects'], [])
                     panel = await client.read_resource('ui://foundry/factory')
                     html = panel.contents[0].text
-                    self.assertTrue('id="create-form"' in html, 'Factory panel contains the product entry form')
-                    self.assertTrue('data:image/png;base64,' in html, 'Panel includes the logo offline')
-                    self.assertFalse('/assets/foundry-mark.png' in html, 'Panel must not request a local logo route')
-                    self.assertFalse('src="/vendor.js"' in html, 'Panel must include its own vendor bundle')
+                    self.assertTrue('create-form' in html, 'Factory panel contains the product entry form')
+                    self.assertTrue('data:image/svg+xml;base64,' in html, 'Panel includes the logo offline')
+                    self.assertTrue('data:font/woff2;base64,' in html, 'Panel includes its font offline')
+                    self.assertFalse('/assets/' in html, 'Panel must not request local asset routes')
+                    self.assertFalse('src="/app.js"' in html, 'Panel must include its own application bundle')
         asyncio.run(asyncio.wait_for(check(), timeout=15))

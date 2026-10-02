@@ -7,6 +7,8 @@ plugin packaging, and an optional **Continue with ChatGPT** connection. It reuse
 the existing 37 workflows, 28 specialist roles, 67 optional references, recipes,
 hooks, lifecycle and evidence contracts. No global Foundry skill is required.
 
+![Foundry local workspace](docs/images/foundry-workspace.jpg)
+
 ## Open the factory
 
 From this checkout:
@@ -49,6 +51,11 @@ A live successful sign-in and completed turn are needed to prove account/model
 access. Unit tests do not supply the owner's consent.
 See [ChatGPT setup and availability](docs/CHATGPT.md).
 
+The UI uses real shadcn components in a Notion-like document workspace, with
+locally bundled Geist, Lucide SVG icons, and an original SVG mark. The
+[design system](docs/DESIGN-SYSTEM.md) defines reusable tokens and component rules.
+[Design and verification boundaries](docs/UI-DESIGN.md) explain what has been tested.
+
 ## What runs under the hood
 
 ```mermaid
@@ -82,7 +89,7 @@ This repository includes `plugin.json`, `mcp.json`, an MCP server, an embedded
 panel with global/sidebar and thread entrypoints, and a repo marketplace at
 `.agents/plugins/marketplace.json`.
 
-The primary local setup is Codex in the ChatGPT desktop app:
+The primary local setup is the Codex desktop app:
 
 1. Open this checkout as a trusted local Codex project, then restart the desktop
    app so it discovers the repo marketplace.
@@ -137,9 +144,9 @@ See the official [submission guide](https://developers.openai.com/plugins/deploy
 and [MCP deployment requirements](https://developers.openai.com/plugins/build/mcp-server).
 
 The local launcher, MCP initialization, 11-tool inventory, and bundled panel
-resource delivery have been exercised. The refreshed final panel still needs a
-visual and interaction check in Codex desktop after the redesign is installed
-and a new chat is started.
+resource delivery have been exercised. The native UI and UI-to-MCP bridge are covered by browser checks. An installed
+host session must be refreshed after a plugin update; a fresh-chat check remains
+separate from the controlled bridge test.
 
 ## Providers and specialists
 
@@ -151,7 +158,7 @@ build products: the adapter must supply tools, permissions, and completion event
 No second commercial provider is currently qualified end to end.
 
 Specialist model and reasoning settings are applied to product-local native
-agent TOML files. Use **Specialists & settings** instead of editing those files.
+agent TOML files. Use **Runtime & specialists** instead of editing those files.
 Blank means inherit the owner's runtime defaults, including configured specialist
 defaults; runtime rejection is shown without switching providers or
 models. Availability depends on the installed Codex runtime and selected account.

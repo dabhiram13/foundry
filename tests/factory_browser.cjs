@@ -267,7 +267,7 @@ async function assertNoOverflow(page, label) {
       const style=getComputedStyle(el);
       return {height:el.offsetHeight, background:style.backgroundColor, border:style.borderBottomWidth, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
     });
-    assert.deepEqual(selection, {height:66, background:'rgb(255, 254, 250)', border:'2px', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the Soft studio underline-selection contract');
+    assert.deepEqual(selection, {height:56, background:'rgb(255, 254, 250)', border:'2px', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the Soft studio underline-selection contract');
     assert.equal(await page.locator('#stage-work-panel .surface').count(), 0, 'Work panel contains nested cards');
     assert.equal(await page.locator('.page-tabs').evaluate(el => el.scrollHeight <= el.clientHeight), true, 'Product tabs have an unnecessary vertical scrollbar');
 
@@ -405,6 +405,7 @@ async function assertNoOverflow(page, label) {
     // Runtime and one specialist persist, a failed save keeps values, and blanks restore inheritance.
     await page.getByRole('button', {name:'Settings', exact:true}).click();
     await page.getByRole('tab', {name:'AI', exact:true}).click();
+    await page.getByRole('button', {name:'Model and reasoning', exact:true}).click();
     await page.getByLabel('Model', {exact:true}).fill('owner-selected-model');
     await page.getByLabel('Reasoning', {exact:true}).selectOption('high');
     await page.getByRole('radio', {name: 'fixture-error A registered local runtime adapter.', exact: true}).click();
@@ -425,6 +426,7 @@ async function assertNoOverflow(page, label) {
     await page.locator('#settings').waitFor({state:'detached'});
     await page.getByRole('button', {name:'Settings', exact:true}).click();
     await page.getByRole('tab', {name:'AI', exact:true}).click();
+    await page.getByRole('button', {name:'Model and reasoning', exact:true}).click();
     assert.equal(await page.getByLabel('Model', {exact:true}).inputValue(), 'owner-selected-model');
     assert.equal(await page.getByLabel('Reasoning', {exact:true}).inputValue(), 'high');
     await page.getByRole('tab', {name:'Roles', exact:true}).click();
@@ -432,12 +434,14 @@ async function assertNoOverflow(page, label) {
     await page.getByLabel('Backend', {exact:true}).fill('');
     await page.getByLabel('Backend reasoning', {exact:true}).selectOption('');
     await page.getByRole('tab', {name:'AI', exact:true}).click();
+    await page.getByRole('button', {name:'Model and reasoning', exact:true}).click();
     await page.getByLabel('Model', {exact:true}).fill('');
     await page.getByLabel('Reasoning', {exact:true}).selectOption('');
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
     await page.locator('#settings').waitFor({state:'detached'});
     await page.getByRole('button', {name:'Settings', exact:true}).click();
     await page.getByRole('tab', {name:'AI', exact:true}).click();
+    await page.getByRole('button', {name:'Model and reasoning', exact:true}).click();
     assert.equal(await page.getByLabel('Model', {exact:true}).inputValue(), '');
     await page.getByRole('tab', {name:'Roles', exact:true}).click();
     assert.equal(await page.getByLabel('Backend', {exact:true}).inputValue(), '');

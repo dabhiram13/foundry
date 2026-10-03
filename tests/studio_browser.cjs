@@ -36,7 +36,19 @@ server.serve_forever()
     await page.addInitScript(() => {
       window.studioCspErrors = [];
       document.addEventListener('securitypolicyviolation', event => window.studioCspErrors.push(event.violatedDirective));
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (...args) {
+        if (this instanceof HTMLCanvasElement) this.dataset.animationStarts = String(Number(this.dataset.animationStarts || 0) + 1);
+        return animate.apply(this, args);
+      };
     });
+    await page.goto(`http://127.0.0.1:${port}/#welcome`);
+    await page.locator('.sky-background canvas[data-animation-starts="1"]').waitFor();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForFunction(() => document.querySelector('.sky-background canvas').getAnimations().length === 0);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(250);
+    assert.equal(await page.locator('.sky-background canvas').getAttribute('data-animation-starts'), '1', 'Scrolling back must not restart the sky');
     await page.goto(`http://127.0.0.1:${port}/#workspace`);
     await page.getByRole('heading', { name: 'What do you want to build?', exact: true }).waitFor();
     await page.locator('.specialist-intro[data-playing=false]').waitFor();
@@ -44,6 +56,25 @@ server.serve_forever()
     await page.getByRole('button', { name: 'Replay intro', exact: true }).click();
     await page.getByRole('button', { name: 'Stop', exact: true }).click();
     assert.equal(await page.getByRole('button', { name:'Replay intro', exact:true }).evaluate(el => el === document.activeElement), true);
+    const replay = page.getByRole('button', {name:'Replay intro', exact:true});
+    await replay.click();
+    await page.getByRole('button', {name:'Stop', exact:true}).focus();
+    await replay.waitFor();
+    assert.equal(await replay.evaluate(el => el === document.activeElement), true, 'Timer expiry must preserve control focus');
+    await replay.click();
+    await page.getByRole('button', {name:'Stop', exact:true}).focus();
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await replay.waitFor();
+    assert.equal(await replay.evaluate(el => el === document.activeElement), true, 'Reduced motion must preserve control focus');
+    await page.keyboard.press('Enter');
+    assert.equal(await page.locator('.specialist-intro').getAttribute('data-playing'), 'false');
+    await page.emulateMedia({reducedMotion:'no-preference'});
+    await replay.click();
+    await page.getByRole('button', {name:'Stop', exact:true}).focus();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await replay.waitFor();
+    assert.equal(await replay.evaluate(el => el === document.activeElement), true, 'Leaving view must preserve control focus');
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.getByRole('button', { name: 'Planner', exact: true }).focus();
     await page.keyboard.press('Enter');
     assert.equal(await page.getByRole('button', {name:'Planner',exact:true}).getAttribute('aria-pressed'), 'true');
@@ -89,10 +120,11 @@ server.serve_forever()
     await page.waitForFunction(() => document.querySelector('#adapter [role="radio"][value="codex"]')?.getAttribute('aria-checked') === 'true');
     assert.equal(await consent.isChecked(), false, 'Changing engines must clear consent');
     const advanced = page.getByRole('button', {name:'Model and reasoning',exact:true});
-    await advanced.click();
     await page.getByLabel('Model', {exact:true}).waitFor({state:'hidden'});
     await advanced.press('Enter');
     await page.getByLabel('Model', {exact:true}).waitFor();
+    await advanced.click();
+    await page.getByLabel('Model', {exact:true}).waitFor({state:'hidden'});
     await page.keyboard.press('Escape');
     await page.locator('#settings').waitFor({state:'detached'});
     assert.equal(await page.locator('#settings-button').evaluate(el => el === document.activeElement), true);

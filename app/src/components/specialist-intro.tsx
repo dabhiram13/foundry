@@ -68,8 +68,9 @@ export function SpecialistIntro() {
     </div>
     <div className="radial-description" role="status"><strong>{active?.name || 'Different skills. One product.'}</strong><p>{active?.detail || 'Select a portrait to meet the role. Roles guide the AI; this is not live activity.'}</p></div>
     <div className="radial-controls">
-      <Button type="button" variant="ghost" size="sm" onClick={replay} disabled={reduced}><ArrowCounterClockwise aria-hidden="true"/>Replay intro</Button>
-      {playing && !reduced && <Button type="button" variant="ghost" size="sm" onClick={event => { stop(); (event.currentTarget.previousElementSibling as HTMLElement)?.focus(); }}><Pause aria-hidden="true"/>Stop</Button>}
+      <Button type="button" variant="ghost" size="sm" aria-disabled={reduced} onClick={() => { if (!reduced) { if (playing) stop(); else replay(); } }}>
+        {playing && !reduced ? <><Pause aria-hidden="true"/>Stop</> : <><ArrowCounterClockwise aria-hidden="true"/>Replay intro</>}
+      </Button>
       <span className="sr-only" role="status">{reduced ? 'Reduced motion. Every portrait still works.' : announcement}</span>
     </div>
   </div>;

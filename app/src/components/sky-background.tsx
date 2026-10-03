@@ -6,6 +6,7 @@ export function SkyBackground() {
   const { reduced } = useStudioMotion();
   const canvas = useRef<HTMLCanvasElement>(null);
   const visible = useInView(canvas, { amount: .1 });
+  const started = useRef(false);
   const [finished, setFinished] = useState(false);
   useEffect(() => {
     const element = canvas.current;
@@ -37,7 +38,8 @@ export function SkyBackground() {
   }, []);
   useEffect(() => {
     const element = canvas.current;
-    if (!element || reduced || !visible || finished) return;
+    if (!element || reduced || !visible || finished || started.current) return;
+    started.current = true;
     const animation = element.animate([{ transform: 'translateX(-10px)' }, { transform: 'translateX(0)' }], { duration: 4800, easing: 'ease-out' });
     animation.onfinish = () => setFinished(true);
     const stop = () => { if (document.hidden) { animation.cancel(); setFinished(true); } };

@@ -21,11 +21,11 @@ type RoleSettings = {model?: string | null; reasoning?: string | null};
 type Artifact = {path: string; stage: string};
 type BuildTask = {title: string; status: string; fix_attempts?: number; checks?: string; commit?: string | null};
 type History = {at?: string; stage?: string; status?: string; note?: string};
-type Product = {id: string; name: string; idea: string; path: string; stage: string; status: string; adapter?: string; model?: string | null; reasoning?: string | null; roles?: string[]; role_settings?: Record<string, RoleSettings>; stage_verification?: {build?: {status?: string; tasks?: BuildTask[]}}; artifacts: Artifact[]; history: History[]; created_at?: string; updated_at?: string; error?: string};
-type Snapshot = {projects?: Product[]; roles?: (string | {name: string})[]; providers?: (string | {name: string})[]; account?: {connected?: boolean; sharing?: boolean; email?: string}; jobs?: Record<string, {status?: string; error?: string}>};
+type Product = {id: string; name: string; idea: string; path: string; stage: string; status: string; adapter?: string; model?: string | null; reasoning?: string | null; subscription_confirmed?: boolean; roles?: string[]; role_settings?: Record<string, RoleSettings>; stage_verification?: {build?: {status?: string; tasks?: BuildTask[]}}; artifacts: Artifact[]; history: History[]; created_at?: string; updated_at?: string; error?: string};
+type Snapshot = {projects?: Product[]; roles?: (string | {name: string})[]; project_roles?: Record<string, (string | {name: string})[]>; providers?: (string | {name: string})[]; project_providers?: Record<string, (string | {name: string})[]>; provider_errors?: Record<string, string>; account?: {connected?: boolean; sharing?: boolean; email?: string}; jobs?: Record<string, {status?: string; error?: string}>};
 type Message = {text: string; error?: boolean} | null;
 type Review = {productId: string; stage: string; path: string; revision: string; content: string; canApprove: boolean};
-type Draft = {adapter: string; model: string; reasoning: string; roles: Record<string, RoleSettings>};
+type Draft = {adapter: string; model: string; reasoning: string; subscription_confirmed: boolean; roles: Record<string, RoleSettings>};
 declare global { interface Window { foundryBridgePromise?: Promise<{callServerTool: (request: {name: string; arguments: unknown}) => Promise<{isError?: boolean; structuredContent?: any; content?: {type: string; text?: string}[]}>}> } }
 const stages = ['research', 'scope', 'design', 'build', 'verify', 'release'];
 const reasoning = ['', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
@@ -58,7 +58,7 @@ const statusLabel = (status: string = '') => ({awaiting_approval:'Needs your rev
 const roleName = (value: string | {name: string}) => typeof value === 'string' ? value : value.name;
 const roleLabel = (name: string) => cap(name.replace(/^foundry[-_]/, ''));
 const stamp = (value?: string) => { if (!value) return ''; const d = new Date(value); return Number.isNaN(d.valueOf()) ? value : d.toLocaleString([], {dateStyle:'medium', timeStyle:'short'}); };
-const emptyDraft: Draft = {adapter:'codex', model:'', reasoning:'', roles:{}};
+const emptyDraft: Draft = {adapter:'codex', model:'', reasoning:'', subscription_confirmed:false, roles:{}};
 function remembered() { try { return localStorage.getItem('foundry-product'); } catch { return null; } }
 function remember(id: string) { try { localStorage.setItem('foundry-product', id); } catch { /* The panel still works when host storage is unavailable. */ } }
 async function api(action: string, data?: Record<string, unknown>): Promise<any> {
@@ -94,9 +94,10 @@ function DocumentPreview({productId, artifact, updatedAt}: {productId:string;art
       .catch(()=>{if(alive)setPreview({error:true});});
     return ()=>{alive=false;};
   },[productId,artifact.path,updatedAt]);
-  return <section className="paper-preview" aria-label={label(artifact.stage)+' preview'} aria-busy={!preview.content&&!preview.error}>
+  const loaded=preview.content!==undefined;
+  return <section className="paper-preview" aria-label={label(artifact.stage)+' preview'} aria-busy={!loaded&&!preview.error}>
     <div className="section-label"><h3><FileText aria-hidden="true"/>{label(artifact.stage)} preview</h3><span>Read the full document to approve</span></div>
-    {preview.error?<p className="empty-copy">The preview could not load. Use Review {label(artifact.stage)} to open the document.</p>:preview.content?<article className="document preview-reading" tabIndex={0} aria-label="Document preview, scroll to read" dangerouslySetInnerHTML={{__html:preview.content}}/>:<p role="status" className="preview-loading"><Loader2 className="spinner" aria-hidden="true"/>Opening the document…</p>}
+    {preview.error?<p className="empty-copy">The preview could not load. Use Review {label(artifact.stage)} to open the document.</p>:loaded?(preview.content?<article className="document preview-reading" tabIndex={0} aria-label="Document preview, scroll to read" dangerouslySetInnerHTML={{__html:preview.content}}/>:<p className="empty-copy">This document is empty.</p>):<p role="status" className="preview-loading"><Loader2 className="spinner" aria-hidden="true"/>Opening the document…</p>}
   </section>;
 }
 function EffortOptions() { return <>{reasoning.map(value => <NativeSelectOption key={value} value={value}>{value || 'Inherit reasoning'}</NativeSelectOption>)}</>; }
@@ -137,6 +138,7 @@ function Workspace() {
   const drawerDestination = useRef<string | null>(null);
   const [ideaExpanded, setIdeaExpanded] = useState(false);
   const products = snapshot.projects || []; const p = !creating ? products.find(item => item.id === selected) : undefined;
+  const job = p ? snapshot.jobs?.[p.id] : undefined;
   const account = snapshot.account || {};
   const refresh = useCallback(async () => {
     const request = ++snapshotRequest.current;
@@ -202,11 +204,11 @@ function Workspace() {
   },[navigationTarget,landing,creating,selected,snapshot.projects]);
   useEffect(()=>setInspectedStage(null),[p?.id,p?.stage]);
   useEffect(()=>setIdeaExpanded(false),[p?.id]);
-  useEffect(()=>setNotice(current=>current?.error?current:null),[p?.id,p?.stage,p?.status]);
+  useEffect(()=>setNotice(current=>job?.status==='failed'&&job.error?{text:job.error,error:true}:current?.error?current:null),[p?.id,p?.stage,p?.status,job?.status,job?.error]);
   async function openSettings(tab='account') {
     const origin=document.activeElement as HTMLElement;
-    settingsFocus.current=origin; setSettingsNotice(null); setRoleSearch(''); setSettingsProduct(p?.id || null);
-    setDraft(p ? {adapter:p.adapter||'codex', model:p.model||'', reasoning:p.reasoning||'', roles:structuredClone(p.role_settings||{})} : emptyDraft);
+    settingsFocus.current=origin; setSettingsNotice(p&&snapshot.provider_errors?.[p.id]?{text:snapshot.provider_errors[p.id],error:true}:null); setRoleSearch(''); setSettingsProduct(p?.id || null);
+    setDraft(p ? {adapter:p.adapter||'codex', model:p.model||'', reasoning:p.reasoning||'', subscription_confirmed:!!p.subscription_confirmed, roles:structuredClone(p.role_settings||{})} : emptyDraft);
     setSettingsTab(tab); setNavigationOpen(false); setSettingsOpen(true);
     if (account.sharing) { try { setModels(await api('models',{})); } catch(error) {setSettingsNotice({text:(error as Error).message,error:true});} }
   }
@@ -228,7 +230,7 @@ function Workspace() {
     await perform('approve',async()=> {
       await api('approve',{id:review.productId,reviewed_revision:review.revision});
       setReview(null);
-      try { await api('run',{id:review.productId}); setNotice({text:'Approved. Foundry is starting the next step.'}); }
+      try { await api('run',{id:review.productId}); }
       catch (error) { setNotice({text:'Approved, but the next step could not start: '+(error instanceof Error?error.message:'Please try again.'),error:true}); }
       requestAnimationFrame(()=>document.getElementById('stage-title')?.focus());
     },'artifact');
@@ -236,7 +238,7 @@ function Workspace() {
   async function saveSettings(event: React.FormEvent) {
     event.preventDefault();
     if (!settingsProduct) return;
-    await perform('save-settings',async()=> {await api('configure',{id:settingsProduct,adapter:draft.adapter,model:draft.model||null,reasoning:draft.reasoning||null,roles:Object.fromEntries(Object.entries(draft.roles).map(([key,value])=>[key,{model:value.model||null,reasoning:value.reasoning||null}]))});setSettingsOpen(false);setNotice({text:'Settings saved.'});},'settings');
+    await perform('save-settings',async()=> {await api('configure',{id:settingsProduct,adapter:draft.adapter,model:draft.model||null,reasoning:draft.reasoning||null,subscription_confirmed:draft.subscription_confirmed,roles:Object.fromEntries(Object.entries(draft.roles).map(([key,value])=>[key,{model:value.model||null,reasoning:value.reasoning||null}]))});setSettingsOpen(false);setNotice({text:'Settings saved.'});},'settings');
   }
   function setRole(role: string, field: keyof RoleSettings, value: string) { setDraft(prev=>({...prev,roles:{...prev.roles,[role]:{...prev.roles[role],[field]:value}}})); }
 
@@ -246,13 +248,15 @@ function Workspace() {
     if (running) return <Act busy={busy} action="cancel" variant="outline" onClick={()=>perform('cancel',async()=> {await api('cancel',{id:product.id});setNotice({text:'Stopping. This can take a few seconds.'});})}><Square/>Stop</Act>;
     if (product.status==='awaiting_approval') {const doc=latest(product,product.stage);return doc&&<Act busy={busy} action="review" onClick={()=>openArtifact(product,doc,true)}>Review {label(product.stage)}<ArrowRight/></Act>;}
     if (finished) return <Act busy={busy} action="handoff" onClick={()=>openArtifact(product,finished)}>Read the ship summary<ArrowUpRight/></Act>;
+    if (product.adapter==='codex'&&!product.subscription_confirmed) return <Act busy={busy} action="confirm-login" onClick={()=>openSettings('runtime')}>Confirm AI login<ArrowRight/></Act>;
     const retry=['failed','interrupted'].includes(product.status);
-    return <Act busy={busy} action="run" onClick={()=>perform('run',async()=> {await api('run',{id:product.id});setNotice({text:retry?'Trying again.':'Foundry is working. You can leave and come back.'});})}>{retry?'Try again':`Start ${label(product.stage)}`}<ArrowRight/></Act>;
+    return <Act busy={busy} action="run" onClick={()=>perform('run',async()=> {await api('run',{id:product.id});})}>{retry?'Try again':`Start ${label(product.stage)}`}<ArrowRight/></Act>;
   }
   function documents(product:Product, inset=false) { return <section className={"document-list"+(inset?"":" surface")}><div className="section-label"><h3>Documents</h3><span>{product.artifacts?.length||0} {(product.artifacts?.length||0)===1?'file':'files'}</span></div><div id="outputs">{(product.artifacts||[]).map(item=><Button key={item.path} type="button" variant="ghost" className="document-row" aria-label={`Open ${label(item.stage)}`} data-action={'open-'+item.path} disabled={!!busy} onClick={()=>openArtifact(product,item)}><FileText/><span><strong>{documentNames[item.path]||label(item.stage)}</strong><small>{item.path}</small></span><ArrowUpRight className="row-arrow"/></Button>)}</div>{!product.artifacts?.length&&<p id="empty-outputs" className="empty-copy">Each step saves a document here.</p>}</section>; }
   const activeStage=p ? Math.max(0,stages.indexOf(p.stage)) : 0;
   const finished=p?.stage==='release'&&p.status==='completed'&&latest(p,'release');
   const running=p&&(p.status==='running'||snapshot.jobs?.[p.id]?.status==='running');
+  const pageNotice=notice||(job?.status==='failed'&&job.error?{text:job.error,error:true}:null);
   const progress=p&&((['failed','interrupted'].includes(p.status)?p.history?.at(-1)?.note:'')||p.error||(snapshot.jobs?.[p.id]?.status==='failed'?snapshot.jobs[p.id].error:'')||(running?'Working in this product’s folder. A log of each run is saved with it.':''));
   useEffect(() => {
     const revealStage=()=> {
@@ -267,10 +271,20 @@ function Workspace() {
   const buildTasks=p?.stage_verification?.build?.tasks||[];
   const activeTask=buildTasks.findIndex(task=>task.status!=='done');
   const tries=(count:number)=>`${count} ${count===1?'try':'tries'}`;
-  const taskNote=(task:BuildTask)=>task.status==='done'?(task.fix_attempts?`Done · fixed after ${tries(task.fix_attempts)}`:task.checks==='not_set_up'?'Done · tests not set up yet':'Done · tests pass'):task.status==='failed'?`Tests still failing after ${tries(task.fix_attempts||0)}`:task.status==='working'?(running?(task.fix_attempts?`Fixing failing tests, try ${task.fix_attempts} of 3`:'Working on it'):'Stopped here'):'Coming up';
+  const taskNote=(task:BuildTask)=> {
+    if(task.status==='done') return task.fix_attempts?`Done · fixed after ${tries(task.fix_attempts)}`:task.checks==='not_set_up'?'Done · tests not set up yet':'Done · tests pass';
+    if(task.status==='failed') {
+      if(task.checks==='passed'&&p?.stage_verification?.build?.status==='checkpoint_failed') return 'Tests pass · could not save this step in Git';
+      if(task.checks==='not_set_up') return 'No required tests are set up';
+      return task.checks==='failed'?`Tests still failing after ${tries(task.fix_attempts||0)}`:'Could not finish this task';
+    }
+    return task.status==='working'?(running?(task.fix_attempts?`Fixing failing tests, try ${task.fix_attempts} of 3`:'Working on it'):'Stopped here'):'Coming up';
+  };
   const inspecting=!!p&&viewedStage!==p.stage;
   const signIn=snapshot.jobs?.['sign-in'];
-  const providers=[...new Set([...(snapshot.providers||[]).map(roleName), snapshot.projects?.find(item=>item.id===settingsProduct)?.adapter, draft.adapter].filter((value):value is string=>!!value))];
+  const availableProviders=(settingsProduct?snapshot.project_providers?.[settingsProduct]:undefined)||snapshot.providers||[];
+  const providers=[...new Set([...availableProviders.map(roleName), snapshot.projects?.find(item=>item.id===settingsProduct)?.adapter, draft.adapter].filter((value):value is string=>!!value))];
+  const availableRoles=(settingsProduct?snapshot.project_roles?.[settingsProduct]:undefined)||snapshot.roles||[];
   if(landing) return <Landing onEnter={focus=>home(!!focus)}/>;
   return <>
     <div className="workspace-shell">
@@ -294,7 +308,7 @@ function Workspace() {
       </Sheet>
       <div className="workspace-toolbar"><Breadcrumb><BreadcrumbList><BreadcrumbItem><BreadcrumbLink asChild><button onClick={()=>home()}>Workspace</button></BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator/><BreadcrumbItem><BreadcrumbPage id="current-name">{p?.name||'New product'}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb></div>
       <div id="main" aria-busy={!!busy} className="workspace-main" tabIndex={-1}>
-        <div className="page-feedback"><Feedback id="notice" message={notice}/></div>
+        <div className="page-feedback"><Feedback id="notice" message={pageNotice}/></div>
         {!snapshot.projects?<section className="page loading-state" role="status"><Loader2 className={notice?.error?'':'spinner'} aria-hidden="true"/><h1>{notice?.error?'Your workspace is unavailable':'Opening your workspace'}</h1><p>{notice?.error?'Check the local connection, then try again. Your saved products stay where they are.':'Loading your products.'}</p>{notice?.error&&<Button onClick={()=>perform('refresh',async()=>{})} disabled={!!busy}>Try again</Button>}</section>:!p?<section id="welcome" className="page home-page">
           <div className="idea-desk"><header className="page-heading home-heading"><div><span className="eyebrow"><Folder aria-hidden="true"/>Your local workspace</span><h1 id="heading" tabIndex={-1}>What do you want to build?</h1><p>Start with a problem worth solving. Foundry helps you turn it into a product, one clear step at a time.</p><div className="home-crew" aria-hidden="true">{['market-researcher','planner','designer','backend'].map(role=><RoleAvatar key={role} role={role} size={64}/>)}</div><p className="crew-caption">A little structure. Room for your ideas.</p></div></header>
           <section className="new-product-section surface">
@@ -371,8 +385,8 @@ function Workspace() {
       <form id="settings-form" onSubmit={saveSettings}><header className="settings-header"><div><DialogTitle id="settings-title">Account &amp; AI</DialogTitle><DialogDescription>Choose which AI does the work and how.</DialogDescription></div><Button type="button" id="close-settings" variant="ghost" size="icon" aria-label="Close settings" onClick={()=>setSettingsOpen(false)}><X/></Button></header><Feedback id="settings-notice" message={settingsNotice}/>
         <Tabs value={settingsTab} onValueChange={setSettingsTab}><TabsList className="settings-tabs"><TabsTrigger id="settings-tab-account" value="account">Account</TabsTrigger>{settingsProduct&&<><TabsTrigger id="settings-tab-runtime" value="runtime">AI</TabsTrigger><TabsTrigger id="settings-tab-specialists" value="specialists">Roles</TabsTrigger></>}</TabsList>
           <TabsContent value="account" id="settings-panel-account"><div className="account-panel"><UserRound/><div><h3>ChatGPT</h3><p id="account-status">{signIn?.status==='failed'?signIn.error:account.connected?`${account.email||'ChatGPT connected'}${account.sharing?' · plan usage enabled':' · plan usage not granted'}`:signIn?.status==='running'?'Finish sign-in in your browser…':'Not connected to Foundry'}</p><p className="field-help">Use your ChatGPT plan for products built on this computer. Your Codex login also works; pick it under AI.</p><div className="account-actions"><Button id="sign-in" type="button" variant="outline" data-action="sign-in" disabled={!!busy} onClick={()=>perform('sign-in',async()=>{await api('sign-in',{});},'settings')}>{account.connected?'Reconnect ChatGPT':'Continue with ChatGPT'}</Button>{account.connected&&<Button id="sign-out" type="button" variant="ghost" data-action="sign-out" disabled={!!busy} onClick={()=>perform('sign-out',async()=>{await api('sign-out',{});},'settings')}>Sign out</Button>}<a href="https://chatgpt.com/settings/usage" target="_blank" rel="noreferrer">Manage usage<ArrowUpRight/></a></div></div></div></TabsContent>
-          {settingsProduct&&<><TabsContent value="runtime" id="settings-panel-runtime"><div className="field-grid"><div><label htmlFor="adapter">AI engine</label><NativeSelect id="adapter" value={draft.adapter} onChange={event=>setDraft({...draft,adapter:event.target.value})}>{providers.map(provider=><NativeSelectOption key={provider} value={provider}>{provider==='codex'?'Codex (your login)':provider==='chatgpt'?'ChatGPT plan':provider}</NativeSelectOption>)}</NativeSelect></div><div><label htmlFor="reasoning">Reasoning</label><NativeSelect id="reasoning" value={draft.reasoning} onChange={event=>setDraft({...draft,reasoning:event.target.value})}><EffortOptions/></NativeSelect></div></div><label htmlFor="model">Model</label><Input id="model" list="models" placeholder="Default" value={draft.model} onChange={event=>setDraft({...draft,model:event.target.value})}/><p className="field-help">Leave blank to use the default.</p></TabsContent>
-          <TabsContent value="specialists" id="settings-panel-specialists"><label htmlFor="role-search">Find a role</label><div className="role-search"><Search/><Input id="role-search" type="search" placeholder="Search roles" value={roleSearch} onChange={event=>setRoleSearch(event.target.value)}/></div><p className="field-help">Pick a model for any role, or leave it blank to use the default.</p><div id="roles" className="roles">{(snapshot.roles||[]).map(roleName).map(role=><div key={role} className="role-row" hidden={!!roleSearch&&!roleLabel(role).toLowerCase().includes(roleSearch.toLowerCase())}><label htmlFor={'role-'+role} className="role-identity"><RoleAvatar role={role} size={36}/><span>{roleLabel(role)}<small>{roleCatalog.find(item=>item.id===role.replace(/^foundry[-_]/,''))?.description}</small></span></label><Input aria-label={roleLabel(role)} id={'role-'+role} data-role={role} list="models" placeholder="Default" value={draft.roles[role]?.model||''} onChange={event=>setRole(role,'model',event.target.value)}/><NativeSelect aria-label={`${cap(role)} reasoning`} data-role-reasoning={role} value={draft.roles[role]?.reasoning||''} onChange={event=>setRole(role,'reasoning',event.target.value)}><EffortOptions/></NativeSelect></div>)}</div>{!(snapshot.roles||[]).some(role=>roleLabel(roleName(role)).toLowerCase().includes(roleSearch.toLowerCase()))&&<p className="empty-copy">No roles match.</p>}</TabsContent></>}
+          {settingsProduct&&<><TabsContent value="runtime" id="settings-panel-runtime"><div className="field-grid"><div><label htmlFor="adapter">AI engine</label><NativeSelect id="adapter" value={draft.adapter} onChange={event=>setDraft({...draft,adapter:event.target.value,subscription_confirmed:event.target.value===draft.adapter?draft.subscription_confirmed:false})}>{providers.map(provider=><NativeSelectOption key={provider} value={provider}>{provider==='codex'?'Codex (your login)':provider==='chatgpt'?'ChatGPT plan':provider}</NativeSelectOption>)}</NativeSelect></div><div><label htmlFor="reasoning">Reasoning</label><NativeSelect id="reasoning" value={draft.reasoning} onChange={event=>setDraft({...draft,reasoning:event.target.value})}><EffortOptions/></NativeSelect></div></div><label htmlFor="model">Model</label><Input id="model" list="models" placeholder="Default" value={draft.model} onChange={event=>setDraft({...draft,model:event.target.value})}/><p className="field-help">Leave blank to use the default.</p>{draft.adapter==='codex'&&<label className="subscription-confirmation"><input type="checkbox" checked={draft.subscription_confirmed} onChange={event=>setDraft({...draft,subscription_confirmed:event.target.checked})}/> Use my existing Codex subscription login. Do not use metered API billing.</label>}</TabsContent>
+          <TabsContent value="specialists" id="settings-panel-specialists"><label htmlFor="role-search">Find a role</label><div className="role-search"><Search/><Input id="role-search" type="search" placeholder="Search roles" value={roleSearch} onChange={event=>setRoleSearch(event.target.value)}/></div><p className="field-help">Pick a model for native Codex helpers, or leave it blank to use the default. Other engines may apply roles as instructions in one session.</p><div id="roles" className="roles">{availableRoles.map(roleName).map(role=><div key={role} className="role-row" hidden={!!roleSearch&&!roleLabel(role).toLowerCase().includes(roleSearch.toLowerCase())}><label htmlFor={'role-'+role} className="role-identity"><RoleAvatar role={role} size={36}/><span>{roleLabel(role)}<small>{roleCatalog.find(item=>item.id===role.replace(/^foundry[-_]/,''))?.description}</small></span></label><Input aria-label={roleLabel(role)} id={'role-'+role} data-role={role} list="models" placeholder="Default" value={draft.roles[role]?.model||''} onChange={event=>setRole(role,'model',event.target.value)}/><NativeSelect aria-label={`${cap(role)} reasoning`} data-role-reasoning={role} value={draft.roles[role]?.reasoning||''} onChange={event=>setRole(role,'reasoning',event.target.value)}><EffortOptions/></NativeSelect></div>)}</div>{!availableRoles.some(role=>roleLabel(roleName(role)).toLowerCase().includes(roleSearch.toLowerCase()))&&<p className="empty-copy">No roles match.</p>}</TabsContent></>}
         </Tabs><datalist id="models">{models.map(model=><option key={model.slug||model.id} value={model.slug||model.id}>{model.display_name}</option>)}</datalist>{settingsProduct&&settingsTab!=='account'&&<footer className="settings-footer"><span>Changes apply to this product.</span><Button type="submit" data-action="save-settings" disabled={!!busy}>{busy==='save-settings'&&<Loader2 className="spinner"/>}Save settings</Button></footer>}
       </form>
     </DialogContent></Dialog>

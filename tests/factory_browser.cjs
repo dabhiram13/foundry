@@ -49,6 +49,8 @@ class FakeAuth:
         return [{"id": "fixture-model", "slug": "fixture-model", "display_name": "Fixture model"}]
     @classmethod
     def access_token(cls, state_dir):
+        if not cls.connected:
+            raise RuntimeError("ChatGPT sign-in is required")
         raise RuntimeError("The browser fixture never supplies a live access token")
 
 class FixtureService(Service):
@@ -60,6 +62,8 @@ class FixtureService(Service):
         if not any((item if isinstance(item, str) else item.get('name')) == 'fixture-error' for item in providers):
             providers.append({'name': 'fixture-error'})
         result['providers'] = providers
+        for providers in result.get('project_providers', {}).values():
+            providers.append({'name': 'fixture-error'})
         return result
     def dispatch(self, action, data):
         if action == 'configure' and data.get('adapter') == 'fixture-error':
@@ -94,7 +98,7 @@ class FixtureService(Service):
             project = Path(result['path'])
             (project / '.foundry/providers.json').write_text(json.dumps({'adapters': [{
                 'name': 'fixture', 'kind': 'agent-runtime', 'command': [sys.executable, str(fake)],
-                'capabilities': ['jsonl', 'cancel', 'permissions', 'resume'], 'billing_modes': ['local']
+                'capabilities': ['jsonl', 'cancel', 'permissions', 'resume', 'tools'], 'billing_modes': ['local']
             }]}))
             result = self.factory.configure(result['id'], adapter='fixture')
         return result
@@ -210,8 +214,30 @@ async function assertNoOverflow(page, label) {
       const response = await fetch('/api/snapshot', {headers:{'X-Foundry-Token':document.querySelector('meta[name="foundry-token"]').content}});
       return (await response.json()).projects.find(item => item.name === 'Recovery workspace').id;
     });
+    await page.locator('#settings-button').click();
+    await page.getByRole('tab', {name:'AI', exact:true}).click();
+    await page.getByLabel('AI engine').selectOption('chatgpt');
+    await page.getByRole('button', {name:'Save settings', exact:true}).click();
+    await page.locator('#settings').waitFor({state:'detached'});
+    await page.getByRole('button', {name:'Start Research', exact:true}).click();
+    await page.waitForFunction(() => document.querySelector('#notice[role="alert"]')?.textContent.includes('ChatGPT sign-in is required'));
+    assert.equal(await page.locator('#status').textContent(), 'Ready');
+    assert.equal(await page.getByRole('button', {name:'Start Research', exact:true}).isEnabled(), true);
+    assert.doesNotMatch(await page.locator('#notice').textContent(), /Foundry is working/);
+    await page.waitForTimeout(4200);
+    assert.match(await page.locator('#notice').textContent(), /ChatGPT sign-in is required/);
+    await page.getByRole('button', {name:'Start Research', exact:true}).click();
+    await page.waitForTimeout(4200);
+    assert.match(await page.locator('#notice').textContent(), /ChatGPT sign-in is required/, 'Repeated identical preflight failure lost the error');
+    assert.doesNotMatch(await page.locator('#notice').textContent(), /working|Trying again/);
+    await page.locator('#settings-button').click();
+    await page.getByRole('tab', {name:'AI', exact:true}).click();
+    await page.getByLabel('AI engine').selectOption('fixture');
+    await page.getByRole('button', {name:'Save settings', exact:true}).click();
+    await page.locator('#settings').waitFor({state:'detached'});
     await page.getByRole('button', {name:'Start Research', exact:true}).click();
     await page.getByRole('button', {name:'Review Plan', exact:true}).waitFor({timeout:30000});
+    assert.equal(await page.locator('#notice').count(), 0, 'Explicit retry retained the prior preflight error');
 
     // Stage inspection is navigation only: it cannot advance or approve the workflow.
     const stageRail = page.getByRole('list', {name:'Product stages'});
@@ -298,6 +324,7 @@ async function assertNoOverflow(page, label) {
       await page.getByRole('button', {name:'Create product', exact:true}).waitFor();
       await page.waitForFunction(() => document.getElementById('main').getAttribute('aria-busy') === 'false');
       assert.equal(await page.locator('#artifact').count(), 0, `Delayed review reopened after ${navigation}`);
+      await page.waitForFunction(() => document.activeElement?.id==='heading');
       await page.locator('#recent-products').getByRole('button', {name:/Recovery workspace/}).click();
       await page.waitForFunction(() => document.activeElement?.id==='heading');
     }
@@ -347,6 +374,23 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('tab', {name:/Activity/}).click();
     assert.ok(await page.locator('#activity li').count(), 'Completed product did not expose its activity history');
     await page.getByRole('tab', {name:'Work', exact:true}).click();
+    const checkpointResponse = async route => {
+      const response = await route.fetch();
+      const snapshot = await response.json();
+      const project = snapshot.projects.find(item => item.id === recoveryId);
+      project.stage = 'build';
+      project.status = 'failed';
+      project.stage_verification.build.status = 'checkpoint_failed';
+      project.stage_verification.build.tasks = project.stage_verification.build.tasks.map(task =>
+        ({...task, status:'failed', checks:'passed', fix_attempts:1}));
+      await route.fulfill({response, json:snapshot});
+    };
+    await page.route('**/api/snapshot', checkpointResponse);
+    await page.locator('#build-tasks').filter({hasText:'Tests pass · could not save this step in Git'}).waitFor();
+    assert.doesNotMatch(await page.locator('#build-tasks').textContent(), /Tests still failing/);
+    assert.match(await page.locator('#build-tasks').textContent(), /0 of 1 done/);
+    await page.unroute('**/api/snapshot', checkpointResponse);
+    await page.waitForFunction(() => document.querySelector('#status')?.textContent === 'Completed');
     await page.getByRole('list', {name:'Product stages'}).getByRole('button', {name:'Build Done', exact:true}).click();
     await page.locator('#build-tasks').filter({hasText:'Build the approved plan'}).waitFor();
     assert.match(await page.locator('#build-tasks').textContent(), /1 of 1 done/);
@@ -378,6 +422,7 @@ async function assertNoOverflow(page, label) {
     await page.getByLabel('Backend reasoning', {exact:true}).selectOption('medium');
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
     await page.getByText('Settings saved.').waitFor();
+    await page.locator('#settings').waitFor({state:'detached'});
     await page.getByRole('button', {name:'Settings', exact:true}).click();
     await page.getByRole('tab', {name:'AI', exact:true}).click();
     assert.equal(await page.getByLabel('Model', {exact:true}).inputValue(), 'owner-selected-model');
@@ -390,6 +435,7 @@ async function assertNoOverflow(page, label) {
     await page.getByLabel('Model', {exact:true}).fill('');
     await page.getByLabel('Reasoning', {exact:true}).selectOption('');
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
+    await page.locator('#settings').waitFor({state:'detached'});
     await page.getByRole('button', {name:'Settings', exact:true}).click();
     await page.getByRole('tab', {name:'AI', exact:true}).click();
     assert.equal(await page.getByLabel('Model', {exact:true}).inputValue(), '');

@@ -61,9 +61,12 @@ def build_server(service):
 
     @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=write)
     def foundry_configure(id: str, adapter: str, model: str | None, reasoning: str | None,
-                         roles: dict) -> dict:
+                         roles: dict, subscription_confirmed: bool | None = None) -> dict:
         """Save the owner's runtime and explicit specialist preferences."""
-        return service.dispatch('configure', dict(id=id, adapter=adapter, model=model, reasoning=reasoning, roles=roles))
+        values = dict(id=id, adapter=adapter, model=model, reasoning=reasoning, roles=roles)
+        if subscription_confirmed is not None:
+            values['subscription_confirmed'] = subscription_confirmed
+        return service.dispatch('configure', values)
 
     @apps.tool(resource_uri='ui://foundry/factory', visibility=['app'], annotations=external_write)
     def foundry_sign_in() -> dict:

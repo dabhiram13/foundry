@@ -65,6 +65,12 @@ class Service:
         with self.lock:
             if self.jobs.get(key, {}).get('status') == 'running':
                 raise ValueError('This action is already running')
+            account_jobs = {'sign-in', 'sign-out'}
+            if key in account_jobs and any(job.get('status') == 'running' for job in self.jobs.values()):
+                raise ValueError('Stop running jobs before connecting or switching accounts')
+            if key not in account_jobs and any(self.jobs.get(name, {}).get('status') == 'running'
+                                               for name in account_jobs):
+                raise ValueError('Wait for the account change to finish before starting product work')
             self.jobs[key] = {'status': 'running', 'error': None, 'cancel_requested': False}
         def work():
             try:
@@ -127,15 +133,9 @@ class Service:
                     self.jobs[data['id']]['cancel_requested'] = True
             return self.factory.cancel(data['id'])
         if action == 'sign-in':
-            with self.lock:
-                if any(job['status'] == 'running' for job in self.jobs.values()):
-                    raise ValueError('Stop running jobs before connecting or switching accounts')
             return self.background('sign-in', lambda: self.auth().sign_in(self.auth_dir))
         if action == 'sign-out':
-            with self.lock:
-                if any(job['status'] == 'running' for job in self.jobs.values()):
-                    raise ValueError('Stop running jobs before signing out')
-            return self.auth().sign_out(self.auth_dir)
+            return self.background('sign-out', lambda: self.auth().sign_out(self.auth_dir))
         if action == 'models':
             return self.auth().models(self.auth_dir)
         raise ValueError('Unknown action')

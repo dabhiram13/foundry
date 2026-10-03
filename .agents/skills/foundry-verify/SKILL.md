@@ -7,6 +7,10 @@ description: Verify a Foundry change against acceptance criteria and configured 
 
 Read `docs/WORKFLOW.md`, inspect runtime status, and read the active spec. Inspect the actual change and configured checks: check names alone do not demonstrate requirement coverage.
 
+When the Factory Test step invokes this skill in a read-only provider turn, inspect
+and report only. Do not run lifecycle commands or edit receipts; the Factory
+controller performs and records verification after that turn.
+
 Exercise relevant behavior and map acceptance criteria to results. Include running-app interaction for UI behavior and real boundary checks for persistence, permissions, or integrations in scope. Missing tools or services leave the affected criterion unverified.
 
 Run `python3 scripts/marketcraft.py verify` and inspect failures and unavailable-check logs. A verification-only request authorizes reporting findings, not silently changing the product. When fixing is already authorized, resolve the cause and rerun after relevant changes.

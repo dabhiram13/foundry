@@ -427,11 +427,11 @@ def _process(root, adapter, settings, request, task, attempt, credential_env=Non
     environment = dict(os.environ)
     if credential_env:
         environment.update(credential_env)
+    redactor = Redactor(environment)
     if adapter["name"] in {"codex", "chatgpt"} and settings["billing"]["mode"] == "subscription":
         # Never let a plan connection silently use API-key credentials.
         environment.pop("OPENAI_API_KEY", None)
         environment.pop("CODEX_API_KEY", None)
-    redactor = Redactor(environment)
     directory = _path(root, f"{STATE}/evidence/{task['task_id']}/{attempt['number']}")
     directory.mkdir(parents=True, mode=0o700)
     schema_path = None
@@ -546,6 +546,9 @@ def _process(root, adapter, settings, request, task, attempt, credential_env=Non
                 return "failed"
             if attempt["terminal_count"] != 1 or attempt.get("terminal_status") != "completed" or "output" not in attempt:
                 attempt["error"] = {"code": "missing_completion", "message": "Expected exactly one completed result with output"}
+                return "unknown"
+            if adapter["kind"] == "agent-runtime" and not task.get("session_id"):
+                attempt["error"] = {"code": "missing_session", "message": "Agent runtime did not provide a session receipt"}
                 return "unknown"
             if request.get("output_schema") is not None:
                 try:

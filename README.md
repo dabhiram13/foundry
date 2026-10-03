@@ -87,7 +87,9 @@ More detail: [architecture](docs/ARCHITECTURE.md),
 
 Codex is the built-in engine. Your Codex login runs through `codex exec`; Foundry
 never reads or copies your credentials and never switches to paid API billing on
-its own. On macOS it uses the Codex desktop app's executable; set `FOUNDRY_CODEX`
+its own. Confirm the subscription login in product settings before the first run;
+changing engines clears that confirmation. This is your confirmation, not a
+runtime inspection of how your account is billed. On macOS it uses the Codex desktop app's executable; set `FOUNDRY_CODEX`
 to use another one. The ChatGPT plan option uses the official sign-in flow and is
 still experimental. See [ChatGPT setup](docs/CHATGPT.md).
 
@@ -110,7 +112,9 @@ Each step uses a few of them:
 Leave models blank to use your defaults, or pick a model per role under
 **Settings → Roles**. Review roles only read and report; they never change code.
 The ChatGPT plan option currently runs roles as instructions in one session; use
-the Codex login if you want them to run as separate helpers.
+the Codex login if you want them to run as separate helpers. Each request lists
+the relevant saved inputs, approved document revisions and installed role files.
+Helper model preferences apply to native helpers, not separate ChatGPT sessions.
 
 Foundry also includes **37 workflows** (such as `$foundry-design` and
 `$foundry-verify`) and **67 optional reference guides**. Load only the ones that fit

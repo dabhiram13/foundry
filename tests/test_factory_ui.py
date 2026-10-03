@@ -144,6 +144,22 @@ class FactoryUITests(unittest.TestCase):
                 self.service.dispatch(action, {})
         self.assertEqual(len(self.service.jobs), 1)
 
+    def test_account_transition_reservation_excludes_product_work(self):
+        started, release = threading.Event(), threading.Event()
+        def transition():
+            started.set()
+            release.wait(3)
+        self.service.background('sign-in', transition)
+        try:
+            self.assertTrue(started.wait(2))
+            with self.assertRaisesRegex(ValueError, 'account change'):
+                self.service.background('product', lambda: None)
+            with self.assertRaisesRegex(ValueError, 'running jobs'):
+                self.service.background('sign-out', lambda: None)
+            self.assertNotIn('product', self.service.jobs)
+        finally:
+            release.set()
+
     def test_background_job_reflects_returned_interruption(self):
         self.service.background('truthful', lambda: {
             'status': 'interrupted', 'history': [{'note': 'Owner stopped the stage'}]})

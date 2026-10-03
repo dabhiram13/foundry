@@ -102,7 +102,7 @@ class FactoryTests(unittest.TestCase):
         root = Path(project["path"])
         (root / ".foundry/providers.json").write_text(json.dumps({"adapters": [{
             "name": "fixture", "kind": "agent-runtime", "command": [sys.executable, str(self.fake)],
-            "capabilities": ["jsonl", "cancel", "permissions", "resume"], "billing_modes": ["local"]
+            "capabilities": ["jsonl", "cancel", "permissions", "resume", "tools"], "billing_modes": ["local"]
         }]}), encoding="utf-8")
         return self.factory.configure(project["id"], adapter="fixture")
 
@@ -118,6 +118,203 @@ class FactoryTests(unittest.TestCase):
         project = self.factory.approve(project["id"])
         self.assertEqual(project["stage"], "build")
         return project
+
+    def test_snapshot_discovers_product_providers_after_switching_engines(self):
+        project = self.create()
+        self.factory.configure(project["id"], adapter="codex")
+        snapshot = self.factory.snapshot()
+        names = {item["name"] for item in snapshot["project_providers"][project["id"]]}
+        self.assertIn("fixture", names)
+        self.assertNotIn("fixture", {item["name"] for item in snapshot["providers"]})
+        self.assertNotIn(project["id"], snapshot["provider_errors"])
+        self.assertEqual(self.factory.configure(project["id"], adapter="fixture")["adapter"], "fixture")
+
+    def test_product_custom_roles_and_stage_inputs_reach_the_prompt(self):
+        project = self.advance_to_build(self.create())
+        root = Path(project["path"])
+        (root / ".codex/agents/custom.toml").write_text(
+            'name = "product-specialist"\ndescription = "Local specialist"\n')
+        project = self.factory.configure(project["id"], roles=["product-specialist"])
+        prompt = self.factory._prompt(project)
+        self.assertIn(".codex/agents/custom.toml", prompt)
+        for stage, path in (("scope", "docs/specs/product.md"), ("design", "docs/product/design.md")):
+            self.assertIn(path, prompt)
+            self.assertIn(project["approved_revisions"][stage], prompt)
+        self.assertIn("product-specialist", {item["name"] for item in self.factory.snapshot()["project_roles"][project["id"]]})
+
+    def test_invalid_later_role_does_not_change_earlier_native_settings(self):
+        project = self.create()
+        root = Path(project["path"])
+        original = (root / ".codex/agents/backend.toml").read_text()
+        (root / ".codex/agents/connector.toml").unlink()
+        with self.assertRaisesRegex(Error, "installed"):
+            self.factory.configure(project["id"], roles={"backend": {"model": "changed"}, "connector": {"model": "changed"}})
+        self.assertEqual((root / ".codex/agents/backend.toml").read_text(), original)
+        self.assertEqual(self.factory._project(project["id"])["role_settings"], {})
+
+    def test_toolless_agent_is_rejected_before_launch(self):
+        project = self.create()
+        root = Path(project["path"])
+        config = json.loads((root / ".foundry/providers.json").read_text())
+        config["adapters"][0]["capabilities"].remove("tools")
+        (root / ".foundry/providers.json").write_text(json.dumps(config))
+        result = self.factory.run(project["id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("tools", result["history"][-1]["note"])
+        self.assertFalse((root / ".foundry/state/providers/tasks").exists())
+
+    def test_codex_billing_requires_an_explicit_owner_confirmation(self):
+        project = self.create()
+        project = self.factory.configure(project["id"], adapter="codex")
+        with self.assertRaisesRegex(Error, "subscription login"):
+            self.factory._request(project)
+        project = self.factory.configure(project["id"], subscription_confirmed=True)
+        self.assertEqual(self.factory._request(project)["billing"], {"mode": "subscription", "confirmed": True})
+        self.factory.configure(project["id"], adapter="fixture")
+        project = self.factory.configure(project["id"], adapter="codex")
+        self.assertFalse(project["subscription_confirmed"])
+
+    def test_factory_does_not_adopt_an_unrelated_active_lifecycle(self):
+        project = self.advance_to_build(self.create())
+        root = Path(project["path"])
+        factory_module.foundry.start(root, "other-work", "docs/specs/product.md")
+        result = self.factory.run(project["id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("different product", result["history"][-1]["note"])
+        self.assertEqual(factory_module.foundry.active(root)[1]["slug"], "other-work")
+
+    def test_oversized_task_plan_is_rejected_not_truncated(self):
+        project = self.create()
+        root = Path(project["path"])
+        (root / factory_module.TASKS_DOC).write_text("".join(f"- [ ] Task {index}\n" for index in range(13)))
+        with self.assertRaisesRegex(Error, "at most 12"):
+            self.factory._read_tasks(root)
+
+    def test_declared_input_mutation_is_not_a_passing_task_check(self):
+        project = self.create()
+        root = Path(project["path"])
+        (root / "product.py").write_text("before")
+        check = {"name": "mutates", "command": [sys.executable, "-c", "from pathlib import Path; Path('product.py').write_text('after')"],
+                 "inputs": ["product.py"]}
+        with patch.object(factory_module.foundry, "checks", return_value=[check]):
+            failures, _ = self.factory._run_checks(project["id"], root, "mutation")
+        self.assertEqual(failures[0]["status"], "failed")
+
+    def test_rejected_checkpoint_keeps_task_and_checklist_unfinished(self):
+        self.use_task_fake()
+        project = self.advance_to_build(self.create())
+        root = Path(project["path"])
+        hook = root / ".git/hooks/pre-commit"
+        hook.write_text("#!/bin/sh\necho rejected >&2\nexit 1\n")
+        hook.chmod(0o755)
+        result = self.factory.run(project["id"])
+        self.assertEqual((result["stage"], result["status"]), ("build", "failed"))
+        self.assertIn("checkpoint", result["history"][-1]["note"])
+        self.assertNotEqual(result["stage_verification"]["build"]["tasks"][0]["status"], "done")
+        self.assertEqual(result["stage_verification"]["build"]["tasks"][0]["checks"], "passed")
+        self.assertIn("- [ ] Add the value function", (root / factory_module.TASKS_DOC).read_text())
+
+    def test_restart_recovers_a_committed_release(self):
+        project = self.advance_to_build(self.create())
+        project = self.factory.run(project["id"])
+        project = self.factory.run(project["id"])
+        original = self.factory._runtime
+        def crash_after_complete(root, command, **kwargs):
+            result = original(root, command, **kwargs)
+            if command == "complete" and result.returncode == 0:
+                raise SystemExit("simulated coordinator crash")
+            return result
+        with patch.object(self.factory, "_runtime", side_effect=crash_after_complete), self.assertRaises(SystemExit):
+            self.factory.run(project["id"])
+        recovered = Factory(ROOT, self.products, state_dir=self.state_dir)._project(project["id"])
+        self.assertEqual((recovered["stage"], recovered["status"]), ("release", "completed"))
+        self.assertEqual(self.factory.run(project["id"])["status"], "completed")
+
+    def test_a_second_approved_lifecycle_does_not_reuse_old_ship_completion(self):
+        project = self.advance_to_build(self.create())
+        for _ in range(3):
+            project = self.factory.run(project["id"])
+        old_run = project["lifecycle_run_id"]
+        root = Path(project["path"])
+        spec = root / "docs/specs/product.md"
+        spec.write_text(spec.read_text() + "\nA newly reviewed recovery note.\n")
+        project = self.factory.run(project["id"])
+        self.assertEqual(project["status"], "awaiting_approval")
+        self.factory.approve(project["id"])
+        project = self.factory.run(project["id"])
+        self.factory.approve(project["id"])
+        check = factory_module.foundry.checks(root)[0]
+        factory_module.workflow.record(root, {
+            "id": "ac-useful-revised", "supersedes": "ac-useful", "kind": "criterion", "title": "Revised useful behavior",
+            "source": {"kind": "owner", "ref": "Owner-approved docs/specs/product.md", "observed_at": "2026-10-03"},
+            "basis": "observed", "status": "accepted", "stage": "verify", "required": True,
+            "method": "command", "expected": "The newly approved useful journey passes its behavior test",
+            "command": check["command"], "inputs": check["inputs"],
+        })
+        project = self.factory.run(project["id"])
+        self.assertNotEqual(project["lifecycle_run_id"], old_run)
+        project = self.factory.run(project["id"])
+        self.assertEqual((project["stage"], project["status"]), ("release", "completed"))
+        self.assertFalse(any(item["stage"] == "release" for item in project["artifacts"]))
+        project = self.factory.run(project["id"])
+        self.assertEqual(project["status"], "completed")
+        self.assertIsNone(factory_module.foundry.active(root)[1])
+        self.assertEqual(factory_module.foundry.read_json(root / ".foundry/state/last-completed.json")["run_id"],
+                         project["lifecycle_run_id"])
+
+    def test_ship_rechecks_workflow_gate_after_provider_changes(self):
+        project = self.advance_to_build(self.create())
+        project = self.factory.run(project["id"])
+        project = self.factory.run(project["id"])
+        root = Path(project["path"])
+        check = factory_module.foundry.checks(root)[0]
+        factory_module.workflow.record(root, {
+            "id": "new-required-at-ship", "kind": "criterion", "title": "Fresh Ship criterion",
+            "source": {"kind": "owner", "ref": "Owner-approved docs/specs/product.md", "observed_at": "2026-10-03"},
+            "basis": "observed", "status": "accepted", "stage": "verify", "required": True,
+            "method": "command", "expected": "New required behavior needs fresh workflow evidence",
+            "command": check["command"], "inputs": check["inputs"],
+        })
+        project = self.factory.run(project["id"])
+        self.assertEqual((project["stage"], project["status"]), ("release", "failed"))
+        self.assertIn("workflow gate", project["history"][-1]["note"])
+        self.assertIsNotNone(factory_module.foundry.active(root)[1])
+
+    def test_final_retry_repair_has_its_own_checkpoint(self):
+        self.use_task_fake()
+        project = self.advance_to_build(self.create())
+        project = self.factory.run(project["id"])
+        old_commit = project["stage_verification"]["build"]["tasks"][-1]["commit"]
+        project["stage"] = "build"
+        self.factory._replace(project)
+        root = Path(project["path"])
+        def repaired(*args):
+            (root / "product.py").write_text("# verified final repair\ndef value():\n    return 'useful'\n")
+        with patch.object(self.factory, "_check_and_fix", side_effect=repaired):
+            self.factory._build(project["id"], None, None, None)
+        updated = self.factory._project(project["id"])
+        final_commit = updated["stage_verification"]["build"]["final_commit"]
+        self.assertNotEqual(final_commit, old_commit)
+        status = factory_module.subprocess.run(["git", "status", "--porcelain", "--", "product.py"],
+                                              cwd=root, capture_output=True, text=True)
+        self.assertEqual(status.stdout, "")
+
+    def test_oversized_artifact_never_uses_an_unbounded_read(self):
+        project = self.create()
+        path = Path(project["path"]) / "docs/product/oversized.md"
+        path.write_bytes(b"x" * (factory_module.MAX_ARTIFACT * 4))
+        with patch.object(Path, "read_bytes", side_effect=AssertionError("unbounded read")), self.assertRaisesRegex(Error, "bounded"):
+            self.factory.artifact_record(project["id"], "docs/product/oversized.md")
+
+    def test_invalid_product_registry_does_not_hide_other_products(self):
+        broken = self.create("Broken engine settings")
+        healthy = self.create("Healthy engine settings")
+        (Path(broken["path"]) / ".foundry/providers.json").write_text("{}")
+        snapshot = self.factory.snapshot()
+        self.assertEqual(snapshot["project_providers"][broken["id"]], [])
+        self.assertIn(broken["id"], snapshot["provider_errors"])
+        self.assertIn("fixture", {item["name"] for item in snapshot["project_providers"][healthy["id"]]})
+        self.assertEqual(len(snapshot["projects"]), 2)
 
     def test_fake_provider_end_to_end_uses_real_lifecycle_gate(self):
         project = self.advance_to_build(self.create())
@@ -176,13 +373,30 @@ class FactoryTests(unittest.TestCase):
         check = {"name": "missing", "command": [str(root / "missing-executable")]}
         with patch.object(factory_module.foundry, "checks", return_value=[check]), \
                 patch.object(self.factory, "_dispatch") as dispatch:
-            with self.assertRaisesRegex(Error, "Checks still fail after 3 fix attempts: missing"):
+            with self.assertRaisesRegex(Error, "Checks still fail after 3 fix attempts: missing") as failure:
                 self.factory._check_and_fix(project["id"], root, tasks, tasks[0], True, None, None)
+        self.assertIn("missing-executable", str(failure.exception))
         self.assertEqual(dispatch.call_count, 3)
         self.assertEqual(tasks[0]["status"], "failed")
         logs = list((root / factory_module.TASK_CHECKS).glob("*/missing.log"))
         self.assertEqual(len(logs), 4)
         self.assertTrue(all("missing-executable" in log.read_text() for log in logs))
+
+    def test_provider_failure_exposes_a_bounded_redacted_cause_on_both_paths(self):
+        project = self.create()
+        sentinel = "fixture-private-value-not-real"
+        result = {"status": "failed", "attempts": [{"error": {
+            "code": "permission_denied", "message": "Review role cannot write: read-only sandbox " + sentinel + " x" * 1000,
+        }}]}
+        with patch.dict(factory_module.providers.os.environ, {"ACCESS_TOKEN": sentinel}):
+            with self.assertRaisesRegex(Error, "permission_denied.*read-only sandbox") as failure:
+                self.factory._integrate(project, result)
+            self.assertNotIn(sentinel, str(failure.exception))
+            self.assertIn("keep read-only review permissions", str(failure.exception))
+            self.assertLess(len(str(failure.exception)), 1200)
+            with patch.object(factory_module.providers, "execute", return_value=result), self.assertRaisesRegex(
+                    Error, "permission_denied.*read-only sandbox"):
+                self.factory._dispatch(project["id"], {"marker": "fixture", "text": ""}, None, None, None)
 
     def test_cancel_during_build_check_can_retry_without_restart(self):
         self.fake.write_text(textwrap.dedent(FAKE).replace(

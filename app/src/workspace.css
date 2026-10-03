@@ -1,3 +1,5 @@
+.subscription-confirmation { display: flex; align-items: flex-start; gap: .65rem; margin-top: 1rem; padding: .75rem 0; line-height: 1.5; }
+.subscription-confirmation input { accent-color: var(--foreground); margin-top: .3rem; flex-shrink: 0; }
 /* Workspace compositions use the shared semantic foundation. */
 [data-slot=sidebar-inset] { min-width: 0; background: var(--foundry-surface); }
 .workspace-brand { min-height: 76px; flex-direction: row; align-items: center; gap: 10px; padding: 20px 16px; }

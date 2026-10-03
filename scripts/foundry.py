@@ -439,10 +439,14 @@ def run_check(root, check, log, cancel_requested=None):
             report_fields["test_report_error"] = str(exc)
             if status == "passed":
                 status = "failed"
+    input_revisions_after = declared_revisions(root, check)
+    if status == "passed" and input_revisions_after != input_revisions:
+        status = "failed"
+        report_fields["mutation_error"] = "Required check changed its declared product inputs"
     atomic_text(log, redact(output.decode(errors="replace")))
     return {"name": check["name"], "command": command, "cwd": check.get("cwd", "."),
             "timeout": check.get("timeout", 120), "required": check.get("required", True),
-            "input_revisions": input_revisions, "input_revisions_after": declared_revisions(root, check),
+            "input_revisions": input_revisions, "input_revisions_after": input_revisions_after,
             "started_at": started, "finished_at": now(), "exit_code": code, "status": status,
             "duration_seconds": time.monotonic() - clock,
             "log": str(log.relative_to(root)), "log_sha256": digest(log.read_bytes()),

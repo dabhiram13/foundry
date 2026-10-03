@@ -106,6 +106,12 @@ class ProviderTests(unittest.TestCase):
                     providers.execute(self.root, self.request(permissions={"sandbox":"read-only"}))
                 self.config["adapters"][0]["capabilities"].append(capability)
 
+    def test_agent_runtime_requires_session_receipt(self):
+        self.fake.write_text('import json,sys\njson.load(sys.stdin)\nprint(json.dumps({"type":"result","status":"completed","output":{"ok":True}}))\n')
+        result = providers.execute(self.root, self.request())
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["attempts"][0]["error"]["code"], "missing_session")
+
     def test_resume_preserves_identity_session_and_attempt_budget(self):
         first = providers.execute(self.root, self.request(model="chosen-model", reasoning="high"))
         second = providers.execute(self.root, self.request(prompt="continue", model="chosen-model", reasoning="high"), first["task_id"])
@@ -201,7 +207,8 @@ class ProviderTests(unittest.TestCase):
         for output, schema, expected in cases:
             with self.subTest(output=output, schema=schema):
                 event = json.dumps({"type":"result","status":"completed","output":output})
-                self.fake.write_text("print(" + repr(event) + ")\n")
+                self.fake.write_text('import json\nprint(json.dumps({"type":"session.started","session_id":"enum-fixture"}))\n'
+                                     + "print(" + repr(event) + ")\n")
                 result = providers.execute(self.root, self.request(output_schema=schema))
                 self.assertEqual(result["status"], expected)
 
@@ -336,6 +343,25 @@ print(json.dumps({"type":"turn.completed", "usage":{"input_tokens":19, "output_t
         self.assertEqual(argv[1][-2:], ["codex-session","-"])
         self.assertFalse(any("model" in value or "reasoning" in value for command in argv for value in command))
         self.assertFalse(list((self.root / ".foundry/state/providers").rglob("schema.json")))
+
+    def test_removed_api_credentials_remain_in_the_redaction_boundary(self):
+        sentinel = "fixture-api-credential-not-real"
+        self.fake.write_text(f"#!{sys.executable}\n" + '''import json,os,sys
+sys.stdin.read()
+assert "OPENAI_API_KEY" not in os.environ
+print("fixture-api-credential-not-real", file=sys.stderr)
+print(json.dumps({"type":"thread.started","thread_id":"redaction-fixture"}))
+print(json.dumps({"type":"item.completed","item":{"type":"agent_message","text":"finished"}}))
+print(json.dumps({"type":"turn.completed","usage":{"input_tokens":1,"output_tokens":1}}))
+''')
+        self.fake.chmod(0o700)
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": sentinel}), mock.patch.object(
+                providers, "codex_executable", return_value=str(self.fake)):
+            result = providers.execute(self.root, {"prompt":"inspect", "billing":{"mode":"subscription","confirmed":True}})
+        self.assertEqual(result["status"], "completed")
+        evidence = self.root / result["attempts"][0]["evidence"]
+        self.assertNotIn(sentinel, evidence.read_text())
+        self.assertIn("[redacted]", evidence.read_text())
 
     def test_dead_runner_requires_reconciliation_without_resetting_budget(self):
         process, child, task_id = self.launch_hanging()

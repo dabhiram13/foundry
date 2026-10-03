@@ -116,6 +116,8 @@ class Factory:
             raise Error("Invalid factory project state")
         identifiers = set()
         for project in data["projects"]:
+            project.setdefault("subscription_confirmed", False)
+            project.setdefault("lifecycle_run_id", None)
             self._validate_project(project)
             if project["id"] in identifiers:
                 raise Error("Duplicate factory project identity")
@@ -126,7 +128,8 @@ class Factory:
         required = {"id", "name", "slug", "idea", "path", "products_root", "adapter", "model", "reasoning",
                     "roles", "role_settings", "stage", "status", "approved_stages", "task_id",
                     "session_id", "events", "artifacts", "stage_verification", "history",
-                    "approved_revisions", "created_at", "updated_at", "publication"}
+                    "approved_revisions", "created_at", "updated_at", "publication",
+                    "subscription_confirmed", "lifecycle_run_id"}
         if not isinstance(project, dict) or set(project) != required:
             raise Error("Invalid factory project record")
         try:
@@ -171,6 +174,14 @@ class Factory:
             raise Error("Invalid factory stage verification")
         if project["publication"] != "not_authorized":
             raise Error("Invalid factory publication boundary")
+        if not isinstance(project["subscription_confirmed"], bool):
+            raise Error("Invalid subscription confirmation")
+        if project["lifecycle_run_id"] is not None:
+            try:
+                if str(uuid.UUID(project["lifecycle_run_id"])) != project["lifecycle_run_id"]:
+                    raise ValueError()
+            except (ValueError, TypeError, AttributeError) as exc:
+                raise Error("Invalid lifecycle run identity") from exc
         for field in ("adapter", "idea", "name", "created_at", "updated_at", "publication"):
             if not isinstance(project[field], str) or not project[field]:
                 raise Error(f"Invalid factory {field}")
@@ -235,6 +246,12 @@ class Factory:
                     # The live factory runner may be integrating a completed provider
                     # task or executing lifecycle checks under this lease.
                     continue
+                completed = self._completed_lifecycle(project)
+                if completed:
+                    self._settle_committed_release(project, "Recovered lifecycle completion committed before the app restarted")
+                    project["updated_at"] = _now()
+                    changed = True
+                    continue
                 project["status"] = "interrupted"
                 project["history"].append({"at": _now(), "stage": project["stage"], "status": "interrupted",
                                            "note": "Recovered stale running state; provider completion was not treated as integrated work"})
@@ -243,15 +260,15 @@ class Factory:
             if changed:
                 self._save(data)
 
-    def _roles(self) -> list[dict]:
+    def _roles(self, root: Path | None = None) -> list[dict]:
         result = []
-        for path in sorted((self.root / ".codex/agents").glob("*.toml")):
+        for path in sorted(((root or self.root) / ".codex/agents").glob("*.toml")):
             try:
                 value = tomllib.loads(path.read_text(encoding="utf-8"))
             except (OSError, tomllib.TOMLDecodeError):
                 continue
             if isinstance(value.get("name"), str) and isinstance(value.get("description"), str):
-                result.append({"name": value["name"], "description": value["description"]})
+                result.append({"name": value["name"], "description": value["description"], "file": path.name})
         return result
 
     @staticmethod
@@ -311,8 +328,18 @@ class Factory:
             adapters = providers.registry(self.root)
         except providers.Error as exc:
             raise Error(str(exc)) from exc
+        project_providers, provider_errors, project_roles = {}, {}, {}
+        for project in projects:
+            try:
+                project_providers[project["id"]] = list(providers.registry(project["path"]).values())
+            except providers.Error as exc:
+                project_providers[project["id"]] = []
+                provider_errors[project["id"]] = providers.Redactor().clean(str(exc))
+            project_roles[project["id"]] = self._roles(Path(project["path"]))
         return {"schema_version": 1, "products_dir": str(self.products_dir), "projects": projects,
-                "roles": self._roles(), "providers": list(adapters.values())}
+                "roles": self._roles(), "providers": list(adapters.values()),
+                "project_providers": project_providers, "provider_errors": provider_errors,
+                "project_roles": project_roles}
 
     def create(self, name: str, idea: str, adapter: str = "codex", model: str | None = None,
                reasoning: str | None = None) -> dict:
@@ -346,6 +373,7 @@ class Factory:
                    "artifacts": [{"path": "docs/product/idea.md", "stage": "intake"}],
                    "stage_verification": {},
                    "approved_revisions": {},
+                   "subscription_confirmed": False, "lifecycle_run_id": None,
                    "history": [{"at": created, "stage": "research", "status": "completed", "note": "Product workspace installed"}],
                    "created_at": created, "updated_at": created, "publication": "not_authorized"}
         with providers._lock(self.storage_root, STATE_LOCK):
@@ -357,8 +385,12 @@ class Factory:
         return copy.deepcopy(project)
 
     def _write_role_settings(self, project: dict, settings: dict) -> None:
+        updates = {}
         for role, values in settings.items():
-            path = foundry.within(project["path"], f".codex/agents/{role}.toml")
+            metadata = next((item for item in self._roles(Path(project["path"])) if item["name"] == role), None)
+            if metadata is None:
+                raise Error(f"Unknown project role: {role}")
+            path = foundry.within(project["path"], f".codex/agents/{metadata['file']}")
             if not path.is_file():
                 raise Error(f"Unknown project role: {role}")
             text = path.read_text(encoding="utf-8")
@@ -372,14 +404,26 @@ class Factory:
                 value = _text(values[field], f"{role} {field}", 120)
                 line = f"{toml_name} = {json.dumps(value)}\n"
                 text = re.sub(pattern, line, text, count=1) if re.search(pattern, text) else line + text
-            foundry.atomic_text(path, text)
+            updates[path] = text
+        for path, text in updates.items():
+            tomllib.loads(text)
+        originals = {path: path.read_text(encoding="utf-8") for path in updates}
+        applied = []
+        try:
+            for path, text in updates.items():
+                foundry.atomic_text(path, text)
+                applied.append(path)
+        except OSError:
+            for path in reversed(applied):
+                foundry.atomic_text(path, originals[path])
+            raise
 
     def configure(self, identifier: str, adapter=_UNSET, model=_UNSET,
-                  reasoning=_UNSET, roles=_UNSET) -> dict:
+                  reasoning=_UNSET, roles=_UNSET, subscription_confirmed=_UNSET) -> dict:
         with providers._lock(self.storage_root, f"{LEASES}/{identifier}.lock", False):
-            return self._configure(identifier, adapter, model, reasoning, roles)
+            return self._configure(identifier, adapter, model, reasoning, roles, subscription_confirmed)
 
-    def _configure(self, identifier: str, adapter, model, reasoning, roles) -> dict:
+    def _configure(self, identifier: str, adapter, model, reasoning, roles, subscription_confirmed) -> dict:
         project = self._project(identifier)
         if project["status"] == "running":
             raise Error("Cannot reconfigure a running project")
@@ -388,13 +432,15 @@ class Factory:
                 raise Error("adapter must name an installed provider")
             if adapter not in providers.registry(project["path"]):
                 raise Error("Provider adapter is not installed in the product workspace")
+            if project["adapter"] != adapter:
+                project["subscription_confirmed"] = False
             project["adapter"] = adapter
         if model is not _UNSET:
             project["model"] = None if model is None else _text(model, "model", 120)
         if reasoning is not _UNSET:
             project["reasoning"] = None if reasoning is None else _text(reasoning, "reasoning", 120)
         if roles is not _UNSET:
-            available = {item["name"] for item in self._roles()}
+            available = {item["name"] for item in self._roles(Path(project["path"]))}
             role_settings = {}
             if isinstance(roles, list):
                 selected = roles
@@ -412,7 +458,6 @@ class Factory:
             names = selected if selected is not None else list(role_settings)
             if (selected is not None and not selected) or not all(isinstance(role, str) and role in available for role in names) or len(set(names)) != len(names):
                 raise Error("Roles must be unique installed custom-agent names")
-            self._write_role_settings(project, role_settings)
             if selected is not None:
                 project["roles"] = selected
             for role, values in role_settings.items():
@@ -426,6 +471,16 @@ class Factory:
                     project["role_settings"][role] = current
                 else:
                     project["role_settings"].pop(role, None)
+        if subscription_confirmed is not _UNSET:
+            if not isinstance(subscription_confirmed, bool):
+                raise Error("Subscription confirmation must be true or false")
+            selected_adapter = providers.registry(project["path"])[project["adapter"]]
+            if subscription_confirmed and ("subscription" not in selected_adapter["billing_modes"]
+                                           or project["adapter"] == "chatgpt"):
+                raise Error("This engine does not use a product-level subscription confirmation")
+            project["subscription_confirmed"] = subscription_confirmed
+        if roles is not _UNSET:
+            self._write_role_settings(project, role_settings)
         return self._replace(project)
 
     def _prompt(self, project: dict, step: dict | None = None) -> str:
@@ -446,27 +501,57 @@ class Factory:
             marker = f"{stage}, {step['marker']}"
             task = step["text"]
             artifact = step.get("artifact")
+        inputs = {
+            "research": ["docs/product/idea.md"],
+            "scope": ["docs/product/idea.md", "docs/product/research.md"],
+            "design": ["docs/product/idea.md", "docs/specs/product.md"],
+            "build": ["docs/specs/product.md", "docs/product/design.md", "docs/product/tasks.md"],
+            "verify": ["docs/specs/product.md", "docs/product/design.md", "docs/product/tasks.md"],
+            "release": ["docs/specs/product.md", "docs/product/design.md", "docs/product/tasks.md"],
+        }[stage]
+        root = Path(project["path"])
+        manifest = []
+        approved_paths = {"docs/specs/product.md": "scope", "docs/product/design.md": "design"}
+        for path in inputs:
+            if foundry.within(root, path).is_file():
+                approved = project["approved_revisions"].get(approved_paths.get(path, ""))
+                manifest.append(f"- {path}" + (f" (owner-approved revision {approved})" if approved else ""))
+        if stage == "release":
+            receipt = project["stage_verification"].get("verify", {}).get("receipt")
+            if receipt:
+                manifest.append(f"- {receipt} (controller-managed test results; read only)")
+        role_files = {item["name"]: item["file"] for item in self._roles(root)}
+        missing_roles = [role for role in selected if role not in role_files]
+        if missing_roles:
+            raise Error("Selected specialists are not installed in this product: " + ", ".join(missing_roles))
+        role_paths = [f".codex/agents/{role_files[role]}" for role in selected if role in role_files]
         return (f"Foundry step: {STAGE_LABELS[stage]} (stage: {marker}). Product: {project['name']}.\n"
                 f"Read AGENTS.md, docs/WORKFLOW.md, docs/WORKFLOW-CONTRACTS.md, docs/PROVIDERS.md, "
                 f"docs/product/idea.md, and the ${STAGE_SKILLS[stage]} skill. Use only what is relevant.\n"
-                f"Roles to use: {', '.join(selected)}. You combine their work and own the step.\n"
+                f"Inputs for this step:\n{chr(10).join(manifest) or '- No additional saved input is available.'}\n"
+                f"Roles to use: {', '.join(selected)}. Read: {', '.join(role_paths) or 'the installed matching role files'}. "
+                "Delegate independent work to matching native helpers when supported; otherwise apply the relevant role policies sequentially. "
+                "Never claim a helper ran when it did not. You combine their work and own the step.\n"
                 f"{task}\n" + (f"Save the result to: {artifact}.\n" if artifact else "") +
                 "Finish with a short list of the files you changed and the checks you ran. Finishing your turn does not mean the step passed.")
 
-    def _billing(self, root: Path, adapter: str) -> dict:
+    def _billing(self, root: Path, adapter: str, confirmed: bool = False) -> dict:
         modes = providers.registry(root)[adapter]["billing_modes"]
         if adapter in {"codex", "chatgpt"} and "subscription" in modes:
+            if not confirmed:
+                raise Error("Confirm that this product uses your existing subscription login before starting")
             return {"mode": "subscription", "confirmed": True}
         if "local" in modes:
             return {"mode": "local"}
         raise Error("Factory will not infer or authorize API billing")
 
-    def _request(self, project: dict, step: dict | None = None) -> dict:
+    def _request(self, project: dict, step: dict | None = None, subscription_confirmed: bool = False) -> dict:
         read_only = project["stage"] == "verify"
         request = {"adapter": project["adapter"], "kind": providers.registry(project["path"])[project["adapter"]]["kind"],
-                   "prompt": self._prompt(project, step), "required_capabilities": ["jsonl", "cancel"],
+                   "prompt": self._prompt(project, step), "required_capabilities": ["jsonl", "cancel", "tools"],
                    "permissions": {"sandbox": "read-only" if read_only else "workspace-write"},
-                   "billing": self._billing(Path(project["path"]), project["adapter"]),
+                   "billing": self._billing(Path(project["path"]), project["adapter"],
+                                            project["subscription_confirmed"] or subscription_confirmed),
                    "budget": {"max_attempts": 2, "max_concurrency": 1, "max_elapsed_seconds": 1800, "max_api_dollars": 0}}
         if project["model"] is not None:
             request["model"] = project["model"]
@@ -476,6 +561,10 @@ class Factory:
 
     def _prepare_stage(self, project: dict) -> None:
         if project["stage"] != "build":
+            if project["stage"] in {"verify", "release"}:
+                _, active = foundry.active(Path(project["path"]))
+                if not active or active["run_id"] != project.get("lifecycle_run_id"):
+                    raise Error("The active lifecycle does not match this product run")
             return
         root = Path(project["path"])
         spec = root / "docs/specs/product.md"
@@ -487,6 +576,11 @@ class Factory:
                                    identifier=project["id"])
             if result.returncode:
                 raise Error("Could not start the product lifecycle: " + (result.stderr.strip() or result.stdout.strip()))
+            _, active = foundry.active(root)
+        if (not active or active.get("slug") != project["slug"]
+                or active.get("spec") != "docs/specs/product.md"):
+            raise Error("The active lifecycle belongs to a different product or specification")
+        project["lifecycle_run_id"] = active["run_id"]
 
     def _approval_is_current(self, project: dict, stage: str, path: str) -> bool:
         artifact = foundry.within(project["path"], path)
@@ -501,6 +595,7 @@ class Factory:
             project["approved_stages"] = [item for item in project["approved_stages"] if item not in {"scope", "design"}]
             project["approved_revisions"].pop("scope", None)
             project["approved_revisions"].pop("design", None)
+            project["lifecycle_run_id"] = None
             project["history"].append({"at": _now(), "stage": "scope", "status": "awaiting_approval",
                                        "note": "Approved scope changed; owner review is required again"})
             return self._replace(project)
@@ -519,7 +614,8 @@ class Factory:
         path = foundry.within(root, relative)
         if not path.is_file() or path.is_symlink():
             raise Error(f"Stage did not produce required artifact: {relative}")
-        data = path.read_bytes()
+        with path.open("rb") as handle:
+            data = handle.read(MAX_ARTIFACT + 1)
         if len(data) > MAX_ARTIFACT:
             raise Error(f"Required artifact is empty or too large: {relative}")
         try:
@@ -564,11 +660,26 @@ class Factory:
             raise Error("Workflow verification gate remains unverified" + (f": {unresolved}" if unresolved else ""))
         return gate
 
+    @staticmethod
+    def _provider_failure(result: dict) -> str:
+        message = f"Provider stage ended {result.get('status', 'without status')}"
+        attempts = result.get("attempts", [])
+        error = attempts[-1].get("error") if attempts else result.get("error")
+        if isinstance(error, dict):
+            detail = ": ".join(error[field] for field in ("code", "message") if isinstance(error.get(field), str))
+        else:
+            detail = error if isinstance(error, str) else ""
+        if detail:
+            message += ": " + providers.Redactor().clean(detail)[:1000]
+        if isinstance(error, dict) and error.get("code") == "permission_denied":
+            message += ". Check the specialist instructions and allowed tools; keep read-only review permissions."
+        return message
+
     def _integrate(self, project: dict, result: dict) -> None:
         root = Path(project["path"])
         stage = project["stage"]
         if result.get("status") != "completed":
-            raise Error(f"Provider stage ended {result.get('status', 'without status')}")
+            raise Error(self._provider_failure(result))
         if stage == "research":
             text = self._require_artifact(root, "docs/product/research.md")
             if not re.search(r"https://[^\s)>]+", text):
@@ -604,9 +715,12 @@ class Factory:
                                    for item in required):
                 raise Error("Every required verify criterion must map to exactly one required command check")
             tasks = project["stage_verification"].get("build", {}).get("tasks", [])
+            final_commit = project["stage_verification"].get("build", {}).get("final_commit")
             project["stage_verification"]["build"] = {"status": "configured", "required_checks": [
                 item["name"] for item in required_checks], "criteria": [item["id"] for item in required],
                 "tasks": tasks}
+            if final_commit:
+                project["stage_verification"]["build"]["final_commit"] = final_commit
             project["stage"] = "verify"
         elif stage == "verify":
             result = self._runtime(root, "verify", identifier=project["id"])
@@ -625,7 +739,7 @@ class Factory:
             if not active or active.get("status") != "verified" or workflow.gate(root, "verify")["status"] != "pass":
                 raise Error("Lifecycle and workflow gates did not remain jointly current")
             project["stage_verification"]["verify"] = {"status": "passed", "receipt": active["verification"],
-                                                          "gate": gate}
+                                                          "gate": gate, "run_id": active["run_id"]}
             project["stage"] = "release"
         elif stage == "release":
             self._require_artifact(root, "docs/product/release.md")
@@ -636,7 +750,11 @@ class Factory:
             _, active = foundry.active(root)
             if not active or active.get("status") != "verified" or not active.get("verification"):
                 raise Error("Final release verification did not produce verified evidence")
-            project["stage_verification"]["release"] = {"status": "passed", "receipt": active["verification"]}
+            gate = workflow.gate(root, "verify")
+            if gate["status"] != "pass":
+                raise Error("Final release workflow gate did not remain current")
+            project["stage_verification"]["release"] = {"status": "passed", "receipt": active["verification"],
+                                                         "gate": gate, "run_id": active["run_id"]}
             result = self._runtime(root, "complete", identifier=project["id"])
             if result.returncode:
                 raise Error("Local lifecycle completion failed: " + (result.stderr.strip() or result.stdout.strip()))
@@ -655,23 +773,29 @@ class Factory:
     def _dispatch(self, identifier: str, step: dict, resume_id, credential_env, on_started) -> None:
         project = self._project(identifier)
         self._raise_if_cancelled(project)
-        result = providers.execute(project["path"], self._request(project, step), resume_id,
+        result = providers.execute(project["path"], self._request(project, step, bool(credential_env)), resume_id,
                                    credential_env=credential_env, on_started=on_started)
         project = self._project(identifier)
         self._record_dispatch(project, result)
         self._replace(project)
         self._raise_if_cancelled(project)
         if result.get("status") != "completed":
-            raise Error(f"Provider stage ended {result.get('status', 'without status')}")
+            raise Error(self._provider_failure(result))
 
     @staticmethod
     def _read_tasks(root: Path) -> list[str]:
         path = foundry.within(root, TASKS_DOC)
         if not path.is_file() or path.is_symlink():
             return []
-        text = path.read_bytes()[:MAX_ARTIFACT].decode("utf-8", errors="replace")
+        with path.open("rb") as handle:
+            data = handle.read(MAX_ARTIFACT + 1)
+        if len(data) > MAX_ARTIFACT:
+            raise Error("Build task checklist exceeds the bounded read limit")
+        text = data.decode("utf-8", errors="replace")
         titles = [match.group(2)[:300] for line in text.splitlines() if (match := TASK_LINE.match(line))]
-        return titles[:MAX_TASKS]
+        if len(titles) > MAX_TASKS:
+            raise Error(f"Build plan has {len(titles)} tasks; replan it to at most {MAX_TASKS}")
+        return titles
 
     @staticmethod
     def _tick_task(root: Path, title: str) -> None:
@@ -714,6 +838,8 @@ class Factory:
                 text = log.read_text(encoding="utf-8", errors="replace")
                 if receipt.get("test_report_error"):
                     text += "\nTest report: " + receipt["test_report_error"]
+                if receipt.get("mutation_error"):
+                    text += "\n" + receipt["mutation_error"]
                 failures.append({"name": check["name"], "status": receipt["status"], "log": text[-4000:]})
         return failures, None
 
@@ -725,19 +851,27 @@ class Factory:
                                   timeout=120, env=environment)
         try:
             if git("rev-parse", "--is-inside-work-tree").returncode:
-                return None
-            if not git("config", "user.email").stdout.strip():
+                raise Error("Product workspace is not a Git work tree")
+            if git("var", "GIT_AUTHOR_IDENT").returncode:
                 environment.update(GIT_AUTHOR_NAME="Foundry", GIT_AUTHOR_EMAIL="foundry@localhost",
                                    GIT_COMMITTER_NAME="Foundry", GIT_COMMITTER_EMAIL="foundry@localhost")
-            git("add", "-A")
-            if git("diff", "--cached", "--quiet").returncode == 0:
+            added = git("add", "-A")
+            if added.returncode:
+                raise Error("Could not stage the verified product changes: " + (added.stderr.strip() or added.stdout.strip()))
+            diff = git("diff", "--cached", "--quiet")
+            if diff.returncode == 0:
                 return None
-            if git("commit", "-q", "-m", message).returncode:
-                return None
+            if diff.returncode != 1:
+                raise Error("Could not inspect the staged product changes")
+            committed = git("commit", "-q", "-m", message)
+            if committed.returncode:
+                raise Error("Could not save the verified product checkpoint: " + (committed.stderr.strip() or committed.stdout.strip()))
             head = git("rev-parse", "HEAD")
-            return head.stdout.strip() or None
-        except (OSError, subprocess.SubprocessError):
-            return None
+            if head.returncode or not head.stdout.strip():
+                raise Error("Could not read the verified product checkpoint")
+            return head.stdout.strip()
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise Error(f"Could not save the verified product checkpoint: {exc}") from exc
 
     def _check_and_fix(self, identifier: str, root: Path, tasks: list[dict], task: dict | None,
                        require_checks: bool, credential_env, on_started) -> None:
@@ -754,6 +888,8 @@ class Factory:
                 if task is not None:
                     task["checks"] = "passed"
                 return
+            if task is not None:
+                task["checks"] = "not_set_up" if failures is None else "failed"
             if attempt >= MAX_FIX_ATTEMPTS:
                 if task is not None:
                     task["status"] = "failed"
@@ -761,7 +897,10 @@ class Factory:
                 if failures is None:
                     raise Error(f"Build still has no required check after {MAX_FIX_ATTEMPTS} fix attempts: {missing}")
                 raise Error(f"Checks still fail after {MAX_FIX_ATTEMPTS} fix attempts: "
-                            + ", ".join(item["name"] for item in failures))
+                            + ", ".join(item["name"] for item in failures)
+                            + "\n" + providers.Redactor().clean("; ".join(
+                                f"{item['name']}: {item['log'].strip()[-800:]}" for item in failures))[:2000]
+                            + "\nCheck the saved check logs before trying again.")
             attempt += 1
             if task is not None:
                 task["fix_attempts"] = attempt
@@ -796,6 +935,7 @@ class Factory:
             if task["status"] == "done":
                 continue
             task["status"] = "working"
+            task.pop("checks", None)
             self._save_tasks(identifier, tasks)
             done = [item["title"] for item in tasks[:index]]
             later = [item["title"] for item in tasks[index + 1:]]
@@ -805,14 +945,28 @@ class Factory:
                 + BUILD_RULES)}, resume_id, credential_env, on_started)
             resume_id = None
             last = index == len(tasks) - 1
-            self._check_and_fix(identifier, root, tasks, task, last, credential_env, on_started)
+            self._check_and_fix(identifier, root, tasks, task, True, credential_env, on_started)
             checked = last
+            checklist = foundry.within(root, TASKS_DOC)
+            previous_checklist = checklist.read_text() if checklist.is_file() else None
             self._tick_task(root, task["title"])
-            commit = self._checkpoint(root, f"Foundry build task {index + 1}: {task['title']}"[:200])
+            try:
+                commit = self._checkpoint(root, f"Foundry build task {index + 1}: {task['title']}"[:200])
+            except Error:
+                if previous_checklist is not None:
+                    foundry.atomic_text(checklist, previous_checklist)
+                task["status"] = "failed"
+                self._save_tasks(identifier, tasks, "checkpoint_failed")
+                raise
             task.update(status="done", commit=commit)
             self._save_tasks(identifier, tasks)
         if not checked:
             self._check_and_fix(identifier, root, tasks, None, True, credential_env, on_started)
+            final_commit = self._checkpoint(root, "Foundry: save final build repair")
+            if final_commit:
+                project = self._project(identifier)
+                project["stage_verification"]["build"]["final_commit"] = final_commit
+                self._replace(project)
         return {"status": "completed"}
 
     def _completed_lifecycle(self, project: dict) -> dict | None:
@@ -827,7 +981,8 @@ class Factory:
             state = foundry.read_json(foundry.within(root, ref["state"]))
         except (foundry.Error, OSError, KeyError, TypeError, ValueError):
             return None
-        if state.get("status") != "completed" or state.get("run_id") != ref.get("run_id"):
+        if (state.get("status") != "completed" or state.get("run_id") != ref.get("run_id")
+                or state.get("run_id") != project.get("lifecycle_run_id")):
             return None
         return state
 
@@ -840,7 +995,8 @@ class Factory:
         project["publication"] = "not_authorized"
         receipt = completed.get("verification")
         if receipt:
-            project["stage_verification"]["release"] = {"status": "passed", "receipt": receipt}
+            project["stage_verification"]["release"] = {"status": "passed", "receipt": receipt,
+                                                         "run_id": completed["run_id"]}
         release = Path(project["path"]) / "docs/product/release.md"
         if release.is_file() and not release.is_symlink():
             self._add_artifact(project, "docs/product/release.md", "release")
@@ -863,12 +1019,14 @@ class Factory:
             reconciled = self._reconcile_approvals(project)
             if reconciled is not None:
                 return reconciled
-            if project["stage"] == "release" and project["status"] == "completed" and any(
-                    item.get("stage") == "release" and item.get("note") == "Stage integrated" for item in project["history"]):
+            release_verification = project["stage_verification"].get("release", {})
+            if (project["stage"] == "release" and project["status"] == "completed"
+                    and project.get("lifecycle_run_id")
+                    and release_verification.get("run_id") == project.get("lifecycle_run_id")):
                 return project
             self._clear_cancel(Path(project["path"]))
             try:
-                request = self._request(project)
+                request = self._request(project, subscription_confirmed=bool(credential_env))
                 self._prepare_stage(project)
             except (providers.Error, foundry.Error, Error, OSError, ValueError, TypeError) as exc:
                 project["status"] = "failed"
@@ -952,7 +1110,12 @@ class Factory:
             project["approved_stages"].append(approved)
         project["approved_revisions"][approved] = current_revision
         project["stage"] = "design" if approved == "scope" else "build"
+        if approved == "scope":
+            project["lifecycle_run_id"] = None
         project["stage_verification"].pop("build", None)
+        project["stage_verification"].pop("verify", None)
+        project["stage_verification"].pop("release", None)
+        project["artifacts"] = [item for item in project["artifacts"] if item["stage"] != "release"]
         project["status"] = "completed"
         project["task_id"] = None
         project["session_id"] = None
@@ -987,7 +1150,8 @@ class Factory:
         target = foundry.within(project["path"], relative)
         if not target.is_file() or target.is_symlink():
             raise Error("Artifact is missing or not a regular file")
-        data = target.read_bytes()
+        with target.open("rb") as handle:
+            data = handle.read(MAX_ARTIFACT + 1)
         if len(data) > MAX_ARTIFACT:
             raise Error("Artifact exceeds the bounded read limit")
         return data

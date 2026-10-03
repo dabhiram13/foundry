@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "./workspace.css";
 @import "./landing.css";
+@import "./studio.css";
 @source "./**/*.{ts,tsx}";
 
 @font-face { font-family: "Manrope"; font-style: normal; font-display: swap; font-weight: 200 800; src: url("/assets/manrope-latin-wght-normal.woff2") format("woff2"); }
@@ -72,8 +73,8 @@
   --foundry-review-bg: #F9F0CD;
   --foundry-review-line: #DCCB91;
   --radius-inner: 4px;
-  --radius-control: 6px;
-  --radius-container: 10px;
+  --radius-control: 8px;
+  --radius-container: 14px;
   --radius-largeOverlay: 12px;
   --radius-pill: 9999px;
   --space-1: 4px;
@@ -90,12 +91,12 @@
   --text-body: 14px;
   --text-title: clamp(30px, 4vw, 48px);
   --text-display: clamp(40px, 6vw, 76px);
-  --motion-feedback: 120ms;
+  --motion-feedback: 160ms;
   --motion-icon: 160ms;
   --motion-avatar: 180ms;
-  --motion-selection: 180ms;
+  --motion-selection: 240ms;
   --motion-complete: 240ms;
-  --motion-reveal: 220ms;
+  --motion-reveal: 240ms;
   --ease-feedback: cubic-bezier(0.2, 0, 0, 1);
   --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-default: none;
@@ -134,7 +135,7 @@
 }
 
 /* Shared primitive interaction contract, above page composition. */
-[data-slot=button]:not(:disabled):active { transform: translateY(1px); }
+[data-slot=button]:not(:disabled):active { background-color: var(--foundry-selected); }
 [data-slot=button][data-variant=default]:hover { background: var(--foundry-primary-hover); }
 [data-slot=button][data-variant=default]:active { background: var(--foundry-primary-pressed); }
 :is([data-slot=input],[data-slot=textarea],[data-slot=native-select]) { min-height: 40px; background: var(--foundry-surface); box-shadow: none; transition: border-color var(--motion-feedback), background-color var(--motion-feedback); }
@@ -142,15 +143,15 @@
 [data-slot=button]:disabled { cursor: not-allowed; opacity: 1; background: var(--foundry-muted); color: var(--foundry-disabled); }
 [data-slot=button] { cursor: pointer; border-radius: var(--radius-control); font-size: var(--text-control); font-weight: 500; }
 :is([data-slot=input],[data-slot=textarea],[data-slot=native-select]) { border-radius: var(--radius-control); font-size: var(--text-body); }
-[data-slot=button][data-size=sm] { min-height: 32px; }
-[data-slot=button][data-size=lg] { min-height: 44px; }
+[data-slot=button][data-size=sm] { min-height: 36px; }
+[data-slot=button][data-size=lg] { min-height: 48px; }
 [data-slot=dialog-overlay] { background: rgb(33 32 28 / 25%); }
 @media (max-width: 767px) {
  [data-slot=button][data-size] { min-height: 44px; min-width: 44px; }
 }
 :is([data-slot=dialog-content],[data-slot=sheet-content]) { box-shadow: var(--shadow-overlay); animation-duration: var(--motion-reveal); animation-timing-function: var(--ease-reveal); }
 [data-slot=dialog-content] { border-radius: var(--radius-largeOverlay); }
-[data-slot=dialog-content][data-state=open] { animation-name: overlay-open; }
+[data-slot=dialog-content][data-state=open] { animation: none; }
 [data-slot=dialog-content][data-state=closed] { animation-name: overlay-close; }
 :is([data-slot=dialog-overlay],[data-slot=sheet-overlay]) { animation-duration: var(--motion-reveal); }
 @keyframes overlay-open { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

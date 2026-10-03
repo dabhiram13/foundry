@@ -2,6 +2,8 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { X as XIcon } from "@phosphor-icons/react"
 import { Dialog as SheetPrimitive } from "radix-ui"
+import { motion } from "motion/react"
+import { useStudioMotion } from "../studio-motion"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -51,6 +53,7 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }) {
+  const { reduced } = useStudioMotion()
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -69,7 +72,9 @@ function SheetContent({
           className
         )}
         {...props}
+        asChild
       >
+        <motion.div initial={reduced ? false : { opacity: 0, x: side === 'left' ? -32 : side === 'right' ? 32 : 0, y: side === 'top' ? -32 : side === 'bottom' ? 32 : 0 }} animate={{ opacity: 1, x: 0, y: 0 }} transition={{ duration: reduced ? 0 : .28 }}>
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary">
@@ -77,6 +82,7 @@ function SheetContent({
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
         )}
+        </motion.div>
       </SheetPrimitive.Content>
     </SheetPortal>
   )

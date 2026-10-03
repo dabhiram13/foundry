@@ -3,6 +3,10 @@ import { ArrowDown, ArrowRight, Check, CaretDown as ChevronDown, Circle, Code as
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RoleAvatar, roleCatalog } from '@/components/specialists';
+import { SpecialistIntro } from './specialist-intro';
+import { SkyBackground } from './sky-background';
+import { MotionToggle } from './studio-motion';
+import { SplitText } from './ui/animate-ui';
 
 type LandingProps = { onEnter: (create?: boolean) => void };
 
@@ -46,6 +50,7 @@ export function Landing({ onEnter }: LandingProps) {
             <Button variant="ghost" onClick={() => scrollToSection('landing-workflow')}>How it works</Button>
             <Button variant="ghost" onClick={() => scrollToSection('landing-specialists')}>The roles</Button>
           </nav>
+          <MotionToggle/>
           <Button variant="outline" className="landing-workspace-link" onClick={() => onEnter()}>
             Open workspace <ArrowRight aria-hidden="true" />
           </Button>
@@ -53,10 +58,11 @@ export function Landing({ onEnter }: LandingProps) {
       </header>
 
       <main id="landing-main" tabIndex={-1}>
-        <section className="landing-shell landing-hero" aria-labelledby="landing-title">
+        <section className="landing-shell landing-hero sky-surface" aria-labelledby="landing-title">
+          <SkyBackground/>
           <div className="landing-hero-copy">
             <p className="landing-eyebrow"><Workflow aria-hidden="true" /> Your local product studio</p>
-            <h1 id="landing-title" tabIndex={-1}>A good idea.<br />A clear way to build it.</h1>
+            <h1 id="landing-title" tabIndex={-1}><SplitText text="A good idea. A clear way to build it."/></h1>
             <p className="landing-intro">Describe an idea. Foundry researches it, plans it with you, builds it, and tests it, all on your computer.</p>
             <div className="landing-hero-actions">
               <Button size="lg" className="landing-primary" onClick={() => onEnter(true)}>Start a product <ArrowRight aria-hidden="true" /></Button>
@@ -64,7 +70,7 @@ export function Landing({ onEnter }: LandingProps) {
             </div>
             <p className="landing-local-note"><Laptop aria-hidden="true" /> Runs on your computer. Your code stays yours.</p>
           </div>
-
+          <SpecialistIntro/>
         </section>
 
         <section className="landing-preview" aria-label="Example product workspace">

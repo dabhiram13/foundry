@@ -216,7 +216,7 @@ async function assertNoOverflow(page, label) {
     });
     await page.locator('#settings-button').click();
     await page.getByRole('tab', {name:'AI', exact:true}).click();
-    await page.getByLabel('AI engine').selectOption('chatgpt');
+    await page.getByRole('radio', {name: 'ChatGPT plan', exact: false}).click();
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
     await page.locator('#settings').waitFor({state:'detached'});
     await page.getByRole('button', {name:'Start Research', exact:true}).click();
@@ -232,7 +232,7 @@ async function assertNoOverflow(page, label) {
     assert.doesNotMatch(await page.locator('#notice').textContent(), /working|Trying again/);
     await page.locator('#settings-button').click();
     await page.getByRole('tab', {name:'AI', exact:true}).click();
-    await page.getByLabel('AI engine').selectOption('fixture');
+    await page.getByRole('radio', {name: 'fixture A registered local runtime adapter.', exact: true}).click();
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
     await page.locator('#settings').waitFor({state:'detached'});
     await page.getByRole('button', {name:'Start Research', exact:true}).click();
@@ -265,7 +265,7 @@ async function assertNoOverflow(page, label) {
     await page.waitForFunction(() => getComputedStyle(document.querySelector('#stages [aria-pressed="true"]')).backgroundColor === 'rgb(255, 254, 250)');
     const selection = await stageRail.locator('[aria-pressed="true"]').evaluate(el => {
       const style=getComputedStyle(el);
-      return {height:el.getBoundingClientRect().height, background:style.backgroundColor, border:style.borderBottomWidth, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
+      return {height:el.offsetHeight, background:style.backgroundColor, border:style.borderBottomWidth, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
     });
     assert.deepEqual(selection, {height:66, background:'rgb(255, 254, 250)', border:'2px', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the Soft studio underline-selection contract');
     assert.equal(await page.locator('#stage-work-panel .surface').count(), 0, 'Work panel contains nested cards');
@@ -407,11 +407,11 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('tab', {name:'AI', exact:true}).click();
     await page.getByLabel('Model', {exact:true}).fill('owner-selected-model');
     await page.getByLabel('Reasoning', {exact:true}).selectOption('high');
-    await page.locator('#adapter').selectOption('fixture-error');
+    await page.getByRole('radio', {name: 'fixture-error A registered local runtime adapter.', exact: true}).click();
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
     await page.locator('#settings-notice:visible').waitFor();
     assert.equal(await page.getByLabel('Model', {exact:true}).inputValue(), 'owner-selected-model');
-    await page.locator('#adapter').selectOption('fixture');
+    await page.getByRole('radio', {name: 'fixture A registered local runtime adapter.', exact: true}).click();
     await page.getByRole('tab', {name:'Roles', exact:true}).click();
     const roleRows = page.locator('.role-row');
     const allRoleCount = await roleRows.count();
@@ -520,6 +520,10 @@ async function assertNoOverflow(page, label) {
         const settingsTarget=await page.locator('#settings-button').boundingBox();
         assert.ok(settingsTarget.width>=44&&settingsTarget.height>=44,`${label} Settings target is too small`);
         await page.locator('#settings-button').click();
+        await page.waitForFunction(() => {
+          const target = document.getElementById('close-settings')?.getBoundingClientRect();
+          return target && target.width >= 44 && target.height >= 44;
+        });
         const closeTarget=await page.getByRole('button',{name:'Close settings',exact:true}).boundingBox();
         assert.ok(closeTarget.width>=44&&closeTarget.height>=44,`${label} Close settings target is too small`);
         await page.keyboard.press('Tab');

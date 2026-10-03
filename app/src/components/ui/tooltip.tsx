@@ -3,6 +3,8 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Tooltip as TooltipPrimitive } from "radix-ui"
+import { motion } from "motion/react"
+import { useStudioMotion } from "../studio-motion"
 
 function TooltipProvider({
   delayDuration = 0,
@@ -35,6 +37,7 @@ function TooltipContent({
   children,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  const { reduced } = useStudioMotion()
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
@@ -45,9 +48,12 @@ function TooltipContent({
           className
         )}
         {...props}
+        asChild
       >
+        <motion.div initial={reduced ? false : { opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }}>
         {children}
         <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground" />
+        </motion.div>
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )

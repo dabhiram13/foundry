@@ -39,6 +39,10 @@ jobs:
         env:
           FOUNDRY_PYTHON: /tmp/foundry-env/bin/python
         run: node tests/factory_browser.cjs
+      - name: Studio interactions and accessibility
+        env:
+          FOUNDRY_PYTHON: /tmp/foundry-env/bin/python
+        run: node tests/studio_browser.cjs
       - name: SaaS HTTP and browser journey
         run: python3 scripts/evaluate_journey.py
       - name: Evaluation honesty and cancellation contracts

@@ -4,23 +4,36 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 import { Tabs as TabsPrimitive } from "radix-ui"
+import { LayoutGroup, motion } from "motion/react"
+import { useStudioMotion } from "../studio-motion"
+
+const TabsSelection = React.createContext<string | undefined>(undefined)
 
 function Tabs({
   className,
   orientation = "horizontal",
+  value,
+  defaultValue,
+  onValueChange,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  const [selection, setSelection] = React.useState(defaultValue)
+  const id = React.useId()
   return (
+    <TabsSelection.Provider value={value ?? selection}><LayoutGroup id={id}>
     <TabsPrimitive.Root
       data-slot="tabs"
       data-orientation={orientation}
       orientation={orientation}
+      value={value ?? selection}
+      onValueChange={next => { setSelection(next); onValueChange?.(next) }}
       className={cn(
         "group/tabs flex gap-2 data-[orientation=horizontal]:flex-col",
         className
       )}
       {...props}
     />
+    </LayoutGroup></TabsSelection.Provider>
   )
 }
 
@@ -57,10 +70,15 @@ function TabsList({
 
 function TabsTrigger({
   className,
+  children,
+  value,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  const selection = React.useContext(TabsSelection)
+  const { reduced } = useStudioMotion()
   return (
     <TabsPrimitive.Trigger
+      value={value}
       data-slot="tabs-trigger"
       className={cn(
         "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-muted-foreground transition-[background-color,color,opacity] duration-[var(--motion-selection)] group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none dark:text-muted-foreground dark:hover:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -70,20 +88,26 @@ function TabsTrigger({
         className
       )}
       {...props}
-    />
+    >
+      {selection === value && <motion.span aria-hidden="true" className="tab-highlight" layoutId={reduced ? undefined : 'selection'} transition={{ type: 'spring', stiffness: 420, damping: 38 }}/>}
+      <span className="tab-label">{children}</span>
+    </TabsPrimitive.Trigger>
   )
 }
 
 function TabsContent({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  const { reduced } = useStudioMotion()
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
       className={cn("flex-1 outline-none", className)}
       {...props}
-    />
+      asChild
+    ><motion.div initial={reduced ? false : { opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : .2 }}>{children}</motion.div></TabsPrimitive.Content>
   )
 }
 

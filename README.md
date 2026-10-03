@@ -179,6 +179,7 @@ are not a security boundary. A secret scanner for commits is available with
 .venv/bin/python -m unittest discover -s tests -v
 npx tsc --noEmit && npm run build:panel
 FOUNDRY_PYTHON=.venv/bin/python node tests/factory_browser.cjs
+FOUNDRY_PYTHON=.venv/bin/python node tests/studio_browser.cjs
 python3 -m unittest discover -s tests/fixtures/web_app -v
 python3 -m unittest discover -s tests/fixtures/saas_app -p test_evaluator.py -v
 python3 scripts/evaluate_journey.py
@@ -195,6 +196,10 @@ The app uses the Soft studio [design system](docs/DESIGN-SYSTEM.md): a powder-bl
 canvas, warm paper workbench, Manrope type, Phosphor icons and the original
 specialist portraits. The top bar keeps products, creation and account controls
 in reach. Work, Documents and Activity share one product desk.
+Animate UI adaptations bring consistent press feedback, sliding tab highlights,
+AI choice cards and consent controls, with a finite radial specialist intro and
+wispy sky on the welcome screens. Quiet motion respects your device and local
+preference. [Integration details and component choices](docs/ANIMATE-UI.md).
 
 ## Old names
 

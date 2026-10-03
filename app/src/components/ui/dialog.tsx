@@ -2,6 +2,8 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { X as XIcon } from "@phosphor-icons/react"
 import { Dialog as DialogPrimitive } from "radix-ui"
+import { motion } from "motion/react"
+import { useStudioMotion } from "../studio-motion"
 
 import { Button } from "@/components/ui/button"
 
@@ -53,6 +55,7 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const { reduced } = useStudioMotion()
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -63,7 +66,9 @@ function DialogContent({
           className
         )}
         {...props}
+        asChild
       >
+        <motion.div initial={reduced ? false : { opacity: 0, y: 10, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduced ? 0 : .24 }}>
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
@@ -74,6 +79,7 @@ function DialogContent({
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
+        </motion.div>
       </DialogPrimitive.Content>
     </DialogPortal>
   )

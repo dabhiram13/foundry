@@ -95,11 +95,11 @@
 .product-properties summary { cursor: pointer; width: fit-content; list-style: none; min-height: 32px; }
 .product-properties code { display: block; margin: 4px 0 8px; overflow-wrap: anywhere; font-size: 12px; line-height: 20px; }
 .product-tabs { gap: 24px; margin-top: 24px; }
-.page-tabs, .settings-tabs { width: 100%; max-width: 100%; height: auto !important; min-height: 40px; justify-content: flex-start; gap: 24px; padding: 0; border-bottom: 1px solid var(--border); background: transparent; border-radius: 0; overflow-x: auto; scrollbar-width: thin; }
-.page-tabs [data-slot=tabs-trigger], .settings-tabs [data-slot=tabs-trigger] { flex: 0 0 auto; min-height: 40px; padding: 8px 2px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent !important; box-shadow: none !important; color: var(--muted-foreground); font-size: 12px; font-weight: 400; }
-.page-tabs [data-slot=tabs-trigger][data-state=active], .settings-tabs [data-slot=tabs-trigger][data-state=active] { color: var(--foreground); border-bottom-color: var(--foreground); font-weight: 500; }
+.page-tabs, .settings-tabs { width: 100%; max-width: 100%; height: auto !important; min-height: 52px; justify-content: flex-start; gap: 8px; padding: 4px; border-bottom: 1px solid var(--border); background: transparent; border-radius: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.page-tabs [data-slot=tabs-trigger], .settings-tabs [data-slot=tabs-trigger] { flex: 0 0 auto; height: 44px; min-height: 44px; min-width: 44px; padding: 8px 12px; border: 0; border-radius: 8px; background: transparent !important; box-shadow: none !important; color: var(--muted-foreground); font-size: 12px; font-weight: 400; }
+.page-tabs [data-slot=tabs-trigger][data-state=active], .settings-tabs [data-slot=tabs-trigger][data-state=active] { color: var(--foreground); font-weight: 500; }
 .page-tabs [data-slot=tabs-trigger]::after, .settings-tabs [data-slot=tabs-trigger]::after { content: none; }
-.page-tabs [data-slot=tabs-trigger] > span { display: inline-flex; justify-content: center; min-width: 18px; background: var(--foundry-muted); border-radius: 3px; color: var(--muted-foreground); font-size: 10px; margin-left: 4px; }
+.page-tabs .tab-label > span { display: inline-flex; justify-content: center; min-width: 18px; background: var(--foundry-muted); border-radius: 3px; color: var(--muted-foreground); font-size: 10px; margin-left: 4px; }
 .stage-workspace { display: grid; grid-template-columns: minmax(0,1fr); gap: 20px; align-items: start; }
 .stage-rail { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 4px; list-style: none; margin: 0; padding: 4px; background: var(--foundry-canvas); border: 1px solid var(--border); border-radius: var(--radius-container); min-width: 0; overflow-x: auto; scrollbar-width: thin; }
 .stage-card { display: flex; align-items: center; justify-content: flex-start; gap: 8px; height: 54px; width: 100%; padding: 8px; border-radius: var(--radius-control); border: 1px solid transparent; background: transparent; text-align: left; white-space: nowrap; }
@@ -365,7 +365,7 @@
 .product-progress { margin-block: 16px 12px; height: 4px; }
 .product-tabs { margin-top: 24px; gap: 0; background: var(--foundry-surface); border: 1px solid #AFC7CA; border-radius: var(--radius-container); overflow: hidden; }
 .product-tabs > [data-slot=tabs-content] { min-width: 0; }
-.page-tabs { gap: 24px; padding: 0 24px; }
+.page-tabs { gap: 12px; padding: 4px 16px; }
 .page-tabs [data-slot=tabs-trigger] { min-height: 48px; font-size: 13px; gap: 8px; }
 .page-tabs [data-slot=tabs-trigger] svg { width: 17px; height: 17px; }
 .stage-workspace { gap: 0; }

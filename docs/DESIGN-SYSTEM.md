@@ -41,7 +41,7 @@ own licenses.
 
 | Role | Token |
 | --- | --- |
-| Studio canvas | soft powder blue #e0edef; no decorative texture |
+| Studio canvas | soft powder blue #e0edef; finite wispy sky on welcome surfaces only |
 | Working paper | warm white #fffefa |
 | Ink / primary action | #263433 |
 | Secondary text | #52615f |
@@ -49,7 +49,7 @@ own licenses.
 | Your review | #f9f0cd with #625021 text |
 | Checked work | #dce9cf with #345025 text |
 | Needs repair | #f5ddd4 with #803622 text |
-| Shape | 1px work frames, 6px controls, 10px benches, 12px dialogs; status pills only |
+| Shape | 1px work frames, 8px controls, 14px benches, 12px dialogs; status pills and idea prompt chips |
 | Spacing | 4, 8, 12, 16, 24, 32, 48, 64, 96px |
 | Type | Manrope variable, locally bundled, SIL OFL |
 | Utility icons | Phosphor duotone, MIT; labels remain visible |
@@ -110,8 +110,12 @@ another library would not itself improve design taste.
 - Portraits identify roles, not fictional parallel live agents.
 - Press/hover feedback is brief and does not move surrounding layout.
 - Loading matches the actual surface; failures explain what went wrong and what next.
-- Animation is optional: 150–180ms feedback, no gratuitous spring/reveal loops.
-  Reduced motion removes movement without breaking close or focus behavior.
+- Animate UI adaptations provide 160ms feedback and about 240ms selections and
+  surface entrances. Welcome headings reveal once, the radial intro settles in
+  under 1.4 seconds and the sky rests after 4.8 seconds. No decorative loops.
+  Quiet motion and the device preference remove movement without breaking close,
+  focus or selection behavior. [Component mapping](ANIMATE-UI.md) records the
+  catalog decisions and the upstream MIT + Commons Clause license.
 
 ## Responsive contract
 

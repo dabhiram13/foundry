@@ -161,9 +161,9 @@ async function assertNoOverflow(page, label) {
     await page.route('**/api/snapshot',slowInitial);
     await page.goto(url);
     // Standalone entry is the real landing; the embedded panel opens the workspace directly.
-    await page.getByRole('heading', {name:'A good idea. A clear way to build it.', exact:true}).waitFor();
-    await page.getByRole('tab', {name:'03 Design', exact:true}).click();
-    await page.getByRole('heading', {name:'Give the idea a clear shape.', exact:true}).waitFor();
+    await page.getByRole('heading', {name:'Your idea. Built on your terms.', exact:true}).waitFor();
+    await page.getByRole('button', {name:'Install Foundry', exact:true}).click();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'landing-install');
     await page.getByRole('button', {name:'Open workspace', exact:true}).first().click();
 
     await page.getByRole('button',{name:'Create product',exact:true}).waitFor({timeout:10000});
@@ -173,21 +173,19 @@ async function assertNoOverflow(page, label) {
     // The shared Soft studio system is local, including its font and portraits.
     await page.locator('#mobile-menu').click();
     await page.getByRole('button', {name:'About Foundry', exact:true}).click();
-    await page.getByRole('heading', {name:'A good idea. A clear way to build it.', exact:true}).waitFor();
+    await page.getByRole('heading', {name:'Your idea. Built on your terms.', exact:true}).waitFor();
     await page.evaluate(() => document.fonts.ready);
     assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /Manrope/);
     assert.equal(await page.evaluate(() => [...document.fonts].some(font => font.family === 'Manrope' && font.status === 'loaded')), true);
     assert.ok(await page.locator('img.role-avatar').count() > 0, 'Requested specialist portraits are missing');
     assert.equal(await page.locator('.role-avatar svg').count(), 0, 'Role glyph replacement is still rendered');
-    await page.getByText('Plan review · example', {exact:true}).waitFor();
+    await page.getByRole('heading', {name:'Up and running, without the guessing.', exact:true}).waitFor();
     for (const width of [1280, 768, 390, 360]) {
       await page.setViewportSize({width, height:900});
       await assertNoOverflow(page, `Introduction ${width}px`);
     }
     await page.setViewportSize({width:1280,height:900});
-    await page.getByRole('button', {name:'Meet all 28 roles', exact:true}).click();
-    assert.equal(await page.locator('.landing-role:visible').count(), 28);
-    await page.getByRole('button', {name:'Show fewer roles', exact:true}).click();
+    assert.equal(await page.locator('.landing-role').count(), 0, 'Landing must not repeat the full role directory');
     await page.getByRole('button', {name:'Open workspace', exact:true}).first().click();
     await page.getByRole('button', {name:'Create product', exact:true}).waitFor();
 

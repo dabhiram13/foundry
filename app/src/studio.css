@@ -60,13 +60,6 @@
 .radial-controls { display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 4px; }
 .radial-controls [data-slot=button] { font-size: 11px; }
 .radial-controls svg { width: 14px; height: 14px; }
-.landing-hero { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); align-items: center; gap: 64px; padding-block: 72px; text-align: left; }
-.landing-hero-copy { min-width: 0; }
-.landing-hero h1 { font-size: clamp(42px,5.2vw,72px); font-weight: 500; line-height: 1.06; }
-.landing-hero .landing-eyebrow, .landing-hero-actions, .landing-local-note { justify-content: flex-start; }
-.landing-intro { font-size: 16px; line-height: 27px; }
-.landing-role { transition: background var(--motion-feedback), border-color var(--motion-feedback); }
-.landing-role:hover { background: var(--foundry-surface); border-color: var(--foundry-control-border); }
 .studio-checkbox { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; margin-top: 2px; border: 1.5px solid var(--foundry-control-border); border-radius: 6px; background: var(--foundry-surface); cursor: pointer; }
 .studio-checkbox[data-state=checked] { color: var(--primary-foreground); background: var(--primary); border-color: var(--primary); }
 .studio-checkbox svg { width: 17px; height: 17px; }
@@ -107,7 +100,6 @@
 .tab-label svg { width: 17px; height: 17px; flex-shrink: 0; }
 .tab-highlight { position: absolute; inset: 3px; border-radius: 7px; background: var(--foundry-selected); border: 1px solid #bacbc4; z-index: 0; pointer-events: none; }
 .page-tabs .tab-highlight { inset: 6px 3px; }
-.landing-stage-tab .tab-label { flex-direction: column; }
 [data-slot=dialog-content][data-state=open], [data-slot=sheet-content][data-state=open], [data-slot=tooltip-content][data-state=delayed-open] { animation: none; }
 .copy-control { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .copy-error { font-size: 12px; color: var(--destructive); }
@@ -118,8 +110,6 @@ html[data-motion=quiet] *, html[data-motion=quiet] *::before, html[data-motion=q
 @media (max-width: 1000px) {
   .idea-desk { gap: 28px; }
   .home-heading > div { gap: 16px 28px; }
-  .landing-hero { gap: 32px; }
-  .landing-hero h1 { font-size: 48px; }
   .workspace-topbar .motion-toggle span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 @media (max-width: 740px) {
@@ -131,11 +121,6 @@ html[data-motion=quiet] *, html[data-motion=quiet] *::before, html[data-motion=q
   .home-heading .eyebrow { margin-bottom: 16px; }
   .new-product-section { padding: 22px; }
   .home-specialists { padding-top: 12px; }
-  .landing-hero { grid-template-columns: 1fr; padding-block: 48px; gap: 28px; }
-  .landing-hero h1 { max-width: 15ch; }
-  .landing-hero .specialist-intro { max-width: 360px; }
-  .landing-header-inner { gap: 8px; }
-  .landing-nav { display: none; }
   .choice-grid { grid-template-columns: 1fr; }
   .method ol { grid-template-columns: repeat(3,minmax(0,1fr)); }
   [data-slot=button][data-size=sm] { min-height: 44px; }
@@ -143,8 +128,6 @@ html[data-motion=quiet] *, html[data-motion=quiet] *::before, html[data-motion=q
   .workspace-topbar .motion-toggle { width: 44px; padding-inline: 8px; order: 1; margin-left: auto; }
   .studio-brand { order: 0; }
   .studio-navigation { min-width: 0; order: 2; }
-  .landing-header .motion-toggle { width: 44px; padding-inline: 8px; margin-left: auto; }
-  .landing-header .motion-toggle span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .radial-description { min-height: 90px; }
 }
 @media (max-width: 390px) {

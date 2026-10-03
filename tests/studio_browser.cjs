@@ -49,6 +49,38 @@ server.serve_forever()
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(250);
     assert.equal(await page.locator('.sky-background canvas').getAttribute('data-animation-starts'), '1', 'Scrolling back must not restart the sky');
+    const install = 'git clone https://github.com/dabhiram13/foundry.git\ncd foundry\n./foundry';
+    assert.equal(await page.getByLabel('Installation commands').textContent(), install);
+    for (const width of [1440, 768, 390, 360]) {
+      await page.setViewportSize({width, height:900});
+      assert.ok(await page.getByRole('button', {name:'Install Foundry', exact:true}).evaluate(el => el.getBoundingClientRect().height >= 48));
+      assert.ok(await page.getByRole('button', {name:'Copy commands', exact:true}).evaluate(el => el.getBoundingClientRect().height >= 44));
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    }
+    await page.setViewportSize({width:1440, height:1000});
+    await page.getByRole('button', {name:'Install Foundry', exact:true}).click();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'landing-install');
+    await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', {
+      configurable: true, value: {writeText: async text => { window.copiedInstall = text; }}
+    }));
+    await page.getByRole('button', {name:'Copy commands', exact:true}).click();
+    await page.getByText('Copied to clipboard.', {exact:true}).waitFor({state:'attached'});
+    assert.equal(await page.evaluate(() => window.copiedInstall), install);
+    await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', {
+      configurable: true, value: {writeText: async () => { throw new Error('Clipboard denied'); }}
+    }));
+    await page.getByRole('button', {name:'Copy commands', exact:true}).click();
+    await page.getByText('Could not copy. Select and copy the text instead.', {exact:true}).waitFor();
+    await page.getByRole('button', {name:'Can I use Claude, Qwen or another AI?', exact:true}).click();
+    await page.getByText(/An OpenAI-compatible endpoint alone is not enough/).waitFor();
+    await page.getByRole('button', {name:'Does my code stay on my computer?', exact:true}).click();
+    await page.getByText(/Local storage does not mean local AI processing/).waitFor();
+    for (const href of await page.locator('a[href*="/blob/main/docs/"]').evaluateAll(links => links.map(link => link.href))) {
+      const file = new URL(href).pathname.split('/blob/main/')[1];
+      assert.ok(fs.existsSync(path.join(root, file)), `Missing documentation target: ${file}`);
+    }
+    await page.getByRole('button', {name:'Create your first product', exact:true}).click();
+    await page.getByLabel('Describe your idea').waitFor();
     await page.goto(`http://127.0.0.1:${port}/#workspace`);
     await page.getByRole('heading', { name: 'What do you want to build?', exact: true }).waitFor();
     await page.locator('.specialist-intro[data-playing=false]').waitFor();

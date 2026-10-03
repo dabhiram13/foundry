@@ -9,7 +9,11 @@ anything is built. Foundry only calls a product done when its real tests pass.
 
 ## Start
 
+Install from source on macOS or Linux:
+
 ```sh
+git clone https://github.com/dabhiram13/foundry.git
+cd foundry
 ./foundry
 ```
 
@@ -18,9 +22,18 @@ You need Python 3.11+, Git, and the Codex CLI. Rebuilding the app needs Node 22+
 It runs on macOS and Linux. Signing in with ChatGPT currently needs the macOS
 Keychain; the Codex login works wherever Codex does.
 
-1. Describe what you want to build, give it a name, and select **Create product**.
-2. Pick the AI under **Account & AI**: your existing Codex login, or
-   **Continue with ChatGPT** to use your ChatGPT plan.
+If you already have this checkout, run `./foundry` from it; no need to clone again.
+You need access to the repository to clone it. There is no published package
+installer or complete terminal-only workflow yet.
+
+**[Start guide: installation, sign-in and your first product](docs/GETTING-STARTED.md)**
+· **[Browse the docs](docs/README.md)**
+
+1. Sign in with `codex login` using your ChatGPT subscription. In the workspace,
+   describe what you want to build, give it a name, and select **Create product**.
+2. Select **Confirm AI login**, keep **Codex (your login)** selected, confirm your
+   subscription login and **Save settings**. The separate **Continue with
+   ChatGPT** connection is experimental; you do not need it for the Codex route.
 3. Select **Start Research**. Foundry researches the idea and writes a plan.
 4. Read the plan and select **Approve and continue**. Do the same for the design.
 5. Foundry builds the product, runs its tests, and writes a ship summary.

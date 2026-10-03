@@ -66,6 +66,18 @@ the live app uses Manrope 5.2.6 and Phosphor React 2.1.10.
 
 ### Studio welcome
 
+The introduction is install-first: one clear promise, actual source-install
+commands, prerequisites, the first product journey and links to task-based docs.
+Use Build This Now's public landing and start guide as information-order
+references, not as evidence for Foundry features or marketing claims. Keep the
+original portraits in one compact workflow section; do not repeat a role grid,
+six-tab explanation and fictional workspace. Reading copy is 15–18px, supporting
+labels 13–14px, with 48px primary actions and 44px secondary targets. The landing
+page's layout is owned by `app/src/landing.css`, not later override sheets.
+The existing local workspace remains available through Open workspace.
+
+Inside the workspace:
+
 Replace the generic sidebar-plus-form introduction with a clear global top bar
 and a colored studio canvas. A large, concise headline and the original crew
 sit beside a focused paper idea sheet. The form has a visible idea label,

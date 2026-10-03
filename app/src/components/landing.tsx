@@ -1,208 +1,121 @@
-import { useState } from 'react';
-import { ArrowDown, ArrowRight, Check, CaretDown as ChevronDown, Circle, Code as Code2, ClipboardText as FileCheck2, FileText, Folder, Laptop, LockKey as LockKeyhole, Sparkle as Sparkles, FlowArrow as Workflow } from "@phosphor-icons/react";
+import { ArrowDown, ArrowRight, ArrowUpRight, BookOpen, Check, Folder, Terminal, DownloadSimple } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RoleAvatar, roleCatalog } from '@/components/specialists';
 import { SpecialistIntro } from './specialist-intro';
 import { SkyBackground } from './sky-background';
-import { MotionToggle } from './studio-motion';
-import { SplitText } from './ui/animate-ui';
+import { MotionToggle, useStudioMotion } from './studio-motion';
+import { CopyButton, Disclosure, SplitText } from './ui/animate-ui';
 
 type LandingProps = { onEnter: (create?: boolean) => void };
 
-const landingStages = [
-  { id: 'research', label: 'Research', role: 'market-researcher', specialist: 'Market researcher', title: 'Understand the problem.', description: 'Find out who has this problem, what they use today, and what is still unknown.', output: 'Research notes', review: false },
-  { id: 'scope', label: 'Plan', role: 'planner', specialist: 'Planner', title: 'Pick the first version.', description: 'A short plan: who it is for, what is in and out, and how you will know it works. Nothing is built until you approve it.', output: 'A plan you approved', review: true },
-  { id: 'design', label: 'Design', role: 'designer', specialist: 'Designer', title: 'Give the idea a clear shape.', description: 'Sketch the screens, steps, and edge cases. You approve the design before the build starts.', output: 'A design you approved', review: true },
-  { id: 'build', label: 'Build', role: 'backend', specialist: 'Backend', title: 'Build it.', description: 'The AI writes the code from your plan and design, in a separate folder with its own Git history.', output: 'Working code', review: false },
-  { id: 'verify', label: 'Test', role: 'quality-gate', specialist: 'Quality gate', title: 'Make sure it works.', description: 'Run the product’s real tests. If they fail, Foundry stops and tells you why.', output: 'Test results', review: false },
-  { id: 'release', label: 'Ship', role: 'complete', specialist: 'Complete', title: 'Ship when you are ready.', description: 'Read a summary of what was built and tested. You decide where and when to publish.', output: 'A ship summary', review: false },
-] as const;
-
-const featuredRoleIds = ['market-researcher', 'designer', 'architect', 'backend', 'quality-gate', 'security-auditor', 'connector', 'flow-tester'];
-const landingRoles = [
-  ...featuredRoleIds.flatMap(id => roleCatalog.filter(role => role.id === id)),
-  ...roleCatalog.filter(role => !featuredRoleIds.includes(role.id)),
-];
-const stageLabel = (stage: string) => landingStages.find(item => item.id === stage)?.label ?? stage;
-
-function scrollToSection(id: string) {
-  const section = document.getElementById(id);
-  if (!section) return;
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  section.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'start' });
-  section.focus({ preventScroll: true });
-}
+const repository = 'https://github.com/dabhiram13/foundry';
+const docs = `${repository}/blob/main/docs`;
+const install = `git clone ${repository}.git\ncd foundry\n./foundry`;
 
 export function Landing({ onEnter }: LandingProps) {
-  const [showAllRoles, setShowAllRoles] = useState(false);
+  const { reduced } = useStudioMotion();
+  function goTo(id: string) {
+    const section = document.getElementById(id);
+    if (!section) return;
+    section.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'start' });
+    section.focus({ preventScroll: true });
+  }
 
   return (
     <div className="landing-page">
-      <a className="landing-skip" href="#landing-main" onClick={event => { event.preventDefault(); scrollToSection('landing-main'); }}>Skip to content</a>
+      <a className="landing-skip" href="#landing-main" onClick={event => { event.preventDefault(); goTo('landing-main'); }}>Skip to content</a>
       <header className="landing-header">
         <div className="landing-shell landing-header-inner">
           <a className="landing-brand" href="#welcome" aria-label="Foundry home">
-            <img src="/assets/foundry-mark.svg" width="32" height="32" alt="" />
-            <span>Foundry</span>
+            <img src="/assets/foundry-mark.svg" width="28" height="28" alt="" />Foundry
           </a>
           <nav className="landing-nav" aria-label="Introduction">
-            <Button variant="ghost" onClick={() => scrollToSection('landing-workflow')}>How it works</Button>
-            <Button variant="ghost" onClick={() => scrollToSection('landing-specialists')}>The roles</Button>
+            <button onClick={() => goTo('landing-start')}>Get started</button>
+            <button onClick={() => goTo('landing-workflow')}>How it works</button>
+            <a href={`${docs}/README.md`}>Docs <ArrowUpRight aria-hidden="true" /></a>
           </nav>
-          <MotionToggle/>
-          <Button variant="outline" className="landing-workspace-link" onClick={() => onEnter()}>
-            Open workspace <ArrowRight aria-hidden="true" />
-          </Button>
+          <Button variant="outline" onClick={() => onEnter()}>Open workspace <ArrowRight aria-hidden="true" /></Button>
         </div>
       </header>
 
       <main id="landing-main" tabIndex={-1}>
         <section className="landing-shell landing-hero sky-surface" aria-labelledby="landing-title">
-          <SkyBackground/>
+          <SkyBackground />
           <div className="landing-hero-copy">
-            <p className="landing-eyebrow"><Workflow aria-hidden="true" /> Your local product studio</p>
-            <h1 id="landing-title" tabIndex={-1}><SplitText text="A good idea. A clear way to build it."/></h1>
-            <p className="landing-intro">Describe an idea. Foundry researches it, plans it with you, builds it, and tests it, all on your computer.</p>
+            <p className="landing-eyebrow"><Terminal aria-hidden="true" /> Made to run on your computer</p>
+            <h1 id="landing-title" tabIndex={-1}><SplitText text="Your idea. Built on your terms." /></h1>
+            <p className="landing-intro">Describe a product. Review the plan. Let Foundry work through the code and tests—with you in control.</p>
             <div className="landing-hero-actions">
-              <Button size="lg" className="landing-primary" onClick={() => onEnter(true)}>Start a product <ArrowRight aria-hidden="true" /></Button>
-              <Button variant="ghost" size="lg" onClick={() => scrollToSection('landing-workflow')}>See how it works <ArrowDown aria-hidden="true" /></Button>
+              <Button size="lg" onClick={() => goTo('landing-install')}><DownloadSimple aria-hidden="true" /> Install Foundry</Button>
+              <a href={`${docs}/GETTING-STARTED.md`}>Read the start guide <ArrowUpRight aria-hidden="true" /></a>
             </div>
-            <p className="landing-local-note"><Laptop aria-hidden="true" /> Runs on your computer. Your code stays yours.</p>
+            <p className="landing-local-note">Local files. Your own Git history. No Foundry account.</p>
           </div>
-          <SpecialistIntro/>
-        </section>
-
-        <section className="landing-preview" aria-label="Example product workspace">
-          <div className="landing-shell">
-            <p className="preview-caption">An example of how your work comes together</p>
-            <div className="preview-window">
-              <div className="preview-heading"><h2>Client portal</h2><span className="preview-tag">Plan review · example</span></div>
-              <div className="preview-steps" aria-label="Example progress: Research done, Plan needs review, Design and later steps not started">{landingStages.map((stage,index)=><span key={stage.id} className={index===1?'preview-current':''}>{index===0?<Check aria-hidden="true"/>:<span>{index+1}</span>}{stage.label}</span>)}</div>
-              <div className="preview-layout">
-                <article className="preview-document">
-                  <p className="landing-eyebrow"><FileText aria-hidden="true"/>The first version</p>
-                  <h3>A calmer home for client work.</h3>
-                  <p>A small portal for independent studios and their clients. One place for project updates, shared files and clear approvals.</p>
-                  <h4>Keep it focused</h4>
-                  <ul><li><Check aria-hidden="true"/>A page for each client project</li><li><Check aria-hidden="true"/>Updates and shared files in one place</li><li><Check aria-hidden="true"/>A simple way to approve the latest work</li></ul>
-                  <div className="preview-decision"><LockKeyhole aria-hidden="true"/><p>You review the full plan before any code is built.</p></div>
-                </article>
-                <aside className="preview-context"><h4>For this step</h4>{['planner','spec-critic'].map(id=><div key={id}><RoleAvatar role={id} size={44}/><span>{roleCatalog.find(role=>role.id===id)?.label}<small>{id==='planner'?'Keeps the first version focused':'Checks the plan’s gaps'}</small></span></div>)}<p>Specialist guidance, not a live agent roster.</p><h4>Saved with the product</h4><span className="preview-saved"><FileText aria-hidden="true"/>Research notes</span><span className="preview-saved"><FileText aria-hidden="true"/>Plan to review</span></aside>
-              </div>
+          <div className="landing-install" id="landing-install" tabIndex={-1} aria-labelledby="install-title">
+            <div className="install-heading"><span><Terminal aria-hidden="true" /> Terminal</span><span>macOS / Linux</span></div>
+            <div className="install-body">
+              <h2 id="install-title">A small start. A real workspace.</h2>
+              <p>Install from source, then open Foundry locally.</p>
+              <pre aria-label="Installation commands"><code>{install}</code></pre>
+              <CopyButton content={install} label="Copy commands" />
             </div>
+            <div className="install-note"><Check aria-hidden="true" /><p>Needs Python 3.11+ and Git. The launcher installs dependencies and opens your browser. <button onClick={() => goTo('landing-start')}>Check your setup first <ArrowDown aria-hidden="true" /></button></p></div>
           </div>
         </section>
 
-        <section className="landing-shell landing-workflow-section">
-          <div className="landing-section-heading"><p className="landing-eyebrow">From first thought to first version</p><h2>Small steps.<br/>A working product.</h2><p>You steer the plan and the design. Foundry handles the work in between.</p></div>
-          <div className="landing-guide" id="landing-workflow" tabIndex={-1}>
-            <div className="landing-guide-heading">
-              <span><Workflow aria-hidden="true" /> Explore the workflow</span>
-              <span className="landing-guide-caption">Six steps</span>
-            </div>
-            <Tabs defaultValue="research" className="landing-stage-tabs">
-              <TabsList className="landing-stage-list" aria-label="Explore the six Foundry stages">
-                {landingStages.map((stage, index) => <TabsTrigger className="landing-stage-tab" key={stage.id} value={stage.id}>
-                  <span className="landing-stage-number">0{index + 1}</span><span>{stage.label}</span>
-                </TabsTrigger>)}
-              </TabsList>
-              {landingStages.map((stage, index) => <TabsContent key={stage.id} value={stage.id} className="landing-stage-content">
-                <div className="landing-stage-topline">
-                  <span className="landing-stage-position">0{index + 1} <span>/ 06</span></span>
-                  <RoleAvatar role={stage.role} size={40} active={false} />
-                </div>
-                <div className="landing-stage-copy">
-                  <h2>{stage.title}</h2>
-                  <p>{stage.description}</p>
-                </div>
-                <div className="landing-stage-output"><FileText aria-hidden="true" /><span><small>You get</small>{stage.output}</span></div>
-                <div className="landing-stage-footer">
-                  <span>Led by the {stage.specialist.toLowerCase()}</span>
-                  {stage.review ? <span className="landing-owner-gate"><LockKeyhole aria-hidden="true" /> Your approval</span> : <span className="landing-guide-note">Automatic</span>}
-                </div>
-              </TabsContent>)}
-            </Tabs>
+        <section className="landing-paper" aria-labelledby="start-title">
+          <div className="landing-shell landing-section" id="landing-start" tabIndex={-1}>
+            <div className="landing-section-heading"><p className="landing-eyebrow">From install to your first idea</p><h2 id="start-title">Up and running, without the guessing.</h2><p>Use the terminal to start Foundry. Use the local workspace to review and build.</p></div>
+            <ol className="landing-start-steps">
+              <li><span className="landing-step-number">01</span><h3>Check your setup</h3><p>You need macOS or Linux, Python 3.11 or newer, Git and the Codex CLI. The command <code>python3</code> must use Python 3.11+.</p><a href={`${docs}/GETTING-STARTED.md#1-check-your-computer`}>Installation help <ArrowUpRight aria-hidden="true" /></a></li>
+              <li><span className="landing-step-number">02</span><h3>Connect your AI</h3><p>Run <code>codex login</code> and sign in with ChatGPT. Foundry uses that login; you don’t need to paste an API key into the app. Your provider’s usage limits still apply.</p><a href={`${docs}/GETTING-STARTED.md#3-connect-codex`}>Account and usage details <ArrowUpRight aria-hidden="true" /></a></li>
+              <li><span className="landing-step-number">03</span><h3>Start something small</h3><p>Give your idea a name and select <strong>Create product</strong>. Use <strong>Confirm AI login</strong> to confirm your Codex subscription, save settings, then select <strong>Start Research</strong>.</p><button className="landing-text-action" onClick={() => onEnter(true)}>Create your first product <ArrowRight aria-hidden="true" /></button></li>
+            </ol>
+            <p className="landing-start-note">Already viewing this page in the local app? You can open the workspace—no need to install again.</p>
           </div>
         </section>
 
-        <section className="landing-principles" aria-labelledby="landing-principles-title">
-          <div className="landing-shell">
-            <div className="landing-section-heading">
-              <p className="landing-eyebrow">How it feels</p>
-              <h2 id="landing-principles-title">You make the calls.<br />Foundry does the work.</h2>
-            </div>
-            <div className="landing-principle-grid">
-              <article className="landing-principle">
-                <FileText aria-hidden="true" />
-                <h3>Everything in one folder.</h3>
-                <p>Each product has its own code, notes, settings, and test results, so you can always see why something was built.</p>
-              </article>
-              <article className="landing-principle">
-                <LockKeyhole aria-hidden="true" />
-                <h3>You approve the big decisions.</h3>
-                <p>Read the plan and the design before anything is built. If either changes, Foundry asks you again.</p>
-              </article>
-              <article className="landing-principle">
-                <FileCheck2 aria-hidden="true" />
-                <h3>Done means tested.</h3>
-                <p>A step only counts as finished when the product’s real tests pass. Saying “done” is not enough.</p>
-              </article>
+        <section className="landing-shell landing-section landing-workflow" id="landing-workflow" tabIndex={-1} aria-labelledby="workflow-title">
+          <div className="landing-workflow-copy">
+            <p className="landing-eyebrow">A little structure goes a long way</p><h2 id="workflow-title">You make the calls.<br />Foundry does the legwork.</h2>
+            <ol className="landing-run-steps">
+              <li><span>01</span><div><h3>Describe what matters</h3><p>Research turns your idea into a focused plan, not a long list of features.</p></div></li>
+              <li><span>02</span><div><h3>Review before it builds</h3><p>Approve the plan, then the design. If either changes, Foundry asks again.</p></div></li>
+              <li><span>03</span><div><h3>Build, check, repeat</h3><p>Small tasks, real tests and a Git checkpoint for each completed task. Failed checks get up to three repair attempts before Foundry asks for help.</p></div></li>
+            </ol>
+            <p className="landing-workflow-note"><Folder aria-hidden="true" /> You get a product folder with code, decisions and test results. Publishing is your next decision—not an automatic step.</p>
+          </div>
+          <div className="landing-crew"><SpecialistIntro /><a href={`${docs}/CATALOG.md`}>Explore the specialist roles <ArrowUpRight aria-hidden="true" /></a></div>
+        </section>
+
+        <section className="landing-paper" aria-labelledby="help-title">
+          <div className="landing-shell landing-section landing-help">
+            <div className="landing-section-heading"><p className="landing-eyebrow"><BookOpen aria-hidden="true" /> Help when you need it</p><h2 id="help-title">Start here.<br />Go deeper later.</h2><p>You don’t need to learn every command or role to build your first product.</p><a href={`${docs}/README.md`}>Browse the docs <ArrowUpRight aria-hidden="true" /></a></div>
+            <div className="landing-help-links">
+              <a href={`${docs}/GETTING-STARTED.md`}><span><strong>Your first product</strong><small>Requirements, installation and the first run.</small></span><ArrowUpRight aria-hidden="true" /></a>
+              <a href={`${docs}/GETTING-STARTED.md#when-something-goes-wrong`}><span><strong>Something not working?</strong><small>Sign-in, missing tools and interrupted work.</small></span><ArrowUpRight aria-hidden="true" /></a>
+              <a href={`${docs}/PROVIDERS.md`}><span><strong>Understand AI support</strong><small>What works today and what needs an integration.</small></span><ArrowUpRight aria-hidden="true" /></a>
             </div>
           </div>
         </section>
 
-        <section id="landing-specialists" className="landing-shell landing-specialists" tabIndex={-1} aria-labelledby="landing-specialists-title">
-          <div className="landing-specialists-heading">
-            <div className="landing-section-heading">
-              <p className="landing-eyebrow">The team</p>
-              <h2 id="landing-specialists-title">Meet the<br />roles.</h2>
-            </div>
-            <div className="landing-specialists-intro">
-              <p>Research, design, building, and a second pair of eyes. Foundry has {roleCatalog.length} roles and picks the ones each step needs.</p>
-              <p className="landing-specialists-note">Roles are instructions for the AI, not separate apps. You can pick a model for each one in settings.</p>
-            </div>
-          </div>
-          <div className="landing-role-grid" aria-label="Featured specialist roles">
-            {landingRoles.slice(0, 8).map(role => <div className="landing-role" key={role.id}>
-              <RoleAvatar role={role.id} size={40} active={false} />
-              <div><h3>{role.label}</h3><p>{stageLabel(role.stage)}</p></div>
-            </div>)}
-          </div>
-          <div id="landing-more-roles" className={`landing-role-expansion${showAllRoles ? ' is-open' : ''}`} inert={!showAllRoles} aria-hidden={!showAllRoles}>
-            <div className="landing-role-expansion-inner">
-              <div className="landing-role-grid landing-extra-roles">
-                {landingRoles.slice(8).map(role => <div className="landing-role" key={role.id}>
-                  <RoleAvatar role={role.id} size={40} active={false} />
-                  <div><h3>{role.label}</h3><p>{stageLabel(role.stage)}</p></div>
-                </div>)}
-              </div>
-            </div>
-          </div>
-          <div className="landing-roster-footer">
-            <Button variant="outline" className="landing-roster-toggle" aria-expanded={showAllRoles} aria-controls="landing-more-roles" onClick={() => setShowAllRoles(value => !value)}>
-              {showAllRoles ? 'Show fewer roles' : `Meet all ${roleCatalog.length} roles`}<ChevronDown aria-hidden="true" className={showAllRoles ? 'is-open' : ''} />
-            </Button>
-            <span>Role settings are saved per product.</span>
-          </div>
-        </section>
-
-        <section className="landing-start" aria-labelledby="landing-start-title">
-          <div className="landing-shell landing-start-inner">
-            <div>
-              <p className="landing-eyebrow"><Sparkles aria-hidden="true" /> Start small</p>
-              <h2 id="landing-start-title">What do you want to make?</h2>
-              <p>A name and a few sentences are enough.</p>
-            </div>
-            <Button size="lg" className="landing-primary" onClick={() => onEnter(true)}>Start a product <ArrowRight aria-hidden="true" /></Button>
+        <section className="landing-shell landing-section landing-faq" aria-labelledby="questions-title">
+          <div className="landing-section-heading"><p className="landing-eyebrow">A few useful answers</p><h2 id="questions-title">Before you start.</h2></div>
+          <div>
+            <Disclosure title="Is Foundry a terminal app or a website?"><p>You install and launch it from the terminal. Today, the launcher opens a local browser workspace for ideas, approvals and progress. It is not yet a terminal-only product, and this page does not run your projects on a hosted service.</p></Disclosure>
+            <Disclosure title="Can I use Claude, Qwen or another AI?"><p>Codex is the built-in engine. The separate ChatGPT connection is experimental and currently needs macOS Keychain. Other engines need an integration that can use tools, report progress and stop work safely. An OpenAI-compatible endpoint alone is not enough.</p><a href={`${docs}/PROVIDERS.md`}>See supported integrations <ArrowUpRight aria-hidden="true" /></a></Disclosure>
+            <Disclosure title="Does my code stay on my computer?"><p>Your files and Git history stay in your product folder. When you use a cloud AI, prompts and selected project content are sent to that provider. Local storage does not mean local AI processing. Never include secrets in your idea or prompts.</p></Disclosure>
+            <Disclosure title="Do I need an AI subscription?"><p>The built-in Codex route asks you to confirm a subscription login. Foundry does not inspect your billing or silently switch to paid API usage. Your provider’s plan and usage limits still apply.</p></Disclosure>
+            <Disclosure title="Will Foundry publish the product for me?"><p>No. The final Ship step summarizes the work, checks and anything still missing. Hosting, connecting paid services and publishing require separate decisions. Automated checks are not a guarantee that a product is ready for customers.</p></Disclosure>
           </div>
         </section>
       </main>
 
       <footer className="landing-shell landing-footer">
-        <span className="landing-footer-brand"><img src="/assets/foundry-mark.svg" width="24" height="24" alt="" /> Foundry</span>
-        <p>From idea to tested product, on your computer.</p>
-        <Button variant="ghost" onClick={() => onEnter()}>Open workspace <ArrowRight aria-hidden="true" /></Button>
+        <a className="landing-brand" href="#welcome"><img src="/assets/foundry-mark.svg" width="24" height="24" alt="" />Foundry</a>
+        <p>Make something worth building.</p>
+        <a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a>
+        <a href={`${docs}/README.md`}>Docs</a>
+        <MotionToggle />
       </footer>
     </div>
   );

@@ -34,7 +34,7 @@ jobs:
         run: |
           npx tsc --noEmit
           npm run build:panel
-          git diff --exit-code -- app/app.js app/style.css app/panel.html app/assets/geist-latin-wght-normal.woff2
+          git diff --exit-code -- app/app.js app/style.css app/panel.html app/assets/manrope-latin-wght-normal.woff2
       - name: Factory UI journey
         env:
           FOUNDRY_PYTHON: /tmp/foundry-env/bin/python

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowRight, ChevronDown, FileCheck2, FileText, Laptop, LockKeyhole, Sparkles, Workflow } from 'lucide-react';
+import { ArrowDown, ArrowRight, Check, CaretDown as ChevronDown, Circle, Code as Code2, ClipboardText as FileCheck2, FileText, Folder, Laptop, LockKey as LockKeyhole, Sparkle as Sparkles, FlowArrow as Workflow } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RoleAvatar, roleCatalog } from '@/components/specialists';
@@ -56,7 +56,7 @@ export function Landing({ onEnter }: LandingProps) {
         <section className="landing-shell landing-hero" aria-labelledby="landing-title">
           <div className="landing-hero-copy">
             <p className="landing-eyebrow"><Workflow aria-hidden="true" /> Your local product studio</p>
-            <h1 id="landing-title" tabIndex={-1}>A good idea.<br />A clear way<br className="landing-title-break" /> to build it.</h1>
+            <h1 id="landing-title" tabIndex={-1}>A good idea.<br />A clear way to build it.</h1>
             <p className="landing-intro">Describe an idea. Foundry researches it, plans it with you, builds it, and tests it, all on your computer.</p>
             <div className="landing-hero-actions">
               <Button size="lg" className="landing-primary" onClick={() => onEnter(true)}>Start a product <ArrowRight aria-hidden="true" /></Button>
@@ -65,6 +65,31 @@ export function Landing({ onEnter }: LandingProps) {
             <p className="landing-local-note"><Laptop aria-hidden="true" /> Runs on your computer. Your code stays yours.</p>
           </div>
 
+        </section>
+
+        <section className="landing-preview" aria-label="Example product workspace">
+          <div className="landing-shell">
+            <p className="preview-caption">An example of how your work comes together</p>
+            <div className="preview-window">
+              <div className="preview-heading"><h2>Client portal</h2><span className="preview-tag">Plan review · example</span></div>
+              <div className="preview-steps" aria-label="Example progress: Research done, Plan needs review, Design and later steps not started">{landingStages.map((stage,index)=><span key={stage.id} className={index===1?'preview-current':''}>{index===0?<Check aria-hidden="true"/>:<span>{index+1}</span>}{stage.label}</span>)}</div>
+              <div className="preview-layout">
+                <article className="preview-document">
+                  <p className="landing-eyebrow"><FileText aria-hidden="true"/>The first version</p>
+                  <h3>A calmer home for client work.</h3>
+                  <p>A small portal for independent studios and their clients. One place for project updates, shared files and clear approvals.</p>
+                  <h4>Keep it focused</h4>
+                  <ul><li><Check aria-hidden="true"/>A page for each client project</li><li><Check aria-hidden="true"/>Updates and shared files in one place</li><li><Check aria-hidden="true"/>A simple way to approve the latest work</li></ul>
+                  <div className="preview-decision"><LockKeyhole aria-hidden="true"/><p>You review the full plan before any code is built.</p></div>
+                </article>
+                <aside className="preview-context"><h4>For this step</h4>{['planner','spec-critic'].map(id=><div key={id}><RoleAvatar role={id} size={44}/><span>{roleCatalog.find(role=>role.id===id)?.label}<small>{id==='planner'?'Keeps the first version focused':'Checks the plan’s gaps'}</small></span></div>)}<p>Specialist guidance, not a live agent roster.</p><h4>Saved with the product</h4><span className="preview-saved"><FileText aria-hidden="true"/>Research notes</span><span className="preview-saved"><FileText aria-hidden="true"/>Plan to review</span></aside>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-shell landing-workflow-section">
+          <div className="landing-section-heading"><p className="landing-eyebrow">From first thought to first version</p><h2>Small steps.<br/>A working product.</h2><p>You steer the plan and the design. Foundry handles the work in between.</p></div>
           <div className="landing-guide" id="landing-workflow" tabIndex={-1}>
             <div className="landing-guide-heading">
               <span><Workflow aria-hidden="true" /> Explore the workflow</span>
@@ -79,7 +104,7 @@ export function Landing({ onEnter }: LandingProps) {
               {landingStages.map((stage, index) => <TabsContent key={stage.id} value={stage.id} className="landing-stage-content">
                 <div className="landing-stage-topline">
                   <span className="landing-stage-position">0{index + 1} <span>/ 06</span></span>
-                  <RoleAvatar role={stage.role} size={64} active={false} />
+                  <RoleAvatar role={stage.role} size={40} active={false} />
                 </div>
                 <div className="landing-stage-copy">
                   <h2>{stage.title}</h2>

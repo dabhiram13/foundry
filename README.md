@@ -187,8 +187,10 @@ Playwright 1.63.0). The test app uses fake AI responses, so passing tests show t
 controller and UI work, not that a real AI run will succeed. See
 [evaluation](docs/EVALUATION.md) and [what is and is not proven](docs/VALIDATION.md).
 
-The app uses shadcn components, the Figtree font, Lucide icons, and the role
-portraits. See the [design system](docs/DESIGN-SYSTEM.md).
+The app uses the Soft studio [design system](docs/DESIGN-SYSTEM.md): a powder-blue
+canvas, warm paper workbench, Manrope type, Phosphor icons and the original
+specialist portraits. The top bar keeps products, creation and account controls
+in reach. Work, Documents and Activity share one product desk.
 
 ## Old names
 

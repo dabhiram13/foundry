@@ -737,6 +737,66 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
   The 28 static PNGs are rendered role configurations; the renderer is a build tool,
   not a running application canvas dependency. Full notice: [assets/bots/LICENSE.txt](assets/bots/LICENSE.txt).
 
-The canonical Foundry mark is unchanged. The approved neutral token adaptation
-and public motion references are described in [the design system](../docs/DESIGN-SYSTEM.md).
+The canonical Foundry mark is unchanged. The Soft studio interface uses locally
+bundled Manrope Variable, Phosphor duotone utility icons and the original plush
+specialist portraits. Earlier assets and their notices remain historical. Folk's public
+site informs the visual direction described in [the design system](../docs/DESIGN-SYSTEM.md).
 No Folk assets, paid Pro components, or Transitions recipe source are bundled.
+
+## get-nonce 1.0.1
+
+The already-transitive `get-nonce` is now a direct dependency used to pass a fresh
+document nonce to Radix's scroll-lock stylesheet. No arbitrary inline stylesheet
+permission is added.
+
+MIT License
+
+Copyright (c) 2020 Anton Korzunov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Soft studio foundations
+
+@phosphor-icons/react 2.1.10:
+
+MIT License
+
+Copyright (c) 2020 Phosphor Icons
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+@fontsource-variable/manrope 5.2.6 supplies Manrope Latin variable WOFF2.
+Copyright: Google Inc. Licensed under SIL OFL 1.1; the complete upstream notice
+is retained in [assets/licenses/Manrope-OFL.txt](assets/licenses/Manrope-OFL.txt).

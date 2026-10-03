@@ -8,7 +8,7 @@ root = Path(__file__).resolve().parents[1]
 app = root / 'app'
 esbuild = str(root / 'node_modules/.bin/esbuild')
 tailwind = str(root / 'node_modules/.bin/tailwindcss')
-font_names = [f'figtree-latin-{weight}-normal.woff2' for weight in (400, 500, 600)]
+font_names = ['manrope-latin-wght-normal.woff2']
 
 
 def bundle(source, output, *, tsconfig=False):
@@ -20,7 +20,7 @@ def bundle(source, output, *, tsconfig=False):
 
 
 for name in font_names:
-    source = root / 'node_modules/@fontsource/figtree/files' / name
+    source = root / 'node_modules/@fontsource-variable/manrope/files' / name
     (app / 'assets' / name).write_bytes(source.read_bytes())
 subprocess.run([tailwind, '-i', str(app / 'src/globals.css'), '-o', str(app / 'style.css'),
                 '--minify'], cwd=root, check=True)
@@ -30,6 +30,7 @@ bundle('mcp-entry.js', 'mcp-bridge.js')
 bridge = app / 'mcp-bridge.js'
 try:
     html = (app / 'index.html').read_text()
+    html = html.replace('<meta name="foundry-style-nonce" content="__FOUNDRY_STYLE_NONCE__">\n', '')
     style = (app / 'style.css').read_text()
     asset_data = {}
     mime_types = {'.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2'}

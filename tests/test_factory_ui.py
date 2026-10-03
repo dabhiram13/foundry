@@ -96,6 +96,20 @@ class FactoryUITests(unittest.TestCase):
             self.request('/api/create', {'name':'Blocked','idea':'Blocked','credential_env':{'ACCESS_TOKEN':'blocked'}})
         self.assertEqual(error.exception.code, 400)
 
+    def test_dialog_styles_use_a_fresh_document_nonce_without_allowing_inline_styles(self):
+        nonces = []
+        for _ in range(2):
+            with urlopen(self.url) as response:
+                html = response.read().decode()
+                nonce = re.search(r'name="foundry-style-nonce" content="([A-Za-z0-9_-]+)"', html)[1]
+                policy = response.headers['Content-Security-Policy']
+                self.assertIn(f"style-src 'self' 'nonce-{nonce}';", policy)
+                self.assertNotIn("style-src 'self' 'unsafe-inline'", policy)
+                self.assertIn("script-src 'self';", policy)
+                self.assertNotIn('__FOUNDRY_STYLE_NONCE__', html)
+                nonces.append(nonce)
+        self.assertNotEqual(*nonces)
+
     def test_static_react_bundle_logo_and_font_are_strictly_served(self):
         with urlopen(self.url + '/app.js') as response:
             self.assertEqual(response.headers.get_content_type(), 'text/javascript')
@@ -106,10 +120,10 @@ class FactoryUITests(unittest.TestCase):
             self.assertIn("font-src 'self' data:", response.headers['Content-Security-Policy'])
             self.assertEqual(response.read(),
                              (self.service.root / 'app/assets/foundry-mark.svg').read_bytes())
-        with urlopen(self.url + '/assets/geist-latin-wght-normal.woff2') as response:
+        with urlopen(self.url + '/assets/manrope-latin-wght-normal.woff2') as response:
             self.assertEqual(response.headers.get('Content-Type'), 'font/woff2')
             self.assertEqual(response.read(),
-                             (self.service.root / 'app/assets/geist-latin-wght-normal.woff2').read_bytes())
+                             (self.service.root / 'app/assets/manrope-latin-wght-normal.woff2').read_bytes())
         for asset, mime in [('figtree-latin-400-normal.woff2', 'font/woff2'),
                             ('bots/designer.png', 'image/png')]:
             with urlopen(self.url + '/assets/' + asset) as response:

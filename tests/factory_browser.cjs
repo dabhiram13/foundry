@@ -160,7 +160,7 @@ async function assertNoOverflow(page, label) {
 
     // Account controls are available before a product exists, without live credentials.
     await page.locator('#account-button').click();
-    assert.equal(await page.getByRole('tab', {name:'Runtime', exact:true}).isHidden(), true);
+    assert.equal(await page.getByRole('tab', {name:'AI', exact:true}).isHidden(), true);
     await page.getByRole('button', {name:'Continue with ChatGPT', exact:true}).click();
     await page.getByText(/fixture@example\.test.*plan usage enabled/).waitFor({timeout:10000});
     await page.getByRole('button', {name:'Sign out', exact:true}).click();
@@ -171,39 +171,39 @@ async function assertNoOverflow(page, label) {
 
     // Example actions fill the real composer and create a real product workspace.
     await page.getByRole('button', {name:'Client portal', exact:true}).click();
-    assert.equal(await page.getByLabel('Product name').inputValue(), 'Client portal');
-    assert.match(await page.getByLabel('What should it do?').inputValue(), /approve deliverables/);
-    await page.getByLabel('Product name').fill('Recovery workspace');
-    await page.getByLabel('What should it do?').fill('Help a studio owner keep evidence-backed client decisions and release notes in one local workspace.');
+    assert.equal(await page.getByLabel('Name', {exact:true}).inputValue(), 'Client portal');
+    assert.match(await page.getByLabel('Describe your idea').inputValue(), /approve deliverables/);
+    await page.getByLabel('Name', {exact:true}).fill('Recovery workspace');
+    await page.getByLabel('Describe your idea').fill('Help a studio owner keep evidence-backed client decisions and release notes in one local workspace.');
     await page.getByRole('button', {name:'Create product', exact:true}).click();
     await page.getByRole('heading', {name:'Recovery workspace', exact:true}).waitFor();
     const recoveryId = await page.evaluate(async () => {
       const response = await fetch('/api/snapshot', {headers:{'X-Foundry-Token':document.querySelector('meta[name="foundry-token"]').content}});
       return (await response.json()).projects.find(item => item.name === 'Recovery workspace').id;
     });
-    await page.getByRole('button', {name:'Continue with Research', exact:true}).click();
-    await page.getByRole('button', {name:'Review Scope', exact:true}).waitFor({timeout:30000});
+    await page.getByRole('button', {name:'Start Research', exact:true}).click();
+    await page.getByRole('button', {name:'Review Plan', exact:true}).waitFor({timeout:30000});
 
     // Stage inspection is navigation only: it cannot advance or approve the workflow.
     const stageRail = page.getByRole('list', {name:'Product stages'});
     assert.equal(await stageRail.getByRole('button').count(), 6);
-    assert.equal(await stageRail.locator('[aria-current="step"]').textContent(), '2ScopeYour review');
-    await stageRail.getByRole('button', {name:'Design Upcoming', exact:true}).click();
-    await page.getByRole('heading', {name:'Shape the product experience', exact:true}).waitFor();
+    assert.equal(await stageRail.locator('[aria-current="step"]').textContent(), '2PlanYour review');
+    await stageRail.getByRole('button', {name:'Design Coming up', exact:true}).click();
+    await page.getByRole('heading', {name:'Shape how it works', exact:true}).waitFor();
     assert.equal(await page.locator('#stage-work-panel #actions button').count(), 0, 'Future stage offered execution');
-    assert.match(await page.locator('#owner-guidance').textContent(), /No document saved/);
+    assert.match(await page.locator('#owner-guidance').textContent(), /Nothing here yet/);
     assert.equal(await stageRail.locator('[aria-current="step"]').getAttribute('aria-pressed'), 'false');
-    await stageRail.getByRole('button', {name:'Research Complete', exact:true}).click();
+    await stageRail.getByRole('button', {name:'Research Done', exact:true}).click();
     await page.locator('#stage-work-panel #actions').getByRole('button', {name:'Open Research', exact:true}).click();
     await page.locator('#artifact-content').waitFor();
     assert.equal(await page.locator('#artifact-approve').count(), 0, 'Past stage offered approval');
     await page.getByRole('button', {name:'Close document'}).click();
     await page.locator('#artifact').waitFor({state:'detached'});
-    await stageRail.getByRole('button', {name:'Research Complete', exact:true}).click();
+    await stageRail.getByRole('button', {name:'Research Done', exact:true}).click();
     await page.keyboard.press('Tab');
     assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-current')), 'step');
     await page.keyboard.press('Enter');
-    await page.getByRole('button', {name:'Review Scope', exact:true}).waitFor();
+    await page.getByRole('button', {name:'Review Plan', exact:true}).waitFor();
     const keyboardFocus = await stageRail.locator('[aria-current="step"]').evaluate(el => ({visible:el.matches(':focus-visible'), outline:getComputedStyle(el).outlineWidth}));
     assert.deepEqual(keyboardFocus, {visible:true, outline:'2px'});
     await page.locator('#stage-title').click();
@@ -225,25 +225,25 @@ async function assertNoOverflow(page, label) {
         const response=await route.fetch();documentStarted();await gate;
         await route.fulfill({response});documentFinished();
       },{times:1});
-      await page.getByRole('button',{name:'Review Scope',exact:true}).click();
+      await page.getByRole('button',{name:'Review Plan',exact:true}).click();
       await started;
-      if(navigation==='stage') await stageRail.getByRole('button',{name:'Design Upcoming',exact:true}).click();
+      if(navigation==='stage') await stageRail.getByRole('button',{name:'Design Coming up',exact:true}).click();
       else await page.getByRole('tab',{name:/Documents/}).click();
       releaseDocument();await finished;
       await page.waitForFunction(()=>document.getElementById('main').getAttribute('aria-busy')==='false');
       assert.equal(await page.locator('#artifact').count(),0,`Delayed review reopened after ${navigation} navigation`);
       await page.getByRole('tab',{name:'Overview',exact:true}).click();
-      if(navigation==='stage') await page.getByRole('button',{name:'Back to Scope',exact:true}).click();
-      await page.getByRole('button',{name:'Review Scope',exact:true}).waitFor();
+      if(navigation==='stage') await page.getByRole('button',{name:'Back to Plan',exact:true}).click();
+      await page.getByRole('button',{name:'Review Plan',exact:true}).waitFor();
     }
 
     // Identical two-second polls keep keyboard focus and home/recent navigation works.
-    await page.getByRole('button', {name:'Runtime & specialists', exact:true}).focus();
+    await page.getByRole('button', {name:'Settings', exact:true}).focus();
     await page.waitForTimeout(2300);
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'settings-button', 'Polling replaced the focused control');
     await page.locator('#home-button').click();
     await page.getByText('How Foundry works', {exact:true}).click();
-    await page.getByText('Publishing stays your decision.', {exact:false}).waitFor();
+    await page.getByText('Publishing is always your call.', {exact:false}).waitFor();
     await page.locator('#recent-products').getByRole('button', {name:/Recovery workspace/}).click();
     assert.equal(await page.locator('#heading').textContent(), 'Recovery workspace');
 
@@ -257,11 +257,11 @@ async function assertNoOverflow(page, label) {
         const response=await route.fetch(); documentStarted(); await gate;
         await route.fulfill({response}); documentFinished();
       }, {times:1});
-      await page.getByRole('button', {name:'Review Scope', exact:true}).click();
+      await page.getByRole('button', {name:'Review Plan', exact:true}).click();
       await started;
       if (navigation==='home') await page.locator('#home-button').click();
       else await page.goBack();
-      await page.getByRole('heading', {name:'Your workspace', exact:true}).waitFor();
+      await page.getByRole('heading', {name:'What do you want to build?', exact:true}).waitFor();
       releaseDocument(); await finished;
       await page.getByRole('button', {name:'Create product', exact:true}).waitFor();
       await page.waitForTimeout(350);
@@ -272,7 +272,7 @@ async function assertNoOverflow(page, label) {
 
     // Document rendering is sanitized; Escape and stale approvals are safe.
     fs.appendFileSync(path.join(temp, 'products/recovery-workspace/docs/specs/product.md'), '\n\n<img src=x onerror="window.__unsafe=1">\n<script>window.__unsafe=2</script>\n[Unsafe](javascript:alert(1))\n');
-    await page.getByRole('button', {name:'Review Scope', exact:true}).click();
+    await page.getByRole('button', {name:'Review Plan', exact:true}).click();
     await page.locator('#artifact-content').filter({hasText:'Acceptance criteria'}).waitFor();
     assert.equal(await page.locator('#artifact-content img, #artifact-content script').count(), 0);
     assert.equal(await page.locator('#artifact-content a[href^="javascript:"]').count(), 0);
@@ -281,39 +281,39 @@ async function assertNoOverflow(page, label) {
     await control(page, {op:'append_artifact', id:recoveryId, path:'docs/specs/product.md', text:'\n\nOwner-visible scope clarification added after the review opened.\n'});
     await page.getByRole('button', {name:'Approve and continue', exact:true}).click();
     await page.locator('#artifact-notice:visible').waitFor();
-    assert.equal(await page.locator('#stage-caption').textContent(), 'Scope stage');
+    assert.equal(await page.locator('#stage-caption').textContent(), 'Step 2 · Plan');
     assert.equal(await page.locator('#artifact').isVisible(), true, 'Changed artifact closed instead of requiring review');
     await page.keyboard.press('Escape');
-    await page.waitForFunction(() => document.activeElement?.textContent?.includes('Review Scope'));
-    await page.getByRole('button', {name:'Review Scope', exact:true}).click();
+    await page.waitForFunction(() => document.activeElement?.textContent?.includes('Review Plan'));
+    await page.getByRole('button', {name:'Review Plan', exact:true}).click();
     await control(page, {op:'approve', id:recoveryId});
-    await page.locator('#stage-caption').filter({hasText:'Design stage'}).waitFor({timeout:10000});
+    await page.locator('#stage-caption').filter({hasText:'Step 3 · Design'}).waitFor({timeout:10000});
     await page.getByRole('button', {name:'Approve and continue', exact:true}).click();
     await page.getByText('This review is no longer current.', {exact:false}).waitFor();
-    await page.getByRole('button', {name:'Continue with Design', exact:true}).click();
+    await page.getByRole('button', {name:'Start Design', exact:true}).click();
     await page.getByRole('button', {name:'Review Design', exact:true}).waitFor({timeout:30000});
     await page.getByRole('button', {name:'Review Design', exact:true}).click();
     await page.route('**/api/run', route => route.fulfill({status:503, contentType:'application/json', body:JSON.stringify({error:'Fixture could not start the next stage'})}), {times:1});
     await page.getByRole('button', {name:'Approve and continue', exact:true}).click();
-    await page.getByText('Approved. The next stage could not start:', {exact:false}).waitFor();
+    await page.getByText('Approved, but the next step could not start:', {exact:false}).waitFor();
     await page.locator('#artifact').waitFor({state:'hidden'});
     assert.equal(await page.locator('#artifact').isVisible(), false, 'Successful approval left a stale review dialog open');
-    await page.locator('#stage-caption').filter({hasText:'Build stage'}).waitFor();
+    await page.locator('#stage-caption').filter({hasText:'Step 4 · Build'}).waitFor();
     await control(page, {op:'marker', id:recoveryId, name:'NO_CHECKS'});
-    await page.getByRole('button', {name:'Continue with Build', exact:true}).click();
-    await page.getByRole('button', {name:'Retry this stage', exact:true}).waitFor({timeout:30000});
+    await page.getByRole('button', {name:'Start Build', exact:true}).click();
+    await page.getByRole('button', {name:'Try again', exact:true}).waitFor({timeout:30000});
     assert.ok((await page.locator('#progress').textContent()).trim(), 'Build integration failure was not explained');
     await control(page, {op:'marker', id:recoveryId, name:'NO_CHECKS', present:false});
-    await page.getByRole('button', {name:'Retry this stage', exact:true}).click();
+    await page.getByRole('button', {name:'Try again', exact:true}).click();
     await page.locator('#outputs').filter({hasText:'docs/product/release.md'}).waitFor({timeout:45000});
     assert.equal(await page.locator('#status').textContent(), 'Completed');
-    assert.equal(await page.locator('#completed-count').textContent(), '6 complete');
+    assert.equal(await page.locator('#completed-count').textContent(), '6 of 6 done');
     await page.getByRole('tab', {name:/Documents/}).click();
     await page.locator('#outputs').filter({hasText:'docs/product/release.md'}).waitFor();
     await page.getByRole('tab', {name:/Activity/}).click();
     assert.ok(await page.locator('#activity li').count(), 'Completed product did not expose its activity history');
     await page.getByRole('tab', {name:'Overview', exact:true}).click();
-    await page.getByRole('button', {name:'View release handoff', exact:true}).click();
+    await page.getByRole('button', {name:'Read the ship summary', exact:true}).click();
     await page.locator('#artifact-content').filter({hasText:'Publication and deployment are not authorized'}).waitFor();
     await page.getByRole('button', {name:'Close document'}).click();
     await page.getByRole('button', {name:'Open Research', exact:true}).click();
@@ -321,50 +321,50 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('button', {name:'Close document'}).click();
 
     // Runtime and one specialist persist, a failed save keeps values, and blanks restore inheritance.
-    await page.getByRole('button', {name:'Runtime & specialists'}).click();
-    await page.getByRole('tab', {name:'Runtime', exact:true}).click();
-    await page.getByPlaceholder('Use your runtime default').fill('owner-selected-model');
+    await page.getByRole('button', {name:'Settings', exact:true}).click();
+    await page.getByRole('tab', {name:'AI', exact:true}).click();
+    await page.getByLabel('Model', {exact:true}).fill('owner-selected-model');
     await page.getByLabel('Reasoning', {exact:true}).selectOption('high');
     await page.locator('#adapter').selectOption('fixture-error');
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
     await page.locator('#settings-notice:visible').waitFor();
-    assert.equal(await page.getByPlaceholder('Use your runtime default').inputValue(), 'owner-selected-model');
+    assert.equal(await page.getByLabel('Model', {exact:true}).inputValue(), 'owner-selected-model');
     await page.locator('#adapter').selectOption('fixture');
-    await page.getByRole('tab', {name:'Specialists', exact:true}).click();
+    await page.getByRole('tab', {name:'Roles', exact:true}).click();
     const roleRows = page.locator('.role-row');
     const allRoleCount = await roleRows.count();
-    await page.getByLabel('Find a specialist').fill('backend');
+    await page.getByLabel('Find a role').fill('backend');
     const visibleRoleCount = await page.locator('.role-row:visible').count();
     assert.ok(visibleRoleCount > 0 && visibleRoleCount < allRoleCount, 'Specialist search did not filter');
     await page.getByLabel('Backend', {exact:true}).fill('backend-specialist-model');
     await page.getByLabel('Backend reasoning', {exact:true}).selectOption('medium');
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
-    await page.getByText('Runtime and specialist preferences saved.').waitFor();
-    await page.getByRole('button', {name:'Runtime & specialists'}).click();
-    await page.getByRole('tab', {name:'Runtime', exact:true}).click();
-    assert.equal(await page.getByPlaceholder('Use your runtime default').inputValue(), 'owner-selected-model');
+    await page.getByText('Settings saved.').waitFor();
+    await page.getByRole('button', {name:'Settings', exact:true}).click();
+    await page.getByRole('tab', {name:'AI', exact:true}).click();
+    assert.equal(await page.getByLabel('Model', {exact:true}).inputValue(), 'owner-selected-model');
     assert.equal(await page.getByLabel('Reasoning', {exact:true}).inputValue(), 'high');
-    await page.getByRole('tab', {name:'Specialists', exact:true}).click();
+    await page.getByRole('tab', {name:'Roles', exact:true}).click();
     assert.equal(await page.getByLabel('Backend', {exact:true}).inputValue(), 'backend-specialist-model');
     await page.getByLabel('Backend', {exact:true}).fill('');
     await page.getByLabel('Backend reasoning', {exact:true}).selectOption('');
-    await page.getByRole('tab', {name:'Runtime', exact:true}).click();
-    await page.getByPlaceholder('Use your runtime default').fill('');
+    await page.getByRole('tab', {name:'AI', exact:true}).click();
+    await page.getByLabel('Model', {exact:true}).fill('');
     await page.getByLabel('Reasoning', {exact:true}).selectOption('');
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
-    await page.getByRole('button', {name:'Runtime & specialists'}).click();
-    await page.getByRole('tab', {name:'Runtime', exact:true}).click();
-    assert.equal(await page.getByPlaceholder('Use your runtime default').inputValue(), '');
-    await page.getByRole('tab', {name:'Specialists', exact:true}).click();
+    await page.getByRole('button', {name:'Settings', exact:true}).click();
+    await page.getByRole('tab', {name:'AI', exact:true}).click();
+    assert.equal(await page.getByLabel('Model', {exact:true}).inputValue(), '');
+    await page.getByRole('tab', {name:'Roles', exact:true}).click();
     assert.equal(await page.getByLabel('Backend', {exact:true}).inputValue(), '');
     await page.getByRole('button', {name:'Close settings'}).click();
 
     // A second product proves stop/interrupted/retry and account switching is blocked while running.
     await page.locator('#new-product').click();
-    await page.getByLabel('Product name').fill('Pause recovery');
-    await page.getByLabel('What should it do?').fill('Prepare a reviewed incident brief while letting the owner stop and safely resume long-running work.');
-    assert.equal(await page.getByLabel('Product name').inputValue(), 'Pause recovery', 'Navigation stole focus while entering the brief');
-    assert.equal(await page.getByLabel('What should it do?').inputValue(), 'Prepare a reviewed incident brief while letting the owner stop and safely resume long-running work.');
+    await page.getByLabel('Name', {exact:true}).fill('Pause recovery');
+    await page.getByLabel('Describe your idea').fill('Prepare a reviewed incident brief while letting the owner stop and safely resume long-running work.');
+    assert.equal(await page.getByLabel('Name', {exact:true}).inputValue(), 'Pause recovery', 'Navigation stole focus while entering the brief');
+    assert.equal(await page.getByLabel('Describe your idea').inputValue(), 'Prepare a reviewed incident brief while letting the owner stop and safely resume long-running work.');
     // Hold an older polling snapshot until after creation has returned fresh state.
     let releaseSnapshot, snapshotStarted, snapshotFinished;
     const snapshotGate=new Promise(resolve=>{releaseSnapshot=resolve;});
@@ -397,22 +397,22 @@ async function assertNoOverflow(page, label) {
       return (await response.json()).projects.find(item => item.name === 'Pause recovery').id;
     });
     await control(page, {op:'marker', id:pauseId, name:'SLOW_PROVIDER_ONCE'});
-    await page.getByRole('button', {name:'Continue with Research', exact:true}).click();
-    await page.getByRole('button', {name:'Stop this stage', exact:true}).waitFor();
+    await page.getByRole('button', {name:'Start Research', exact:true}).click();
+    await page.getByRole('button', {name:'Stop', exact:true}).waitFor();
     await page.waitForTimeout(700);
-    await page.getByRole('button', {name:'Runtime & specialists'}).click();
+    await page.getByRole('button', {name:'Settings', exact:true}).click();
     await page.getByRole('tab', {name:'Account', exact:true}).click();
     await page.getByRole('button', {name:'Continue with ChatGPT', exact:true}).click();
     await page.locator('#settings-notice:visible').filter({hasText:'Stop running jobs'}).waitFor();
     await page.getByRole('button', {name:'Close settings'}).click();
-    await page.getByRole('button', {name:'Stop this stage', exact:true}).click();
-    await page.getByRole('button', {name:'Retry this stage', exact:true}).waitFor({timeout:20000});
-    await page.getByRole('button', {name:'Retry this stage', exact:true}).click();
-    await page.getByRole('button', {name:'Review Scope', exact:true}).waitFor({timeout:30000});
+    await page.getByRole('button', {name:'Stop', exact:true}).click();
+    await page.getByRole('button', {name:'Try again', exact:true}).waitFor({timeout:20000});
+    await page.getByRole('button', {name:'Try again', exact:true}).click();
+    await page.getByRole('button', {name:'Review Plan', exact:true}).waitFor({timeout:30000});
     await page.locator('#products').getByRole('button', {name:'Recovery workspace', exact:true}).click();
     assert.equal(await page.locator('#status').textContent(), 'Completed');
     await page.locator('#products').getByRole('button', {name:'Pause recovery', exact:true}).click();
-    assert.equal(await page.locator('#stage-caption').textContent(), 'Scope stage');
+    assert.equal(await page.locator('#stage-caption').textContent(), 'Step 2 · Plan');
 
     // Desktop, tablet, mobile, and narrow embedded-panel widths remain operable.
     const output = path.join(root, 'output/playwright');
@@ -443,7 +443,7 @@ async function assertNoOverflow(page, label) {
         await page.getByRole('button', {name:'Close document'}).click();
         await page.locator('#artifact').waitFor({state:'detached'});
         await page.evaluate(id=>{location.hash='product/'+id;},pauseId);
-        await page.getByRole('button',{name:'Review Scope',exact:true}).click();
+        await page.getByRole('button',{name:'Review Plan',exact:true}).click();
         const approval=page.locator('#artifact-approve');
         await approval.waitFor();
         assert.ok(await approval.evaluate(el=>el.scrollWidth<=el.clientWidth),`${label} approval label overflows`);
@@ -451,7 +451,7 @@ async function assertNoOverflow(page, label) {
         await page.getByRole('button', {name:'Close document'}).click();
         await page.locator('#artifact').waitFor({state:'detached'});
         await page.evaluate(id=>{location.hash='product/'+id;},recoveryId);
-        await page.getByRole('button',{name:'View release handoff',exact:true}).waitFor();
+        await page.getByRole('button',{name:'Read the ship summary',exact:true}).waitFor();
       }
     }
     await page.emulateMedia({reducedMotion:'reduce'});
@@ -479,7 +479,7 @@ async function assertNoOverflow(page, label) {
     await page.reload();
     await page.getByRole('heading', {name:'Recovery workspace', exact:true}).waitFor();
     await page.getByRole('button', {name:'Workspace', exact:true}).click();
-    await page.getByRole('heading', {name:'Your workspace', exact:true}).waitFor();
+    await page.getByRole('heading', {name:'What do you want to build?', exact:true}).waitFor();
     await page.getByRole('button', {name:'Open workspace navigation'}).click();
     await page.locator('#products').getByRole('button', {name:'Recovery workspace', exact:true}).click();
 

@@ -1,6 +1,8 @@
 /* Foundry landing composition; adapts the approved neutral foundation. */
 .landing-page {
   min-height: 100vh;
+  flex: 1;
+  min-width: 0;
   background: var(--foundry-surface);
   color: var(--foundry-text);
   font-family: var(--font-sans);

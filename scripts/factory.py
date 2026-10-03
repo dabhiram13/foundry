@@ -38,6 +38,7 @@ STAGE_ROLES = {
     "verify": ["quality-gate", "api-tester", "flow-tester"],
     "release": ["complete"],
 }
+STAGE_LABELS = {"research": "Research", "scope": "Plan", "design": "Design", "build": "Build", "verify": "Test", "release": "Ship"}
 STAGE_SKILLS = {
     "research": "foundry-discover",
     "scope": "foundry-mvp-spec",
@@ -423,19 +424,19 @@ class Factory:
         artifact = {"research": "docs/product/research.md", "scope": "docs/specs/product.md",
                     "design": "docs/product/design.md", "release": "docs/product/release.md"}.get(stage)
         task = {
-            "research": "Research decision-changing buyer/workflow uncertainty using authorized current search tools. Write dated source URLs, observations, counterevidence, and unknowns; URLs are evidence references, not automatic proof.",
-            "scope": "Write the smallest complete product scope with explicit non-goals and observable acceptance criteria. Do not implement it or call it owner-approved.",
-            "design": "Write the product-specific flow, states, responsive behavior, accessibility, content, and visual direction. Do not implement it or call it owner-approved.",
-            "build": "Implement the approved smallest complete journey. Configure at least one meaningful required product behavior/build check in .foundry/project.json, record active accepted workflow criteria derived from the owner-approved scope through the documented record interface, and run relevant checks. Do not hand-edit runtime state or perform lifecycle transitions.",
-            "verify": "Independently inspect the actual product and its configured checks. Report failures and unverified areas. This is read-only; do not repair files or edit runtime state.",
-            "release": "Prepare a local release-readiness report with verified revision, behavior, recovery, deployment gaps, and unverified integrations. Do not publish, deploy, connect accounts, or claim owner acceptance.",
+            "research": "Find out who has this problem, how they solve it today, and what is still unknown. Use the search tools you are allowed to use. Write each source with its URL and date, what it shows, anything that contradicts it, and open questions. A link is a pointer, not proof.",
+            "scope": "Write the smallest plan that delivers the full idea: who it is for, what is in, what is out, and clear acceptance criteria someone can check. Do not build anything and do not say the owner approved it.",
+            "design": "Describe the screens and steps, empty/loading/error states, mobile layout, accessibility, wording, and visual direction for this product. Do not build anything and do not say the owner approved it.",
+            "build": "Build the smallest complete version of the approved plan. Add at least one real required test or build check to .foundry/project.json. Record the accepted criteria from the approved plan using the documented CLI, then run the relevant checks. Do not hand-edit run state or move the run to another step.",
+            "verify": "Check the real product and its configured tests yourself. Report what fails and what you could not check. Read only: do not fix files or edit run state.",
+            "release": "Write a short ship summary: the tested version, what works, how to recover, what is still needed to deploy, and which integrations were not checked. Do not publish, deploy, connect accounts, or say the owner accepted it.",
         }[stage]
-        return (f"Foundry factory stage: {stage}. Product: {project['name']}.\n"
+        return (f"Foundry step: {STAGE_LABELS[stage]} (stage: {stage}). Product: {project['name']}.\n"
                 f"Read AGENTS.md, docs/WORKFLOW.md, docs/WORKFLOW-CONTRACTS.md, docs/PROVIDERS.md, "
-                f"docs/product/idea.md, and the ${STAGE_SKILLS[stage]} skill. Use only relevant source-owned guidance.\n"
-                f"Suggested native roles: {', '.join(selected)}. The coordinator owns integration and lifecycle transitions.\n"
-                f"{task}\n" + (f"Required durable artifact: {artifact}.\n" if artifact else "") +
-                "Return a concise summary of actual files and checks. A completed turn is not verification, release, deployment, or owner acceptance.")
+                f"docs/product/idea.md, and the ${STAGE_SKILLS[stage]} skill. Use only what is relevant.\n"
+                f"Roles to use: {', '.join(selected)}. You combine their work and own the step.\n"
+                f"{task}\n" + (f"Save the result to: {artifact}.\n" if artifact else "") +
+                "Finish with a short list of the files you changed and the checks you ran. Finishing your turn does not mean the step passed.")
 
     def _billing(self, root: Path, adapter: str) -> dict:
         modes = providers.registry(root)[adapter]["billing_modes"]

@@ -38,9 +38,13 @@ the older rejected mockups.
 | Success / surface | `#166534` / `#F0FDF4` |
 | Warning / surface | `#854D0E` / `#FFFBEB` |
 | Error / surface | `#991B1B` / `#FEF2F2` |
+| Progress accent / surface / line | `#C2410C` / `#FFF4ED` / `#FDBA8C` |
 
-Structural colors, including selection and focus, are achromatic. Status colors
-are paired with words and icons. A decorative divider is not the only visible
+Structural colors, including selection and focus, are achromatic. One warm accent
+(`--foundry-accent`, 5.2:1 on white) marks progress and the owner's turn only: the
+progress bar, the current step marker, the "Needs your review" badge and the
+highlighted next-step band. Do not use it for buttons, links, decoration or
+selection. Status colors are paired with words and icons. A decorative divider is not the only visible
 boundary of a form control. The supplied specification records white-surface
 contrast ratios of 9.29:1 for secondary text, 17.22:1 for primary buttons and
 4.48:1 for functional borders. Disabled controls are visibly inactive, not normal
@@ -64,7 +68,8 @@ workspace/create actions, and discloses the role library as guidance. It contain
 no pricing, testimonials, live metrics, borrowed company logos or autonomy claims.
 The embedded panel opens directly into the workspace.
 
-A 240px desktop sidebar groups actual products. Below 768px it becomes one
+The home page leads with one large idea box, example prompts and a compact name
+field; recent products show a small progress bar. A 240px desktop sidebar groups actual products. Below 768px it becomes one
 Radix Sheet; it is not duplicated in the DOM. Main content is centered, up to
 1200px for product work and 1024px for the idea composer. A compact 200px stage column sits beside one white work panel with a fine border,
 12px radius, clear header, light action band and separated documents. Stage rows
@@ -75,11 +80,13 @@ products remain compact rows. Overview, Documents and Activity use a neutral
 segmented tab group; activity logs remain readable and unanimated.
 
 Research → Scope → Design → Build → Verify → Release is the real state sequence.
+The UI labels these Research → Plan → Design → Build → Test → Ship; internal stage
+ids are unchanged.
 Stage buttons can inspect a past or upcoming stage without changing runtime state.
 No future document is invented. Overview exposes the actual next action, status,
-selected provider and saved evidence. A running indicator means the controller
-reports a real running job. The runtime does not report individual specialist
-activity, so role portraits remain static guidance, not 28 running workers.
+selected provider and saved documents. A running indicator means the controller
+reports a real running job. The panel shows only the roles the controller assigns
+to the viewed step; their portraits respond while that step runs.
 
 Account, runtime and specialist settings retain inheritance and failed-save drafts.
 Document review displays the reviewed revision, sanitized Markdown, and a stable
@@ -87,6 +94,15 @@ approval footer. Approval sends the complete exact digest; stale or changed
 documents are rejected. Navigation invalidates pending document requests.
 Snapshots are ordered by applied response, and periodic polls do not overlap.
 Stop requests are described as requests until the runtime confirms interruption.
+
+## Voice
+
+Write like a helpful colleague: short, plain and confident. Say what happens next
+and who does it. Prefer "step", "plan", "test", "ship summary", "AI engine" and
+"roles" over "stage", "scope", "verify", "release handoff", "runtime" and
+"specialists". Do not use "owner", "gate", "evidence", "receipt", "artifact" or
+"coordinator" in the UI. State a limit once, where it matters, instead of adding
+disclaimers to every screen.
 
 ## Icons and specialist portraits
 

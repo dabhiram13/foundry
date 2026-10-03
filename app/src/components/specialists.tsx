@@ -13,13 +13,7 @@ export type Specialist = {
   avatar: AvatarRecipe;
 };
 
-/**
- * The 28 configured specialist identities, aligned with README.md and .codex/agents.
- * This catalogue describes capabilities, never current availability or execution.
- * Static fabric portraits are rendered from MIT-licensed bot-avatars 0.2.2.
- * Regenerate with scripts/render_bot_assets.cjs; retain app/assets/bots/LICENSE.txt.
- * Literal image paths are intentional: the MCP panel build embeds the same assets.
- */
+/** Role identities; legacy portrait recipes remain for the asset-regeneration tool. */
 export const roleCatalog = [
   { id: 'market-researcher', label: 'Market researcher', description: 'Researches customer segments and alternatives.', group: 'Research and opportunity', stage: 'research', image: '/assets/bots/market-researcher.png', avatar: { type: 'drop', color: '#68BCEF', glasses: 'round' } },
   { id: 'social-signal', label: 'Social signal', description: 'Finds customer pain and purchasing signals.', group: 'Research and opportunity', stage: 'research', image: '/assets/bots/social-signal.png', avatar: { type: 'clover', color: '#A0DBBA', headphones: true } },
@@ -67,7 +61,6 @@ type RoleAvatarProps = {
   decorative?: boolean;
 };
 
-/** No canvas, timers or speculative activity: the caller owns real running state. */
 export function RoleAvatar({ role, size = 36, active = false, className = '', decorative = true }: RoleAvatarProps) {
   const specialist = getSpecialist(role);
   if (!specialist) return null;

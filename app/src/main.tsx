@@ -4,7 +4,8 @@ import { Landing } from '@/components/landing';
 import { RoleAvatar, roleCatalog } from '@/components/specialists';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { ArrowRight, ArrowUpRight, ChevronRight, Check, Circle, CircleAlert, CircleCheck, Clock3, Cpu, FileText, Folder, House, Loader2, Plus, Search, Settings2, ShieldCheck, Square, SquarePen, UserRound, Users, Workflow, X } from 'lucide-react';
+import { setNonce } from 'get-nonce';
+import { ArrowRight, ArrowUpRight, CaretRight as ChevronRight, Check, Circle, WarningCircle as CircleAlert, CheckCircle as CircleCheck, Clock as Clock3, Cpu, FileText, Folder, CircleNotch as Loader2, Plus, MagnifyingGlass as Search, SlidersHorizontal as Settings2, ShieldCheck, Square, NotePencil as SquarePen, UserCircle as UserRound, Users, FlowArrow as Workflow, X, SquaresFour, IconContext } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,9 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
-import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 
 type RoleSettings = {model?: string | null; reasoning?: string | null};
 type Artifact = {path: string; stage: string};
@@ -85,6 +85,20 @@ function markdown(content: string) {
   return template.innerHTML;
 }
 function Feedback({message, id}: {message: Message; id: string}) { return message ? <div id={id} className={`feedback ${message.error ? 'error' : ''}`} role={message.error ? 'alert' : 'status'}>{message.error ? <CircleAlert/> : <CircleCheck/>}<span>{message.text}</span></div> : null; }
+function DocumentPreview({productId, artifact, updatedAt}: {productId:string;artifact:Artifact;updatedAt?:string}) {
+  const [preview, setPreview] = useState<{content?:string;error?:boolean}>({});
+  useEffect(()=>{
+    let alive=true; setPreview({});
+    api('artifact?id='+encodeURIComponent(productId)+'&path='+encodeURIComponent(artifact.path))
+      .then(result=>{if(alive)setPreview({content:markdown(result.content)});})
+      .catch(()=>{if(alive)setPreview({error:true});});
+    return ()=>{alive=false;};
+  },[productId,artifact.path,updatedAt]);
+  return <section className="paper-preview" aria-label={label(artifact.stage)+' preview'} aria-busy={!preview.content&&!preview.error}>
+    <div className="section-label"><h3><FileText aria-hidden="true"/>{label(artifact.stage)} preview</h3><span>Read the full document to approve</span></div>
+    {preview.error?<p className="empty-copy">The preview could not load. Use Review {label(artifact.stage)} to open the document.</p>:preview.content?<article className="document preview-reading" tabIndex={0} aria-label="Document preview, scroll to read" dangerouslySetInnerHTML={{__html:preview.content}}/>:<p role="status" className="preview-loading"><Loader2 className="spinner" aria-hidden="true"/>Opening the document…</p>}
+  </section>;
+}
 function EffortOptions() { return <>{reasoning.map(value => <NativeSelectOption key={value} value={value}>{value || 'Inherit reasoning'}</NativeSelectOption>)}</>; }
 
 function Act({action, busy, children, onClick, variant='default'}: {action:string;busy:string;children:React.ReactNode;onClick:()=>void;variant?:'default'|'outline'|'ghost'}) { return <Button type="button" variant={variant} data-action={action} disabled={!!busy} onClick={onClick}>{busy===action ? <Loader2 className="spinner"/> : null}{children}</Button>; }
@@ -119,7 +133,9 @@ function Workspace() {
   const navigationFocus = useRef<string | null>(null);
   const [navigationTarget,setNavigationTarget] = useState<string | null>(null);
   const settingsFocus = useRef<HTMLElement | null>(null); const artifactFocus = useRef<HTMLElement | null>(null);
-  const {isMobile, setOpenMobile} = useSidebar();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const drawerDestination = useRef<string | null>(null);
+  const [ideaExpanded, setIdeaExpanded] = useState(false);
   const products = snapshot.projects || []; const p = !creating ? products.find(item => item.id === selected) : undefined;
   const account = snapshot.account || {};
   const refresh = useCallback(async () => {
@@ -160,8 +176,8 @@ function Workspace() {
   function inspectStage(stage:string|null) { navigationEpoch.current++; setInspectedStage(stage); }
   function chooseProjectTab(tab:string) { navigationEpoch.current++; setProjectTab(tab); }
   function leavePage() { navigationEpoch.current++; setReview(null); setSettingsOpen(false); }
-  function choose(id: string) { leavePage(); if(location.hash!=='#product/'+encodeURIComponent(id)) {navigationFocus.current='heading';location.hash='product/'+encodeURIComponent(id);} setLanding(false); setInspectedStage(null); setSelected(id); selectedRef.current=id; setCreating(false); setProjectTab('overview'); remember(id); setNotice(null); setOpenMobile(false); setNavigationTarget('heading'); }
-  function home(focus=false) { leavePage(); if(location.hash!=='#workspace') {navigationFocus.current=focus?'name':'heading';location.hash='workspace';} setLanding(false); setCreating(true); setNotice(null); setOpenMobile(false); setNavigationTarget(focus ? 'name' : 'heading'); }
+  function choose(id: string) { drawerDestination.current=navigationOpen?'heading':null; leavePage(); if(location.hash!=='#product/'+encodeURIComponent(id)) {navigationFocus.current='heading';location.hash='product/'+encodeURIComponent(id);} setLanding(false); setInspectedStage(null); setSelected(id); selectedRef.current=id; setCreating(false); setProjectTab('overview'); remember(id); setNotice(null); setNavigationOpen(false); setNavigationTarget('heading'); }
+  function home(focus=false) { drawerDestination.current=navigationOpen?(focus?'name':'heading'):null; leavePage(); if(location.hash!=='#workspace') {navigationFocus.current=focus?'name':'heading';location.hash='workspace';} setLanding(false); setCreating(true); setNotice(null); setNavigationOpen(false); setNavigationTarget(focus ? 'name' : 'heading'); }
   useEffect(()=> {
     const navigate=()=> {
       navigationEpoch.current++; setReview(null); setSettingsOpen(false); setInspectedStage(null); setNotice(null);
@@ -169,7 +185,7 @@ function Workspace() {
       const id=hashProduct();
       if(id) {setSelected(id); selectedRef.current=id; setCreating(false); remember(id);}
       else if(location.hash==='#workspace') setCreating(true);
-      setProjectTab('overview'); setOpenMobile(false);
+      setProjectTab('overview'); setNavigationOpen(false);
       // Explicit navigation already focuses after its render. A later hashchange
       // must not steal focus from a field the owner has started editing.
       const focusId=navigationFocus.current?null:(location.hash==='#welcome'||!location.hash ? 'landing-title' : 'heading');
@@ -178,17 +194,20 @@ function Workspace() {
     };
     window.addEventListener('hashchange', navigate);
     return ()=>window.removeEventListener('hashchange', navigate);
-  }, [setOpenMobile]);
+  }, []);
   useLayoutEffect(()=> {
     if(!navigationTarget) return;
     const target=document.getElementById(navigationTarget);
     if(target) {target.focus();setNavigationTarget(null);}
   },[navigationTarget,landing,creating,selected,snapshot.projects]);
   useEffect(()=>setInspectedStage(null),[p?.id,p?.stage]);
+  useEffect(()=>setIdeaExpanded(false),[p?.id]);
+  useEffect(()=>setNotice(current=>current?.error?current:null),[p?.id,p?.stage,p?.status]);
   async function openSettings(tab='account') {
-    settingsFocus.current=isMobile?document.getElementById('mobile-menu'):document.activeElement as HTMLElement; setSettingsNotice(null); setRoleSearch(''); setSettingsProduct(p?.id || null);
+    const origin=document.activeElement as HTMLElement;
+    settingsFocus.current=origin; setSettingsNotice(null); setRoleSearch(''); setSettingsProduct(p?.id || null);
     setDraft(p ? {adapter:p.adapter||'codex', model:p.model||'', reasoning:p.reasoning||'', roles:structuredClone(p.role_settings||{})} : emptyDraft);
-    setSettingsTab(tab); setOpenMobile(false); setSettingsOpen(true);
+    setSettingsTab(tab); setNavigationOpen(false); setSettingsOpen(true);
     if (account.sharing) { try { setModels(await api('models',{})); } catch(error) {setSettingsNotice({text:(error as Error).message,error:true});} }
   }
   function latest(product: Product, stage: string) { return [...(product.artifacts||[])].reverse().find(item=>item.stage===stage); }
@@ -254,43 +273,58 @@ function Workspace() {
   const providers=[...new Set([...(snapshot.providers||[]).map(roleName), snapshot.projects?.find(item=>item.id===settingsProduct)?.adapter, draft.adapter].filter((value):value is string=>!!value))];
   if(landing) return <Landing onEnter={focus=>home(!!focus)}/>;
   return <>
-    <Sidebar className="workspace-sidebar" collapsible="offcanvas">
-      <SidebarHeader className="workspace-brand"><img src="/assets/foundry-mark.svg" alt="" width="28" height="28"/><div><strong>Foundry</strong><span>Your local product studio</span></div>{isMobile&&<Button className="mobile-nav-close" size="icon" variant="ghost" aria-label="Close workspace navigation" onClick={()=>setOpenMobile(false)}><X/></Button>}</SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup><SidebarGroupContent><SidebarMenu>
-          <SidebarMenuItem><SidebarMenuButton id="home-button" isActive={creating} onClick={()=>home()}><House/><span>Home</span></SidebarMenuButton></SidebarMenuItem>
-          <SidebarMenuItem><SidebarMenuButton id="new-product" onClick={()=>home(true)}><SquarePen/><span>New product</span></SidebarMenuButton></SidebarMenuItem>
-        {!window.foundryBridgePromise&&<SidebarMenuItem><SidebarMenuButton onClick={()=>{leavePage();location.hash='welcome';setLanding(true);}}><Workflow/><span>About Foundry</span></SidebarMenuButton></SidebarMenuItem>}
-        </SidebarMenu></SidebarGroupContent></SidebarGroup>
-        <SidebarGroup><SidebarGroupLabel className="products-label">Products <span id="workspace-count">{products.length}</span></SidebarGroupLabel><SidebarGroupContent><SidebarMenu id="products" aria-label="Products">
-          {products.map(product=><SidebarMenuItem key={product.id}><SidebarMenuButton className="product-link" isActive={product.id===selected&&!creating} aria-current={product.id===selected&&!creating?'page':undefined} onClick={()=>choose(product.id)}><FileText/><span>{product.name}</span></SidebarMenuButton></SidebarMenuItem>)}
-          {!products.length&&<p className="nav-empty">A place for your next idea.</p>}
-        </SidebarMenu></SidebarGroupContent></SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter><SidebarMenu><SidebarMenuItem><SidebarMenuButton id="account-button" className="account-control" onClick={()=>openSettings()}><UserRound/><span>Account &amp; AI<small id="connection-label">{account.sharing?'Using your ChatGPT plan':'Using Codex'}</small></span></SidebarMenuButton></SidebarMenuItem></SidebarMenu></SidebarFooter>
-    </Sidebar>
-    <SidebarInset>
-      <header className="workspace-toolbar"><SidebarTrigger id="mobile-menu" aria-label={isMobile?'Open workspace navigation':'Toggle workspace navigation'}/><Separator orientation="vertical" className="toolbar-divider"/><Breadcrumb><BreadcrumbList><BreadcrumbItem><BreadcrumbLink asChild><button onClick={()=>home()}>Workspace</button></BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator/><BreadcrumbItem><BreadcrumbPage id="current-name">{p?.name||'Home'}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb><span className="local-label"><Folder/>Local</span></header>
+    <div className="workspace-shell">
+      <a className="workspace-skip" href="#main" onClick={event=>{event.preventDefault();document.getElementById('main')?.focus();}}>Skip to work</a>
+      <header className="workspace-topbar">
+        <Button id="home-button" className="studio-brand" variant="ghost" aria-label="Foundry home" onClick={()=>home()}><img src="/assets/foundry-mark.svg" alt="" width="28" height="28"/><strong>Foundry</strong></Button>
+        <nav className="studio-navigation" aria-label="Workspace navigation">
+          <Button id="mobile-menu" variant="ghost" aria-haspopup="dialog" aria-expanded={navigationOpen} aria-controls={navigationOpen?'product-drawer':undefined} onClick={()=>{drawerDestination.current=null;setNavigationOpen(true);}}><SquaresFour aria-hidden="true"/>Your products<span id="workspace-count" className="nav-count" aria-hidden="true">{products.length}</span></Button>
+          <Button id="new-product" variant="ghost" onClick={()=>home(true)}><Plus aria-hidden="true"/>New product</Button>
+          <Button id="account-button" variant="ghost" onClick={()=>openSettings()}><UserRound aria-hidden="true"/>Account &amp; AI<small id="connection-label" className="sr-only">{account.sharing?'Using your ChatGPT plan':'Using Codex'}</small></Button>
+        </nav>
+        <span className="local-label"><Folder aria-hidden="true"/>Saved locally</span>
+      </header>
+      <Sheet open={navigationOpen} onOpenChange={setNavigationOpen}>
+        <SheetContent id="product-drawer" className="product-drawer" side="left" showCloseButton={false} onCloseAutoFocus={event=>{event.preventDefault();document.getElementById(drawerDestination.current||'mobile-menu')?.focus();drawerDestination.current=null;}}>
+          <header className="drawer-heading"><div><SheetTitle>Your products</SheetTitle><SheetDescription>Pick up where you left off.</SheetDescription></div><Button variant="ghost" size="icon" aria-label="Close products" onClick={()=>setNavigationOpen(false)}><X aria-hidden="true"/></Button></header>
+          <ul id="products" className="product-navigation" aria-label="Products">{products.map(product=><li key={product.id}><Button className="product-link" variant="ghost" aria-current={product.id===selected&&!creating?'page':undefined} onClick={()=>choose(product.id)}><Folder aria-hidden="true"/><span>{product.name}</span><ChevronRight aria-hidden="true"/></Button></li>)}</ul>
+          {!products.length&&<p className="nav-empty">Your next idea starts here. Create a product to give it a home.</p>}
+          <footer className="drawer-footer"><Button variant="outline" onClick={()=>home(true)}><Plus aria-hidden="true"/>Create a product</Button>{!window.foundryBridgePromise&&<Button variant="ghost" onClick={()=>{leavePage();setNavigationOpen(false);location.hash='welcome';setLanding(true);}}><Workflow aria-hidden="true"/>About Foundry</Button>}</footer>
+        </SheetContent>
+      </Sheet>
+      <div className="workspace-toolbar"><Breadcrumb><BreadcrumbList><BreadcrumbItem><BreadcrumbLink asChild><button onClick={()=>home()}>Workspace</button></BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator/><BreadcrumbItem><BreadcrumbPage id="current-name">{p?.name||'New product'}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb></div>
       <div id="main" aria-busy={!!busy} className="workspace-main" tabIndex={-1}>
         <div className="page-feedback"><Feedback id="notice" message={notice}/></div>
         {!snapshot.projects?<section className="page loading-state" role="status"><Loader2 className={notice?.error?'':'spinner'} aria-hidden="true"/><h1>{notice?.error?'Your workspace is unavailable':'Opening your workspace'}</h1><p>{notice?.error?'Check the local connection, then try again. Your saved products stay where they are.':'Loading your products.'}</p>{notice?.error&&<Button onClick={()=>perform('refresh',async()=>{})} disabled={!!busy}>Try again</Button>}</section>:!p?<section id="welcome" className="page home-page">
-          <header className="page-heading home-heading"><div><h1 id="heading" tabIndex={-1}>What do you want to build?</h1><p>Describe it in a few sentences. Foundry researches it, plans it with you, then builds and tests it.</p></div><div className="home-bots" aria-hidden="true"><RoleAvatar role="market-researcher" size={48}/><RoleAvatar role="designer" size={48}/><RoleAvatar role="backend" size={48}/></div></header>
+          <div className="idea-desk"><header className="page-heading home-heading"><div><span className="eyebrow"><Folder aria-hidden="true"/>Your local workspace</span><h1 id="heading" tabIndex={-1}>What do you want to build?</h1><p>Start with a problem worth solving. Foundry helps you turn it into a product, one clear step at a time.</p><div className="home-crew" aria-hidden="true">{['market-researcher','planner','designer','backend'].map(role=><RoleAvatar key={role} role={role} size={64}/>)}</div><p className="crew-caption">A little structure. Room for your ideas.</p></div></header>
           <section className="new-product-section surface">
             <form id="create-form" onSubmit={event=>{event.preventDefault();perform('create',async()=>{const product=await api('create',{name,idea});await refresh();setName('');setIdea('');choose(product.id);setNotice({text:'Created. Start research when you are ready.'});});}}>
-              <label htmlFor="idea" className="sr-only">Describe your idea</label>
+              <label htmlFor="idea" className="composer-label"><SquarePen aria-hidden="true"/>Describe your idea</label>
               <Textarea id="idea" name="idea" className="idea-input" value={idea} onChange={e=>setIdea(e.target.value)} placeholder="Who is it for? What problem does it solve? What should the first version do?" rows={5} maxLength={12000} required/>
               <div className="examples"><span>Try</span>{examples.map(([title,text])=><Button key={title} type="button" variant="outline" size="sm" onClick={()=>{setName(title);setIdea(text);document.getElementById('idea')?.focus();}}>{title}</Button>)}</div>
               <div className="brief-submit"><div className="name-field"><label htmlFor="name">Name</label><Input id="name" name="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Untitled product" autoComplete="off" maxLength={80} required/></div><Button type="submit" data-action="create" disabled={!!busy}>{busy==='create'?<Loader2 className="spinner"/>:<Plus/>}Create product</Button></div>
             </form>
-            <p className="brief-note"><Folder aria-hidden="true"/>Each product gets its own folder and Git history on this computer.</p>
+            <p className="brief-note"><ShieldCheck aria-hidden="true"/>Your code, notes and Git history stay on this computer.</p>
           </section>
-          <details className="method"><summary><Workflow/><span>How Foundry works</span><ChevronRight/></summary><ol>{stages.map((stage,index)=><li key={stage}><span>{index+1}</span><strong>{label(stage)}</strong>{['scope','design'].includes(stage)&&<small>You approve</small>}</li>)}</ol><p>You approve the plan and the design. Foundry builds the product, runs its tests, and writes a summary. Publishing is always your call.</p></details>
-          <section id="recent-section" className="recent-section"><div className="section-label"><h2>Products</h2><span>{products.length?`${products.length} total`:'Nothing here yet'}</span></div><div id="recent-products">{[...products].sort((a,b)=>(b.updated_at||b.created_at||'').localeCompare(a.updated_at||a.created_at||'')).slice(0,6).map(product=><Button key={product.id} className="recent-product" variant="ghost" onClick={()=>choose(product.id)}><FileText/><strong>{product.name}</strong><span className="recent-step"><span className="mini-progress" aria-hidden="true"><span style={{width:`${(Math.max(0,stages.indexOf(product.stage))+(product.stage==='release'&&product.status==='completed'&&latest(product,'release')?1:0))/6*100}%`}}/></span>{label(product.stage)}</span><Badge variant="secondary" className="status-badge" data-status={product.status==='completed'&&product.stage!=='release'?'ready':product.status}>{product.status==='completed'&&product.stage!=='release'?'Ready':statusLabel(product.status)}</Badge><ChevronRight/></Button>)}</div>{!products.length&&<div className="empty-state"><Folder aria-hidden="true"/><h3>No products yet</h3><p>Your products will show up here with their progress.</p></div>}</section>
+          </div><details className="method"><summary><Workflow/><span>How Foundry works</span><ChevronRight/></summary><ol>{stages.map((stage,index)=><li key={stage}><span>{index+1}</span><strong>{label(stage)}</strong>{['scope','design'].includes(stage)&&<small>You approve</small>}</li>)}</ol><p>You approve the plan and the design. Foundry builds the product, runs its tests, and writes a summary. Publishing is always your call.</p></details>
+          <section id="recent-section" className="recent-section">
+            <div className="section-label"><h2>Products</h2><span>{products.length?`${products.length} total`:'Nothing here yet'}</span></div>
+            <div id="recent-products">
+              {[...products].sort((a,b)=>(b.updated_at||b.created_at||'').localeCompare(a.updated_at||a.created_at||'')).slice(0,6).map(product=><Button key={product.id} className="recent-product" variant="ghost" onClick={()=>choose(product.id)}>
+                <span className="product-row-icon" aria-hidden="true"><Folder/></span>
+                <strong>{product.name}</strong>
+                <span className="recent-step"><span className="mini-progress" aria-hidden="true"><span style={{width:`${(Math.max(0,stages.indexOf(product.stage))+(product.stage==='release'&&product.status==='completed'&&latest(product,'release')?1:0))/6*100}%`}}/></span>{label(product.stage)}</span>
+                <Badge variant="secondary" className="status-badge" data-status={product.status==='completed'&&product.stage!=='release'?'ready':product.status}>{product.status==='completed'&&product.stage!=='release'?'Ready':statusLabel(product.status)}</Badge>
+                <ChevronRight className="row-arrow" aria-hidden="true"/>
+              </Button>)}
+            </div>
+            {!products.length&&<div className="empty-state"><Folder aria-hidden="true"/><h3>No products yet</h3><p>Your products will show up here with their progress.</p></div>}
+          </section>
         </section>:<section id="project" className="page product-page">
-          <header className="page-heading"><div className="product-heading"><h1 id="heading" tabIndex={-1}>{p.name}</h1><Button id="settings-button" variant="outline" size="sm" onClick={()=>openSettings('runtime')}><Settings2/>Settings</Button></div><p id="idea-summary">{p.idea}</p></header>
+          <header className="page-heading"><div className="product-heading"><h1 id="heading" tabIndex={-1}>{p.name}</h1><Button id="settings-button" variant="outline" size="sm" onClick={()=>openSettings('runtime')}><Settings2/>Settings</Button></div><p id="idea-summary" className={ideaExpanded?'':'idea-summary-collapsed'}>{p.idea}</p>{p.idea.length>180&&<Button className="idea-expand" variant="ghost" size="sm" aria-expanded={ideaExpanded} aria-controls="idea-summary" onClick={()=>setIdeaExpanded(!ideaExpanded)}>{ideaExpanded?'Show less':'Read full idea'}<ChevronRight aria-hidden="true"/></Button>}</header>
           <div className="product-progress" role="progressbar" aria-label="Progress" aria-valuemin={0} aria-valuemax={6} aria-valuenow={finished?6:activeStage}><span style={{width:`${(finished?6:activeStage)/6*100}%`}}/></div>
           <div className="product-properties"><span id="stage-number">Step {activeStage+1} of 6</span><span id="completed-count">{finished?6:activeStage} of 6 done</span><span><Cpu/><b id="project-runtime">{cap(p.adapter||'codex')}</b></span><details><summary><Folder/>Product folder</summary><code id="product-path">{p.path}</code></details></div>
-          <Tabs value={projectTab} onValueChange={chooseProjectTab} className="product-tabs"><TabsList className="page-tabs" style={{'--selected-tab':String(['overview','documents','activity'].indexOf(projectTab))} as React.CSSProperties}><TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="documents">Documents <span>{p.artifacts?.length||0}</span></TabsTrigger><TabsTrigger value="activity">Activity <span id="activity-count">{p.history?.length||0}</span></TabsTrigger></TabsList>
+          <Tabs value={projectTab} onValueChange={chooseProjectTab} className="product-tabs"><TabsList className="page-tabs" style={{'--selected-tab':String(['overview','documents','activity'].indexOf(projectTab))} as React.CSSProperties}><TabsTrigger value="overview"><SquaresFour aria-hidden="true"/>Work</TabsTrigger><TabsTrigger value="documents"><FileText aria-hidden="true"/>Documents <span>{p.artifacts?.length||0}</span></TabsTrigger><TabsTrigger value="activity"><Clock3 aria-hidden="true"/>Activity <span id="activity-count">{p.history?.length||0}</span></TabsTrigger></TabsList>
             <TabsContent value="overview">
               <div className="stage-workspace">
                 <ol id="stages" className="stage-rail" aria-label="Product stages">{stages.map((stage,index)=> {
@@ -303,7 +337,7 @@ function Workspace() {
                     </Button>
                   </li>;
                 })}</ol>
-                <section id="stage-work-panel" className="stage-work-panel surface" aria-labelledby="stage-title">
+                <div className="desk-body"><section id="stage-work-panel" className="stage-work-panel surface" aria-labelledby="stage-title">
                   <header className="next-step-heading"><p id="stage-caption">Step {stages.indexOf(viewedStage)+1} · {label(viewedStage)}</p>{inspecting?<Badge variant="secondary" className="status-badge">{stages.indexOf(viewedStage)<activeStage?'Done':'Coming up'}</Badge>:<StatusBadge id="status" status={p.status} ready={p.status==='completed'&&!finished}/>}</header>
                   <div className="stage-body">
                     <h2 id="stage-title" tabIndex={-1}>{(stageCopy[viewedStage]||stageCopy.research)[0]}</h2>
@@ -319,17 +353,20 @@ function Workspace() {
                     </>}
                   </div>
                   {viewedStage==='build'&&buildTasks.length>0&&<section id="build-tasks" className="build-tasks" aria-labelledby="build-tasks-title"><div className="section-label"><h3 id="build-tasks-title">Tasks</h3><span>{buildTasks.filter(task=>task.status==='done').length} of {buildTasks.length} done</span></div><ol>{buildTasks.map((task,index)=><li key={`${index}-${task.title}`} data-status={task.status}>{task.status==='done'?<CircleCheck aria-hidden="true"/>:task.status==='failed'?<CircleAlert aria-hidden="true"/>:task.status==='working'&&running?<Loader2 className="spinner" aria-hidden="true"/>:<Circle aria-hidden="true"/>}<span><strong>{task.title}</strong><small>{taskNote(task)}</small></span></li>)}</ol></section>}
-                  {documents(p,true)}
+                  {p.status==='awaiting_approval'&&!inspecting&&latest(p,viewedStage)&&<DocumentPreview key={p.id+viewedStage} productId={p.id} artifact={latest(p,viewedStage)!} updatedAt={p.updated_at}/>}
+                  {!latest(p,viewedStage)&&!running&&<p className="work-empty"><FileText aria-hidden="true"/>This step’s work will appear here when it is ready.</p>}
                 </section>
+                <details className="desk-context" open><summary><Users aria-hidden="true"/>People &amp; documents<ChevronRight aria-hidden="true"/></summary><div>              <section className="specialist-section"><div className="section-label"><h3><Users aria-hidden="true"/>For this step</h3><Button variant="ghost" size="sm" onClick={()=>openSettings('specialists')}>Adjust roles<ArrowRight/></Button></div><div className="stage-specialists">{(p.roles?.length?p.roles:stageRoles[viewedStage]||stageRoles.research).map(role=><button key={role} type="button" className="specialist-card" onClick={()=>{openSettings('specialists');setRoleSearch(roleLabel(role));}}><RoleAvatar role={role} size={40} active={!inspecting&&!!running}/><span><strong>{roleLabel(role)}</strong><small>{roleCatalog.find(item=>item.id===role)?.description||'Specialist guidance'}</small></span><ChevronRight aria-hidden="true"/></button>)}</div></section>{documents(p,true)}<section className="context-activity"><div className="section-label"><h3>Latest activity</h3></div>{p.history?.length?<ol>{p.history.slice(-3).reverse().map((entry,index)=><li key={index}><strong>{label(entry.stage)} · {statusLabel(entry.status)}</strong><time dateTime={entry.at}>{stamp(entry.at)}</time></li>)}</ol>:<p className="empty-copy">Your first step starts the story.</p>}</section></div></details>
+                </div>
               </div>
-              <section className="specialist-section"><div className="section-label"><h3><Users aria-hidden="true"/>Who helps with this step</h3><Button variant="ghost" size="sm" onClick={()=>openSettings('specialists')}>Adjust roles<ArrowRight/></Button></div><div className="stage-specialists">{(p.roles?.length?p.roles:stageRoles[viewedStage]||stageRoles.research).map(role=><button key={role} type="button" className="specialist-card" onClick={()=>{openSettings('specialists');setRoleSearch(roleLabel(role));}}><RoleAvatar role={role} size={40} active={!inspecting&&!!running}/><span><strong>{roleLabel(role)}</strong><small>{roleCatalog.find(item=>item.id===role)?.description||'Specialist guidance'}</small></span><ChevronRight aria-hidden="true"/></button>)}</div></section>
+
             </TabsContent>
             <TabsContent value="documents">{documents(p)}</TabsContent>
             <TabsContent value="activity"><section className="activity-section surface"><div className="section-label"><h3>Activity</h3><span>Everything that happened</span></div><ol id="activity" className="activity">{[...(p.history||[])].reverse().map((entry,index)=><li key={`${entry.at}-${index}`}>{entry.status==='failed'?<CircleAlert/>:entry.status==='completed'?<CircleCheck/>:<Clock3/>}<div><strong>{label(entry.stage)} · {statusLabel(entry.status)}</strong><p>{entry.note||'Product record updated.'}</p></div><time dateTime={entry.at}>{stamp(entry.at)}</time></li>)}</ol>{!p.history?.length&&<div className="empty-state"><Clock3/><h3>Nothing yet</h3><p>Each step will be listed here as it runs.</p></div>}</section></TabsContent>
           </Tabs>
         </section>}
       </div>
-    </SidebarInset>
+    </div>
     <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent id="settings" className="settings-dialog" showCloseButton={false} onCloseAutoFocus={event=>{event.preventDefault();if(settingsFocus.current?.isConnected)settingsFocus.current.focus();else document.getElementById('mobile-menu')?.focus();}}>
       <form id="settings-form" onSubmit={saveSettings}><header className="settings-header"><div><DialogTitle id="settings-title">Account &amp; AI</DialogTitle><DialogDescription>Choose which AI does the work and how.</DialogDescription></div><Button type="button" id="close-settings" variant="ghost" size="icon" aria-label="Close settings" onClick={()=>setSettingsOpen(false)}><X/></Button></header><Feedback id="settings-notice" message={settingsNotice}/>
         <Tabs value={settingsTab} onValueChange={setSettingsTab}><TabsList className="settings-tabs"><TabsTrigger id="settings-tab-account" value="account">Account</TabsTrigger>{settingsProduct&&<><TabsTrigger id="settings-tab-runtime" value="runtime">AI</TabsTrigger><TabsTrigger id="settings-tab-specialists" value="specialists">Roles</TabsTrigger></>}</TabsList>
@@ -344,4 +381,6 @@ function Workspace() {
     </DialogContent></Dialog>
   </>;
 }
-createRoot(document.getElementById('root')!).render(<TooltipProvider><SidebarProvider style={{'--sidebar-width':'15rem'} as React.CSSProperties}><Workspace/></SidebarProvider></TooltipProvider>);
+const styleNonce=document.querySelector<HTMLMetaElement>('meta[name="foundry-style-nonce"]')?.content;
+if(styleNonce) setNonce(styleNonce);
+createRoot(document.getElementById('root')!).render(<IconContext.Provider value={{weight:'duotone',size:20}}><TooltipProvider><Workspace/></TooltipProvider></IconContext.Provider>);

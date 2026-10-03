@@ -23,7 +23,7 @@ STATIC_ASSETS = {
     '/app.js': ('app.js', 'text/javascript', False),
     '/style.css': ('style.css', 'text/css', False),
     '/assets/foundry-mark.svg': ('assets/foundry-mark.svg', 'image/svg+xml', True),
-    '/assets/geist-latin-wght-normal.woff2': ('assets/geist-latin-wght-normal.woff2', 'font/woff2', True),
+    '/assets/manrope-latin-wght-normal.woff2': ('assets/manrope-latin-wght-normal.woff2', 'font/woff2', True),
 }
 for _weight in (400, 500, 600):
     _name = f'assets/figtree-latin-{_weight}-normal.woff2'
@@ -151,6 +151,9 @@ def make_server(service, port=0):
             pass
 
         def send(self, status, content, mime='application/json'):
+            style_nonce = secrets.token_urlsafe(24)
+            if mime == 'text/html' and isinstance(content, str):
+                content = content.replace('__FOUNDRY_STYLE_NONCE__', style_nonce)
             if mime == 'application/json':
                 body = json.dumps(content).encode()
             elif isinstance(content, bytes):
@@ -164,7 +167,7 @@ def make_server(service, port=0):
             self.send_header('Cache-Control', 'no-store')
             self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Referrer-Policy', 'no-referrer')
-            self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+            self.send_header('Content-Security-Policy', f"default-src 'self'; script-src 'self'; style-src 'self' 'nonce-{style_nonce}'; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
             self.end_headers()
             self.wfile.write(body)
 

@@ -107,6 +107,7 @@ server.serve_forever()
 
 const server = spawn(python, ['-u', '-c', source, temp], {cwd:root, stdio:['ignore', 'pipe', 'pipe']});
 let browser, page, diagnostics = '';
+const pendingRequests = new Set();
 server.stderr.on('data', chunk => { diagnostics += chunk; });
 
 async function control(page, data) {
@@ -136,8 +137,15 @@ async function assertNoOverflow(page, label) {
     });
     browser = await chromium.launch({headless:true, ...(process.env.MARKETCRAFT_BROWSER_EXECUTABLE ? {executablePath:process.env.MARKETCRAFT_BROWSER_EXECUTABLE} : {})});
     page = await browser.newPage({viewport:{width:1380, height:950}});
+    await page.addInitScript(() => {
+      window.__foundryCspViolations=[];
+      document.addEventListener('securitypolicyviolation', event => window.__foundryCspViolations.push(event.effectiveDirective));
+    });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
+    page.on('request', request => { if(request.url().includes('/api/')) pendingRequests.add(request); });
+    page.on('requestfinished', request => pendingRequests.delete(request));
+    page.on('requestfailed', request => pendingRequests.delete(request));
     // Slow transports must deliver initial state even beyond the two-second poll cadence.
     let initialSnapshots=0;
     const slowInitial=async route=>{
@@ -157,6 +165,27 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('button',{name:'Create product',exact:true}).waitFor({timeout:10000});
     await page.unroute('**/api/snapshot',slowInitial);
     assert.equal(initialSnapshots,1,'Periodic snapshots overlapped on a slow connection');
+
+    // The shared Soft studio system is local, including its font and portraits.
+    await page.locator('#mobile-menu').click();
+    await page.getByRole('button', {name:'About Foundry', exact:true}).click();
+    await page.getByRole('heading', {name:'A good idea. A clear way to build it.', exact:true}).waitFor();
+    await page.evaluate(() => document.fonts.ready);
+    assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /Manrope/);
+    assert.equal(await page.evaluate(() => [...document.fonts].some(font => font.family === 'Manrope' && font.status === 'loaded')), true);
+    assert.ok(await page.locator('img.role-avatar').count() > 0, 'Requested specialist portraits are missing');
+    assert.equal(await page.locator('.role-avatar svg').count(), 0, 'Role glyph replacement is still rendered');
+    await page.getByText('Plan review · example', {exact:true}).waitFor();
+    for (const width of [1280, 768, 390, 360]) {
+      await page.setViewportSize({width, height:900});
+      await assertNoOverflow(page, `Introduction ${width}px`);
+    }
+    await page.setViewportSize({width:1280,height:900});
+    await page.getByRole('button', {name:'Meet all 28 roles', exact:true}).click();
+    assert.equal(await page.locator('.landing-role:visible').count(), 28);
+    await page.getByRole('button', {name:'Show fewer roles', exact:true}).click();
+    await page.getByRole('button', {name:'Open workspace', exact:true}).first().click();
+    await page.getByRole('button', {name:'Create product', exact:true}).waitFor();
 
     // Account controls are available before a product exists, without live credentials.
     await page.locator('#account-button').click();
@@ -207,16 +236,18 @@ async function assertNoOverflow(page, label) {
     const keyboardFocus = await stageRail.locator('[aria-current="step"]').evaluate(el => ({visible:el.matches(':focus-visible'), outline:getComputedStyle(el).outlineWidth}));
     assert.deepEqual(keyboardFocus, {visible:true, outline:'2px'});
     await page.locator('#stage-title').click();
-    await page.waitForFunction(() => getComputedStyle(document.querySelector('#stages [aria-pressed="true"]')).backgroundColor === 'rgb(226, 226, 226)');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('#stages [aria-pressed="true"]')).backgroundColor === 'rgb(255, 254, 250)');
     const selection = await stageRail.locator('[aria-pressed="true"]').evaluate(el => {
       const style=getComputedStyle(el);
-      return {height:el.getBoundingClientRect().height, background:style.backgroundColor, border:style.borderLeftWidth, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
+      return {height:el.getBoundingClientRect().height, background:style.backgroundColor, border:style.borderBottomWidth, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
     });
-    assert.deepEqual(selection, {height:56, background:'rgb(226, 226, 226)', border:'0px', shadow:'none', focus:false, before:'none', after:'none'}, 'Selection has a permanent bar, heavy border or incorrect row size');
+    assert.deepEqual(selection, {height:66, background:'rgb(255, 254, 250)', border:'2px', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the Soft studio underline-selection contract');
     assert.equal(await page.locator('#stage-work-panel .surface').count(), 0, 'Work panel contains nested cards');
+    assert.equal(await page.locator('.page-tabs').evaluate(el => el.scrollHeight <= el.clientHeight), true, 'Product tabs have an unnecessary vertical scrollbar');
 
     // A pending review also belongs to its visible stage and product tab.
     for (const navigation of ['stage','tab']) {
+      await page.locator('.preview-reading').waitFor();
       let releaseDocument, documentStarted, documentFinished;
       const gate=new Promise(resolve=>{releaseDocument=resolve;});
       const started=new Promise(resolve=>{documentStarted=resolve;});
@@ -232,7 +263,7 @@ async function assertNoOverflow(page, label) {
       releaseDocument();await finished;
       await page.waitForFunction(()=>document.getElementById('main').getAttribute('aria-busy')==='false');
       assert.equal(await page.locator('#artifact').count(),0,`Delayed review reopened after ${navigation} navigation`);
-      await page.getByRole('tab',{name:'Overview',exact:true}).click();
+      await page.getByRole('tab',{name:'Work',exact:true}).click();
       if(navigation==='stage') await page.getByRole('button',{name:'Back to Plan',exact:true}).click();
       await page.getByRole('button',{name:'Review Plan',exact:true}).waitFor();
     }
@@ -249,6 +280,7 @@ async function assertNoOverflow(page, label) {
 
     // A delayed document cannot reopen after Home or browser history navigation.
     for (const navigation of ['home', 'back']) {
+      await page.locator('.preview-reading').waitFor();
       let releaseDocument, documentStarted, documentFinished;
       const gate = new Promise(resolve => { releaseDocument=resolve; });
       const started = new Promise(resolve => { documentStarted=resolve; });
@@ -264,7 +296,7 @@ async function assertNoOverflow(page, label) {
       await page.getByRole('heading', {name:'What do you want to build?', exact:true}).waitFor();
       releaseDocument(); await finished;
       await page.getByRole('button', {name:'Create product', exact:true}).waitFor();
-      await page.waitForTimeout(350);
+      await page.waitForFunction(() => document.getElementById('main').getAttribute('aria-busy') === 'false');
       assert.equal(await page.locator('#artifact').count(), 0, `Delayed review reopened after ${navigation}`);
       await page.locator('#recent-products').getByRole('button', {name:/Recovery workspace/}).click();
       await page.waitForFunction(() => document.activeElement?.id==='heading');
@@ -292,6 +324,7 @@ async function assertNoOverflow(page, label) {
     await page.getByText('This review is no longer current.', {exact:false}).waitFor();
     await page.getByRole('button', {name:'Start Design', exact:true}).click();
     await page.getByRole('button', {name:'Review Design', exact:true}).waitFor({timeout:30000});
+    await page.locator('#notice:not(.error)').waitFor({state:'detached'});
     await page.getByRole('button', {name:'Review Design', exact:true}).click();
     await page.route('**/api/run', route => route.fulfill({status:503, contentType:'application/json', body:JSON.stringify({error:'Fixture could not start the next stage'})}), {times:1});
     await page.getByRole('button', {name:'Approve and continue', exact:true}).click();
@@ -307,12 +340,13 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('button', {name:'Try again', exact:true}).click();
     await page.locator('#outputs').filter({hasText:'docs/product/release.md'}).waitFor({timeout:45000});
     assert.equal(await page.locator('#status').textContent(), 'Completed');
+    await page.locator('#notice:not(.error)').waitFor({state:'detached'});
     assert.equal(await page.locator('#completed-count').textContent(), '6 of 6 done');
     await page.getByRole('tab', {name:/Documents/}).click();
     await page.locator('#outputs').filter({hasText:'docs/product/release.md'}).waitFor();
     await page.getByRole('tab', {name:/Activity/}).click();
     assert.ok(await page.locator('#activity li').count(), 'Completed product did not expose its activity history');
-    await page.getByRole('tab', {name:'Overview', exact:true}).click();
+    await page.getByRole('tab', {name:'Work', exact:true}).click();
     await page.getByRole('list', {name:'Product stages'}).getByRole('button', {name:'Build Done', exact:true}).click();
     await page.locator('#build-tasks').filter({hasText:'Build the approved plan'}).waitFor();
     assert.match(await page.locator('#build-tasks').textContent(), /1 of 1 done/);
@@ -413,21 +447,38 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('button', {name:'Try again', exact:true}).waitFor({timeout:20000});
     await page.getByRole('button', {name:'Try again', exact:true}).click();
     await page.getByRole('button', {name:'Review Plan', exact:true}).waitFor({timeout:30000});
+    await page.locator('#product-drawer[data-state="closed"]').waitFor({state:'detached'});
+    if(!await page.locator('#products').isVisible()) await page.locator('#mobile-menu').click();
     await page.locator('#products').getByRole('button', {name:'Recovery workspace', exact:true}).click();
+    await page.locator('#product-drawer').waitFor({state:'detached'});
     assert.equal(await page.locator('#status').textContent(), 'Completed');
+    await page.locator('#product-drawer[data-state="closed"]').waitFor({state:'detached'});
+    if(!await page.locator('#products').isVisible()) await page.locator('#mobile-menu').click();
     await page.locator('#products').getByRole('button', {name:'Pause recovery', exact:true}).click();
+    await page.locator('#product-drawer').waitFor({state:'detached'});
     assert.equal(await page.locator('#stage-caption').textContent(), 'Step 2 · Plan');
 
     // Desktop, tablet, mobile, and narrow embedded-panel widths remain operable.
     const output = path.join(root, 'output/playwright');
     fs.mkdirSync(output, {recursive:true});
+    await page.locator('#product-drawer[data-state="closed"]').waitFor({state:'detached'});
+    if(!await page.locator('#products').isVisible()) await page.locator('#mobile-menu').click();
     await page.locator('#products').getByRole('button', {name:'Recovery workspace', exact:true}).click();
+    await page.locator('#product-drawer').waitFor({state:'detached'});
     await control(page, {op:'append_artifact', id:recoveryId, path:'docs/product/research.md', text:'\n\n## Extended fixture evidence\n' + 'A reviewed local fixture observation keeps the document reader scrollable without representing live research.\n\n'.repeat(30)});
     await page.screenshot({path:path.join(output, 'factory-desktop.png'), fullPage:true});
     for (const [width, height, label] of [[1024,900,'Tablet landscape'], [900,800,'Tablet'], [768,1024,'Tablet portrait'], [480,800,'MCP panel'], [390,844,'Mobile'], [360,760,'Narrow panel']]) {
       await page.setViewportSize({width, height});
       await assertNoOverflow(page, label);
       if (width <= 480) {
+        const settingsTarget=await page.locator('#settings-button').boundingBox();
+        assert.ok(settingsTarget.width>=44&&settingsTarget.height>=44,`${label} Settings target is too small`);
+        await page.locator('#settings-button').click();
+        const closeTarget=await page.getByRole('button',{name:'Close settings',exact:true}).boundingBox();
+        assert.ok(closeTarget.width>=44&&closeTarget.height>=44,`${label} Close settings target is too small`);
+        await page.keyboard.press('Tab');
+        await page.keyboard.press('Escape');
+        await page.waitForFunction(() => document.activeElement?.id === 'settings-button');
         const navigationTarget=await page.locator('#mobile-menu').boundingBox();
         assert.ok(navigationTarget.width>=44&&navigationTarget.height>=44,`${label} navigation target is too small`);
         const breadcrumbTarget=await page.getByRole('button',{name:'Workspace',exact:true}).boundingBox();
@@ -460,20 +511,26 @@ async function assertNoOverflow(page, label) {
     }
     await page.emulateMedia({reducedMotion:'reduce'});
     assert.match(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('color-scheme')), /light/);
-    await page.getByRole('button', {name:'Open workspace navigation'}).click();
-    assert.equal(await page.locator('#products').count(), 1, 'Mobile sidebar duplicated the product navigation');
-    await page.locator('#account-button').click();
-    await page.getByRole('dialog').getByRole('tab', {name:'Account', exact:true}).waitFor();
-    assert.equal(await page.getByRole('dialog').count(), 1, 'Mobile navigation remained open behind settings');
-    await page.getByRole('button', {name:'Close settings'}).click();
-    await page.waitForFunction(() => document.activeElement?.id === 'mobile-menu');
-    await page.getByRole('button', {name:'Open workspace navigation'}).click();
-    await page.getByRole('button', {name:'Close workspace navigation'}).click();
-    await page.waitForFunction(() => document.activeElement?.id === 'mobile-menu');
-    await page.getByRole('button', {name:'Open workspace navigation'}).click();
+    await page.getByRole('button', {name:'Your products'}).click();
+    assert.equal(await page.locator('#products').count(), 1, 'Product drawer duplicated the product navigation');
+    for (const target of await page.locator('.product-drawer .product-link').all()) {
+      const box=await target.boundingBox();
+      assert.ok(box.width>=44&&box.height>=44,'Product drawer target is too small');
+    }
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => document.activeElement?.id === 'mobile-menu');
-    await page.getByRole('button', {name:'Open workspace navigation'}).click();
+    await page.locator('#account-button').click();
+    await page.getByRole('dialog').getByRole('tab', {name:'Account', exact:true}).waitFor();
+    assert.equal(await page.getByRole('dialog').count(), 1, 'Product navigation remained open behind settings');
+    await page.getByRole('button', {name:'Close settings'}).click();
+    await page.waitForFunction(() => document.activeElement?.id === 'account-button');
+    await page.getByRole('button', {name:'Your products'}).click();
+    await page.getByRole('button', {name:'Close products'}).click();
+    await page.waitForFunction(() => document.activeElement?.id === 'mobile-menu');
+    await page.getByRole('button', {name:'Your products'}).click();
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.activeElement?.id === 'mobile-menu');
+    await page.getByRole('button', {name:'Your products'}).click();
     const sheetBackdrop = page.locator('[data-slot="sheet-overlay"]');
     await sheetBackdrop.click({position:{x:(await sheetBackdrop.boundingBox()).width - 24, y:420}});
     await sheetBackdrop.waitFor({state:'detached'});
@@ -484,7 +541,8 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('heading', {name:'Recovery workspace', exact:true}).waitFor();
     await page.getByRole('button', {name:'Workspace', exact:true}).click();
     await page.getByRole('heading', {name:'What do you want to build?', exact:true}).waitFor();
-    await page.getByRole('button', {name:'Open workspace navigation'}).click();
+    await page.getByRole('button', {name:'Your products'}).click();
+    if(!await page.locator('#products').isVisible()) await page.locator('#mobile-menu').click();
     await page.locator('#products').getByRole('button', {name:'Recovery workspace', exact:true}).click();
 
     // The same app controller routes through the MCP Apps bridge without HTTP API calls.
@@ -516,9 +574,11 @@ async function assertNoOverflow(page, label) {
     await bridgeContext.close();
 
     assert.deepEqual(errors, []);
+    assert.deepEqual(await page.evaluate(() => window.__foundryCspViolations), [], 'Dialogs or navigation violated the content security policy');
     console.log('Factory browser journey passed: account simulation, examples, two products, provider failure/retry, stop/retry, stale review defense, sanitized documents, release, settings recovery and inheritance, responsive/keyboard/reduced-motion checks, persistence, and MCP bridge routing. No live inference or credentials.');
     if (process.env.FOUNDRY_KEEP_BROWSER_FIXTURE) console.log(`Fixture preserved at ${temp}`);
   } catch (error) {
+    console.error('Pending API requests:', [...pendingRequests].map(request => new URL(request.url()).pathname));
     if (page) { await page.screenshot({path:'/tmp/foundry-ui-failure.png',fullPage:true}).catch(()=>{}); console.error('UI failure state:', await page.locator('body').innerText().catch(()=>'')); }
     throw error;
   } finally {

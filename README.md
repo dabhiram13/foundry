@@ -39,11 +39,25 @@ them somewhere else, and `--port 8766` to use another port.
 | Research | Who has this problem, what they use today, what is unknown | Foundry |
 | Plan | Who it is for, what is in and out, how you will know it works | **You approve** |
 | Design | Screens, steps, empty and error states, mobile layout | **You approve** |
-| Build | Code for the approved plan, plus at least one real test | Foundry |
+| Build | Splits the plan into small tasks; builds, tests, and saves a Git checkpoint for each | Foundry |
 | Test | Runs the product's tests and reports anything it could not check | Foundry |
 | Ship | A short summary of what was built, tested, and still missing | You publish |
 
 If the plan or design changes after you approve it, Foundry asks you again.
+
+### How Build works
+
+1. Foundry asks the AI for a short task list (3 to 8 tasks) and saves it to
+   `docs/product/tasks.md`.
+2. It builds **one task per turn**. After each task it runs the product's required
+   checks.
+3. If a check fails, Foundry sends the failing output back to the AI to fix, up to
+   **3 tries**. If it still fails, Foundry stops and shows you which task failed.
+   **Try again** picks up from that task.
+4. Each finished task is saved as a Git commit (`Foundry build task 2: ...`) in the
+   product's own repository, so you can see or undo any step.
+
+The Build step on the product page lists the tasks and shows which one is running.
 
 ## How it works
 

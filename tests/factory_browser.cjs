@@ -313,6 +313,10 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('tab', {name:/Activity/}).click();
     assert.ok(await page.locator('#activity li').count(), 'Completed product did not expose its activity history');
     await page.getByRole('tab', {name:'Overview', exact:true}).click();
+    await page.getByRole('list', {name:'Product stages'}).getByRole('button', {name:'Build Done', exact:true}).click();
+    await page.locator('#build-tasks').filter({hasText:'Build the approved plan'}).waitFor();
+    assert.match(await page.locator('#build-tasks').textContent(), /1 of 1 done/);
+    await page.getByRole('button', {name:'Back to Ship', exact:true}).click();
     await page.getByRole('button', {name:'Read the ship summary', exact:true}).click();
     await page.locator('#artifact-content').filter({hasText:'Publication and deployment are not authorized'}).waitFor();
     await page.getByRole('button', {name:'Close document'}).click();

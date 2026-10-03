@@ -7,12 +7,12 @@ import { RoleAvatar, roleCatalog } from '@/components/specialists';
 type LandingProps = { onEnter: (create?: boolean) => void };
 
 const landingStages = [
-  { id: 'research', label: 'Research', role: 'market-researcher', specialist: 'Market researcher', title: 'Understand the problem.', description: 'Explore the people, alternatives, and assumptions behind your idea before deciding what to build.', output: 'Research notes and a clearer direction', review: false },
-  { id: 'scope', label: 'Scope', role: 'planner', specialist: 'Planner', title: 'Choose a useful first version.', description: 'Set the boundaries, priorities, and acceptance criteria. Review the exact scope document before the work continues.', output: 'A scope you have reviewed and approved', review: true },
-  { id: 'design', label: 'Design', role: 'designer', specialist: 'Designer', title: 'Give the idea a clear shape.', description: 'Work through the journeys and design decisions. Your approval of the exact design document unlocks the build.', output: 'Journeys and an approved design direction', review: true },
-  { id: 'build', label: 'Build', role: 'backend', specialist: 'Backend', title: 'Make the agreed product.', description: 'Your selected runtime works from the approved decisions, with relevant specialist guidance and a separate product workspace.', output: 'Product code, documents, and implementation work', review: false },
-  { id: 'verify', label: 'Verify', role: 'quality-gate', specialist: 'Quality gate', title: 'Ask for the evidence.', description: 'Run the configured product checks and inspect the saved results. Failed or missing evidence stops progress.', output: 'Current check results and saved evidence', review: false },
-  { id: 'release', label: 'Release', role: 'complete', specialist: 'Complete', title: 'Take the next step, deliberately.', description: 'Review the local build record and handoff. You decide where and when to publish the product.', output: 'A local handoff, ready for your review', review: false },
+  { id: 'research', label: 'Research', role: 'market-researcher', specialist: 'Market researcher', title: 'Understand the problem.', description: 'Find out who has this problem, what they use today, and what is still unknown.', output: 'Research notes', review: false },
+  { id: 'scope', label: 'Plan', role: 'planner', specialist: 'Planner', title: 'Pick the first version.', description: 'A short plan: who it is for, what is in and out, and how you will know it works. Nothing is built until you approve it.', output: 'A plan you approved', review: true },
+  { id: 'design', label: 'Design', role: 'designer', specialist: 'Designer', title: 'Give the idea a clear shape.', description: 'Sketch the screens, steps, and edge cases. You approve the design before the build starts.', output: 'A design you approved', review: true },
+  { id: 'build', label: 'Build', role: 'backend', specialist: 'Backend', title: 'Build it.', description: 'The AI writes the code from your plan and design, in a separate folder with its own Git history.', output: 'Working code', review: false },
+  { id: 'verify', label: 'Test', role: 'quality-gate', specialist: 'Quality gate', title: 'Make sure it works.', description: 'Run the product’s real tests. If they fail, Foundry stops and tells you why.', output: 'Test results', review: false },
+  { id: 'release', label: 'Ship', role: 'complete', specialist: 'Complete', title: 'Ship when you are ready.', description: 'Read a summary of what was built and tested. You decide where and when to publish.', output: 'A ship summary', review: false },
 ] as const;
 
 const featuredRoleIds = ['market-researcher', 'designer', 'architect', 'backend', 'quality-gate', 'security-auditor', 'connector', 'flow-tester'];
@@ -44,7 +44,7 @@ export function Landing({ onEnter }: LandingProps) {
           </a>
           <nav className="landing-nav" aria-label="Introduction">
             <Button variant="ghost" onClick={() => scrollToSection('landing-workflow')}>How it works</Button>
-            <Button variant="ghost" onClick={() => scrollToSection('landing-specialists')}>The specialists</Button>
+            <Button variant="ghost" onClick={() => scrollToSection('landing-specialists')}>The roles</Button>
           </nav>
           <Button variant="outline" className="landing-workspace-link" onClick={() => onEnter()}>
             Open workspace <ArrowRight aria-hidden="true" />
@@ -55,20 +55,20 @@ export function Landing({ onEnter }: LandingProps) {
       <main id="landing-main" tabIndex={-1}>
         <section className="landing-shell landing-hero" aria-labelledby="landing-title">
           <div className="landing-hero-copy">
-            <p className="landing-eyebrow"><Workflow aria-hidden="true" /> Your local software factory</p>
+            <p className="landing-eyebrow"><Workflow aria-hidden="true" /> Your local product studio</p>
             <h1 id="landing-title" tabIndex={-1}>A good idea.<br />A clear way<br className="landing-title-break" /> to build it.</h1>
-            <p className="landing-intro">Bring the idea. Shape the decisions. Build with a workspace that keeps the research, code, and evidence together.</p>
+            <p className="landing-intro">Describe an idea. Foundry researches it, plans it with you, builds it, and tests it, all on your computer.</p>
             <div className="landing-hero-actions">
               <Button size="lg" className="landing-primary" onClick={() => onEnter(true)}>Start a product <ArrowRight aria-hidden="true" /></Button>
               <Button variant="ghost" size="lg" onClick={() => scrollToSection('landing-workflow')}>See how it works <ArrowDown aria-hidden="true" /></Button>
             </div>
-            <p className="landing-local-note"><Laptop aria-hidden="true" /> Your direction. Your local workspace.</p>
+            <p className="landing-local-note"><Laptop aria-hidden="true" /> Runs on your computer. Your code stays yours.</p>
           </div>
 
           <div className="landing-guide" id="landing-workflow" tabIndex={-1}>
             <div className="landing-guide-heading">
               <span><Workflow aria-hidden="true" /> Explore the workflow</span>
-              <span className="landing-guide-caption">Six connected stages</span>
+              <span className="landing-guide-caption">Six steps</span>
             </div>
             <Tabs defaultValue="research" className="landing-stage-tabs">
               <TabsList className="landing-stage-list" aria-label="Explore the six Foundry stages">
@@ -85,10 +85,10 @@ export function Landing({ onEnter }: LandingProps) {
                   <h2>{stage.title}</h2>
                   <p>{stage.description}</p>
                 </div>
-                <div className="landing-stage-output"><FileText aria-hidden="true" /><span><small>What moves forward</small>{stage.output}</span></div>
+                <div className="landing-stage-output"><FileText aria-hidden="true" /><span><small>You get</small>{stage.output}</span></div>
                 <div className="landing-stage-footer">
-                  <span>{stage.specialist} guidance</span>
-                  {stage.review ? <span className="landing-owner-gate"><LockKeyhole aria-hidden="true" /> Your approval</span> : <span className="landing-guide-note">Workflow guide</span>}
+                  <span>Led by the {stage.specialist.toLowerCase()}</span>
+                  {stage.review ? <span className="landing-owner-gate"><LockKeyhole aria-hidden="true" /> Your approval</span> : <span className="landing-guide-note">Automatic</span>}
                 </div>
               </TabsContent>)}
             </Tabs>
@@ -98,24 +98,24 @@ export function Landing({ onEnter }: LandingProps) {
         <section className="landing-principles" aria-labelledby="landing-principles-title">
           <div className="landing-shell">
             <div className="landing-section-heading">
-              <p className="landing-eyebrow">Room for the whole process</p>
-              <h2 id="landing-principles-title">Less scattered work.<br />More considered progress.</h2>
+              <p className="landing-eyebrow">How it feels</p>
+              <h2 id="landing-principles-title">You make the calls.<br />Foundry does the work.</h2>
             </div>
             <div className="landing-principle-grid">
               <article className="landing-principle">
                 <FileText aria-hidden="true" />
-                <h3>The decisions stay with the work.</h3>
-                <p>Each product has its own code, documents, settings, and evidence. Return to the context behind what you are building.</p>
+                <h3>Everything in one folder.</h3>
+                <p>Each product has its own code, notes, settings, and test results, so you can always see why something was built.</p>
               </article>
               <article className="landing-principle">
                 <LockKeyhole aria-hidden="true" />
-                <h3>You approve the important turns.</h3>
-                <p>Review the exact scope and design before continuing. If the document changes, the decision comes back to you.</p>
+                <h3>You approve the big decisions.</h3>
+                <p>Read the plan and the design before anything is built. If either changes, Foundry asks you again.</p>
               </article>
               <article className="landing-principle">
                 <FileCheck2 aria-hidden="true" />
-                <h3>Progress comes with evidence.</h3>
-                <p>Configured checks and saved results support the handoff. A completion message alone cannot pass verification.</p>
+                <h3>Done means tested.</h3>
+                <p>A step only counts as finished when the product’s real tests pass. Saying “done” is not enough.</p>
               </article>
             </div>
           </div>
@@ -124,12 +124,12 @@ export function Landing({ onEnter }: LandingProps) {
         <section id="landing-specialists" className="landing-shell landing-specialists" tabIndex={-1} aria-labelledby="landing-specialists-title">
           <div className="landing-specialists-heading">
             <div className="landing-section-heading">
-              <p className="landing-eyebrow">Different perspectives. One product.</p>
-              <h2 id="landing-specialists-title">Meet the<br />specialist bench.</h2>
+              <p className="landing-eyebrow">The team</p>
+              <h2 id="landing-specialists-title">Meet the<br />roles.</h2>
             </div>
             <div className="landing-specialists-intro">
-              <p>Research, design, implementation, and a second look. Foundry includes {roleCatalog.length} role configurations to guide the work that your product needs.</p>
-              <p className="landing-specialists-note">The coordinator selects relevant roles. Available roles are not a count of running agents; execution depends on your selected runtime.</p>
+              <p>Research, design, building, and a second pair of eyes. Foundry has {roleCatalog.length} roles and picks the ones each step needs.</p>
+              <p className="landing-specialists-note">Roles are instructions for the AI, not separate apps. You can pick a model for each one in settings.</p>
             </div>
           </div>
           <div className="landing-role-grid" aria-label="Featured specialist roles">
@@ -152,16 +152,16 @@ export function Landing({ onEnter }: LandingProps) {
             <Button variant="outline" className="landing-roster-toggle" aria-expanded={showAllRoles} aria-controls="landing-more-roles" onClick={() => setShowAllRoles(value => !value)}>
               {showAllRoles ? 'Show fewer roles' : `Meet all ${roleCatalog.length} roles`}<ChevronDown aria-hidden="true" className={showAllRoles ? 'is-open' : ''} />
             </Button>
-            <span>Specialist settings live with each product.</span>
+            <span>Role settings are saved per product.</span>
           </div>
         </section>
 
         <section className="landing-start" aria-labelledby="landing-start-title">
           <div className="landing-shell landing-start-inner">
             <div>
-              <p className="landing-eyebrow"><Sparkles aria-hidden="true" /> Begin with the useful part</p>
+              <p className="landing-eyebrow"><Sparkles aria-hidden="true" /> Start small</p>
               <h2 id="landing-start-title">What do you want to make?</h2>
-              <p>A name and an idea are enough to open your next workspace.</p>
+              <p>A name and a few sentences are enough.</p>
             </div>
             <Button size="lg" className="landing-primary" onClick={() => onEnter(true)}>Start a product <ArrowRight aria-hidden="true" /></Button>
           </div>
@@ -170,7 +170,7 @@ export function Landing({ onEnter }: LandingProps) {
 
       <footer className="landing-shell landing-footer">
         <span className="landing-footer-brand"><img src="/assets/foundry-mark.svg" width="24" height="24" alt="" /> Foundry</span>
-        <p>From an idea to a local handoff. The next move is yours.</p>
+        <p>From idea to tested product, on your computer.</p>
         <Button variant="ghost" onClick={() => onEnter()}>Open workspace <ArrowRight aria-hidden="true" /></Button>
       </footer>
     </div>

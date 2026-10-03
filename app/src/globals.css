@@ -67,6 +67,9 @@
   --foundry-warning-bg: #FFFBEB;
   --foundry-error: #991B1B;
   --foundry-error-bg: #FEF2F2;
+  --foundry-accent: #C2410C;
+  --foundry-accent-bg: #FFF4ED;
+  --foundry-accent-line: #FDBA8C;
   --radius-inner: 6px;
   --radius-control: 10px;
   --radius-container: 12px;

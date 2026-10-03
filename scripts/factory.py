@@ -704,28 +704,17 @@ class Factory:
         folder.mkdir(parents=True, exist_ok=True)
         failures = []
         for check in items:
+            self._raise_if_cancelled(self._project(identifier))
             log = folder / f"{check['name']}.log"
-            process = subprocess.Popen(check["command"], cwd=foundry.within(root, check.get("cwd", ".")),
-                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
-            deadline = time.monotonic() + check.get("timeout", 120)
-            output, status = b"", None
-            while status is None:
-                try:
-                    output, _ = process.communicate(timeout=0.2)
-                    status = "passed" if process.returncode == 0 else "failed"
-                except subprocess.TimeoutExpired:
-                    if self._cancel_requested(root, identifier):
-                        providers._stop_group(process)
-                        process.communicate()
-                        raise InterruptedError("Lifecycle cancellation requested")
-                    if time.monotonic() > deadline:
-                        providers._stop_group(process)
-                        output, _ = process.communicate()
-                        status = "timed_out"
-            text = foundry.redact(output.decode(errors="replace"))
-            foundry.atomic_text(log, text)
-            if status != "passed":
-                failures.append({"name": check["name"], "status": status, "log": text[-4000:]})
+            receipt, interrupted = foundry.run_check(
+                root, check, log, cancel_requested=lambda: self._cancel_requested(root, identifier))
+            if interrupted:
+                raise InterruptedError("Lifecycle cancellation requested")
+            if receipt["status"] != "passed":
+                text = log.read_text(encoding="utf-8", errors="replace")
+                if receipt.get("test_report_error"):
+                    text += "\nTest report: " + receipt["test_report_error"]
+                failures.append({"name": check["name"], "status": receipt["status"], "log": text[-4000:]})
         return failures, None
 
     def _checkpoint(self, root: Path, message: str) -> str | None:

@@ -9,6 +9,7 @@ import textwrap
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,6 +141,74 @@ class FactoryTests(unittest.TestCase):
 
     def use_task_fake(self):
         self.fake.write_text(textwrap.dedent(TASK_FAKE), encoding="utf-8")
+
+    def test_task_checks_validate_fresh_reports_and_counts(self):
+        project = self.create()
+        root = Path(project["path"])
+        producer = (
+            "import json, os; from pathlib import Path; "
+            "p=Path(os.environ['FOUNDRY_TEST_REPORT']); p.parent.mkdir(parents=True,exist_ok=True); "
+            "p.write_text(json.dumps({'run_id':os.environ['FOUNDRY_CHECK_ID'],'tests':COUNTS}))"
+        )
+        for counts, passed in ((dict(executed=1, passed=1, failed=0, skipped=0), True),
+                               (dict(executed=0, passed=0, failed=0, skipped=0), False),
+                               (dict(executed=1, passed=0, failed=1, skipped=0), False),
+                               (dict(executed=1, passed=1, failed=0, skipped=1), False)):
+            with self.subTest(counts=counts):
+                check = {"name": "report", "command": [sys.executable, "-c", producer.replace("COUNTS", repr(counts))],
+                         "test_report": "reports/tests.json"}
+                with patch.object(factory_module.foundry, "checks", return_value=[check]):
+                    failures, missing = self.factory._run_checks(project["id"], root, "report")
+                self.assertIsNone(missing)
+                self.assertEqual(failures == [], passed)
+                if failures:
+                    self.assertIn("Test report", failures[0]["log"])
+        stale = {"name": "stale", "command": [sys.executable, "-c", "pass"], "test_report": "reports/tests.json"}
+        with patch.object(factory_module.foundry, "checks", return_value=[stale]):
+            failures, _ = self.factory._run_checks(project["id"], root, "stale")
+        self.assertEqual(failures[0]["status"], "failed")
+        self.assertIn("identify this execution", failures[0]["log"])
+
+    def test_missing_task_check_command_enters_bounded_fix_loop(self):
+        project = self.create()
+        root = Path(project["path"])
+        tasks = [{"title": "Set up tests", "status": "working"}]
+        check = {"name": "missing", "command": [str(root / "missing-executable")]}
+        with patch.object(factory_module.foundry, "checks", return_value=[check]), \
+                patch.object(self.factory, "_dispatch") as dispatch:
+            with self.assertRaisesRegex(Error, "Checks still fail after 3 fix attempts: missing"):
+                self.factory._check_and_fix(project["id"], root, tasks, tasks[0], True, None, None)
+        self.assertEqual(dispatch.call_count, 3)
+        self.assertEqual(tasks[0]["status"], "failed")
+        logs = list((root / factory_module.TASK_CHECKS).glob("*/missing.log"))
+        self.assertEqual(len(logs), 4)
+        self.assertTrue(all("missing-executable" in log.read_text() for log in logs))
+
+    def test_cancel_during_build_check_can_retry_without_restart(self):
+        self.fake.write_text(textwrap.dedent(FAKE).replace(
+            "import time; time.sleep(30)",
+            "import time; from pathlib import Path; time.sleep(30) if Path('SLEEP_NOW').exists() else None"))
+        project = self.advance_to_build(self.create("Cancelable Build"))
+        root = Path(project["path"])
+        (root / "SLOW_CHECK").write_text("fixture")
+        (root / "SLEEP_NOW").write_text("fixture")
+        outcome = []
+        worker = threading.Thread(target=lambda: outcome.append(self.factory.run(project["id"])), daemon=True)
+        worker.start()
+        deadline = time.monotonic() + 8
+        while time.monotonic() < deadline:
+            if list((root / factory_module.TASK_CHECKS).glob("*")):
+                break
+            time.sleep(0.05)
+        else:
+            self.fail("build check did not start")
+        self.factory.cancel(project["id"])
+        worker.join(8)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(outcome[0]["status"], "interrupted")
+        (root / "SLEEP_NOW").unlink()
+        retried = self.factory.run(project["id"])
+        self.assertEqual((retried["stage"], retried["status"]), ("verify", "completed"))
 
     def test_build_runs_small_tasks_with_checks_fixes_and_checkpoints(self):
         self.use_task_fake()

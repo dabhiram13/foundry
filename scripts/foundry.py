@@ -369,7 +369,7 @@ def declared_revisions(root, check):
     return revisions
 
 
-def run_check(root, check, log):
+def run_check(root, check, log, cancel_requested=None):
     command = check["command"]
     started = now()
     clock = time.monotonic()
@@ -385,7 +385,21 @@ def run_check(root, check, log):
         proc = subprocess.Popen(command, cwd=within(root, check.get("cwd", ".")),
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True,
                                 env=environment)
-        output, _ = proc.communicate(timeout=check.get("timeout", 120))
+        if cancel_requested is None:
+            output, _ = proc.communicate(timeout=check.get("timeout", 120))
+        else:
+            deadline = clock + check.get("timeout", 120)
+            while True:
+                if cancel_requested():
+                    raise KeyboardInterrupt
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(command, check.get("timeout", 120))
+                try:
+                    output, _ = proc.communicate(timeout=min(0.2, remaining))
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
         code, status = proc.returncode, "passed" if proc.returncode == 0 else "failed"
     except (subprocess.TimeoutExpired, KeyboardInterrupt) as exc:
         interrupted = isinstance(exc, KeyboardInterrupt)

@@ -121,6 +121,9 @@ available through the installed Node project CLI; it does **not** replace the
 public launcher, browser UI or MCP service, and it refuses to mutate Python-owned
 workspaces. Plan and Design require exact-revision owner approvals; Test requires
 a validated read-only review and Ship remains local with publication unauthorized.
+The first Build task bootstraps required checks and an explicit approved-criterion
+mapping; the installed journey is covered with a local fake provider, not a live
+provider qualification.
 See the [preview boundaries](docs/specs/typed-runtime-preview.md) and
 [migration plan](docs/specs/typed-foundry.md). No migration or faster-performance
 claim is implied by the language change. Products built with Foundry can use any

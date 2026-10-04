@@ -770,7 +770,21 @@ export async function complete(rootInput: string): Promise<number> {
         const ref = await readJson<{ run_id?: string; state?: string }>(within(root, '.foundry/state/last-completed.json'));
         if (ref.state) {
           const completed = runStateSchema.parse(await readJson(within(root, ref.state)));
-          if (completed.status === 'completed' && completed.run_id === ref.run_id) return 0;
+          if (completed.status === 'completed' && completed.run_id === ref.run_id) {
+            const factory = await readFactoryState(root);
+            if (factory) {
+              if (factory.lifecycle_run_id !== completed.run_id || !completed.verification) {
+                throw new FoundryError('Factory controller does not own this completed lifecycle run');
+              }
+              await assertFactoryShipGate(
+                root,
+                completed.run_id,
+                completed.verification,
+                await workspaceRevision(root, typeof completed.built_doc === 'string' ? [completed.built_doc] : []),
+              );
+            }
+            return 0;
+          }
         }
       }
       throw new FoundryError('No active run. Use start SLUG --spec PATH.');
@@ -783,7 +797,12 @@ export async function complete(rootInput: string): Promise<number> {
       if (factory.lifecycle_run_id !== current.run_id) {
         throw new FoundryError('Factory controller does not own this lifecycle run');
       }
-      await assertFactoryShipGate(root, current.run_id, current.verification, await workspaceRevision(root));
+      await assertFactoryShipGate(
+        root,
+        current.run_id,
+        current.verification,
+        await workspaceRevision(root, current.completion?.path ? [current.completion.path] : []),
+      );
     }
     let state = current;
     if (state.status !== 'completed') {
@@ -831,6 +850,18 @@ export async function recover(rootInput: string): Promise<RunState | null> {
   return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
     const [statePath, state] = await requireActive(root);
     if (state.status === 'completed') {
+      const factory = await readFactoryState(root);
+      if (factory) {
+        if (factory.lifecycle_run_id !== state.run_id || !state.verification) {
+          throw new FoundryError('Factory controller does not own this completed lifecycle run');
+        }
+        await assertFactoryShipGate(
+          root,
+          state.run_id,
+          state.verification,
+          await workspaceRevision(root, typeof state.built_doc === 'string' ? [state.built_doc] : []),
+        );
+      }
       await atomicJson(root, '.foundry/state/last-completed.json', {
         run_id: state.run_id,
         state: statePath,
@@ -840,6 +871,19 @@ export async function recover(rootInput: string): Promise<RunState | null> {
     }
     if (state.status === 'completing') {
       try {
+        const factory = await readFactoryState(root);
+        if (factory) {
+          if (factory.lifecycle_run_id !== state.run_id || !state.verification) {
+            throw new FoundryError('Factory controller does not own this completing lifecycle run');
+          }
+          const intent = state.completion as { path?: string } | undefined;
+          await assertFactoryShipGate(
+            root,
+            state.run_id,
+            state.verification,
+            await workspaceRevision(root, intent?.path ? [intent.path] : []),
+          );
+        }
         await completionEvidence(root, state);
         const intent = state.completion as { path: string; text: string; completed_at: string };
         const output = await readFile(within(root, intent.path), 'utf8').catch((error: NodeJS.ErrnoException) => {

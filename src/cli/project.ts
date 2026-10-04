@@ -264,10 +264,12 @@ async function providersCommand(arguments_: string[]): Promise<number> {
 
 async function factoryCommand(arguments_: string[]): Promise<number> {
   const requested = action(arguments_);
-  if (requested === 'help' || requested === '--help' || !requested) {
+  const first = arguments_[0];
+  if (requested === 'help' || first === '--help' || first === '-h' || !arguments_.length) {
     process.stdout.write(`${factoryHelp()}\n`);
     return 0;
   }
+  if (!requested) throw new FoundryError('Unknown factory option. Use --help.');
   const spec = FACTORY_SPECS[requested];
   if (!spec) throw new FoundryError('Usage: project factory init|configure|status|run|review|approve|cancel|recover');
   const { options } = parse(arguments_.slice(1), spec);

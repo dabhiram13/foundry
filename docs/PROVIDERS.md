@@ -49,6 +49,20 @@ local summary after configured checks, final verification and validated read-onl
 review; publication remains unauthorized. See the
 [TypeScript preview boundary](specs/typed-runtime-preview.md).
 
+The installed workspace may start with no required checks. Before the first Build
+check, its first implementation task must add product source and real required
+checks, then map every approved Plan ID exactly once in
+`docs/product/checks.json`:
+
+```json
+{"schema_version":1,"criteria":[{"id":"AC-001","check_name":"behavior"}]}
+```
+
+Each mapped check declares `docs/specs/product.md` among its inputs. The controller
+freezes check name, command and inputs independently from the Plan-pinned workflow
+criterion. This mapping is explicit local configuration, not proof of semantic
+coverage or live provider qualification.
+
 ## Two different contracts
 
 | Kind | Responsibility | Not established by a successful result |

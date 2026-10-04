@@ -6,7 +6,15 @@ The CLI can install the compiled runtime into a new workspace, inspect project s
 
 The controller uses the existing lifecycle, workflow, provider and role contracts. It runs Research → Plan → Design → Build → Test → Ship, with exact-revision owner approvals for Plan and Design, bounded build/check/repair work, and a final read-only provider review validated against frozen criteria, hashed evidence, the final verification receipt and workspace revision. Ship writes a local controller summary only; publication remains `not_authorized`. A provider's successful turn alone never advances the controller.
 
-Before Build, the controller freezes each active accepted required Verify criterion, including its exact ID, expected text and configured check name, command and inputs. Builder changes to the ledger or check mapping fail closed. Review evidence is hashed from file bytes after review and revalidated again before Ship.
+The task-planning turn may create `docs/product/tasks.md` while the installed project still has `checks: []`. The first implementation task must create or change product source, configure real required checks, and write `docs/product/checks.json` with exact, unique coverage of the approved Plan IDs:
+
+```json
+{"schema_version":1,"criteria":[{"id":"AC-001","check_name":"behavior"}]}
+```
+
+Each mapped check must be required, declare inputs, and include `docs/specs/product.md`. The controller freezes its name, command, and check inputs separately from the workflow criterion contract inputs (pinned to the Plan). The mapping and configured checks cannot silently change after freeze. This records the declared check-to-criterion relationship; a passing command is not proof that it semantically satisfies the requirement.
+
+Review evidence is read from bounded regular files, hashed from their bytes after review, and revalidated before Ship. The reviewer receives the strict review JSON contract and is asked to report `pass`, `fail`, `unverified`, and blockers honestly. Lifecycle completion and recovery also enforce the Factory review gate when controller state exists.
 
 The default `./foundry` launcher, Python controller/server, browser UI and MCP paths remain on the existing Python runtime. This is not a cutover, and there is no automatic migration command. ChatGPT execution is unsupported by the TypeScript preview. Provider registry entries describe declared metadata, not qualification or proof that a sandbox is enforced. Factory adapters must support tools, JSONL, cancellation and permissions; Factory allows local billing or explicitly confirmed subscription billing, never API billing. Explicit model and reasoning preferences are preserved.
 
@@ -19,18 +27,23 @@ outside the repository. Do not point this at an existing Python-owned project.
 
 ```sh
 npm run build:runtime
-node dist/runtime/project.cjs --help
 preview=$(mktemp -d "$HOME/foundry-preview.XXXXXX")
 node dist/runtime/project.cjs install --source . --target "$preview"
-node "$preview/.foundry/runtime/project.cjs" status --project "$preview"
-node "$preview/.foundry/runtime/project.cjs" workflow guide --project "$preview"
-node "$preview/.foundry/runtime/project.cjs" factory --help
+cli="$preview/.foundry/runtime/project.cjs"
+node "$cli" status --project "$preview"
+node "$cli" workflow guide --project "$preview"
+node "$cli" factory --help
 ```
 
 These commands install local files and read status/guidance. They do not connect
-an account or start an AI run. `factory init` is a separate opt-in; it records
-workspace settings but does not execute a provider. The copied runtime needs
-Node.js 24, not Python or the framework checkout's `node_modules`.
+an account or start an AI run. After registering a supported local adapter in
+the workspace's `.foundry/providers.json`, `node "$cli" factory init --name
+"My product" --idea "A local product idea" --adapter ADAPTER_NAME` records the
+opt-in controller settings; `node "$cli" factory status` shows the next action.
+The installed test journey covers an empty-check workspace, two product-changing
+tasks and local Ship using a fake provider. No live provider run is claimed as
+tested. The copied runtime needs Node.js 24, not Python or the framework
+checkout's `node_modules`.
 
 ## Interrupted installation
 

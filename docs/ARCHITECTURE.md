@@ -15,9 +15,18 @@ workflow, provider and role contracts. It is not a replacement for the Python
 launcher, server, browser UI or MCP, and Python and TypeScript workspaces must not
 be written by both runtimes; there is no automatic state migration.
 
-The preview does not qualify live providers or enforce their advertised
-capabilities, port the public Python surfaces, or authorize publication. Those
-migrations and qualifications remain outstanding before any launcher change.
+Build can begin from the installer's empty required-check list: task planning is
+separate from the first implementation task, which must add product source, real
+required checks, and an explicit `docs/product/checks.json` mapping for every
+approved Plan criterion. Mapped checks must declare `docs/specs/product.md` as
+an input. Frozen check settings remain distinct from the Plan-pinned workflow
+criterion contract. Completion and recovery preserve the same Test review gate;
+Ship creates only a local summary.
+
+The preview does not qualify live providers or prove their advertised
+capabilities are enforced, port the public Python surfaces, or authorize
+publication. Those migrations and qualifications remain outstanding before
+any launcher change.
 See the [preview](specs/typed-runtime-preview.md) and
 [full migration scope](specs/typed-foundry.md).
 

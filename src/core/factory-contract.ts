@@ -1,4 +1,5 @@
-import { lstat, readFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { open } from 'node:fs/promises';
 import { z } from 'zod';
 import {
   atomicJson, digest, exists, FoundryError, within,
@@ -9,6 +10,7 @@ export const FACTORY_STATE = '.foundry/state/factory/controller.json';
 export const FACTORY_LOCK = '.foundry/state/factory/controller.lock';
 export const FACTORY_CANCEL = '.foundry/state/factory/cancel.json';
 export const FACTORY_CANCEL_LOCK = '.foundry/state/factory/cancel.lock';
+export const FACTORY_CHECKS = 'docs/product/checks.json';
 const MAX_CONTROLLER_BYTES = 4 * 1024 * 1024;
 
 export const FACTORY_STAGES = ['research', 'scope', 'design', 'build', 'verify', 'release'] as const;
@@ -50,12 +52,26 @@ const evidenceDigestSchema = z.object({
 }).strict();
 const workflowCriterionSchema = z.object({
   id: z.string().regex(/^[A-Za-z][A-Za-z0-9_.-]{0,79}$/),
+  approved_id: z.string().regex(/^[A-Z][A-Z0-9_-]{1,63}$/),
   expected: z.string().trim().min(1).max(10_000),
+  criterion_inputs: z.array(projectPathSchema).min(1).max(100),
   check_name: z.string().min(1).max(128),
   command: z.array(z.string().min(1).max(1024)).min(1).max(128),
-  inputs: z.array(projectPathSchema).max(100),
+  check_inputs: z.array(projectPathSchema).min(1).max(100),
   fingerprint: sha256Schema,
 }).strict();
+const checkMappingSchema = z.object({
+  schema_version: z.literal(1),
+  criteria: z.array(z.object({
+    id: z.string().regex(/^[A-Z][A-Z0-9_-]{1,63}$/),
+    check_name: z.string().regex(/^[A-Za-z0-9_-]+$/),
+  }).strict()).min(1).max(200),
+}).strict().superRefine((value, context) => {
+  const ids = value.criteria.map((criterion) => criterion.id);
+  if (new Set(ids).size !== ids.length) {
+    context.addIssue({ code: 'custom', message: 'Check mapping contains duplicate approved criteria' });
+  }
+});
 const reviewBindingSchema = z.object({
   provider_task_id: z.string().uuid(),
   provider_status: z.literal('completed'),
@@ -115,6 +131,7 @@ const controllerSchema = z.object({
     plan: sha256Schema.nullable(),
     design: sha256Schema.nullable(),
     tasks: sha256Schema.nullable(),
+    checks: sha256Schema.nullable(),
   }).strict(),
   workflow_criteria: z.array(workflowCriterionSchema).max(200),
   build_tasks: z.array(taskSchema).max(12),
@@ -126,7 +143,7 @@ const controllerSchema = z.object({
   }).strict().nullable(),
   failure: z.object({
     stage: z.enum(FACTORY_STAGES),
-    code: z.enum(['provider', 'artifact', 'check', 'review', 'canceled', 'recovery']),
+    code: z.enum(['provider', 'artifact', 'check', 'mapping', 'review', 'canceled', 'recovery']),
     message: z.string().min(1).max(300),
     at: z.string().min(1).max(64),
   }).strict().nullable(),
@@ -135,6 +152,7 @@ const controllerSchema = z.object({
 export type FactoryState = z.infer<typeof controllerSchema>;
 export type FactoryApproval = z.infer<typeof approvalSchema>;
 export type FactoryReviewBinding = z.infer<typeof reviewBindingSchema>;
+export type FactoryCheckMapping = z.infer<typeof checkMappingSchema>;
 
 export const factoryShipSchema = z.object({
   schema_version: z.literal(1),
@@ -169,17 +187,45 @@ export async function writeFactoryState(root: string, state: FactoryState): Prom
 
 export async function readBoundedBytes(root: string, relative: string, limit = 8 * 1024 * 1024): Promise<Buffer> {
   const absolute = within(root, relative);
-  let info;
+  let handle: Awaited<ReturnType<typeof open>> | undefined;
   try {
-    info = await lstat(absolute);
+    const flags = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0);
+    handle = await open(absolute, flags);
+    const info = await handle.stat();
+    if (!info.isFile()) throw new FoundryError(`Required document is not a regular file: ${relative}`);
+    const chunks: Buffer[] = [];
+    let total = 0;
+    while (total <= limit) {
+      const chunk = Buffer.alloc(Math.min(64 * 1024, limit + 1 - total));
+      const { bytesRead } = await handle.read(chunk, 0, chunk.length, null);
+      if (!bytesRead) break;
+      chunks.push(chunk.subarray(0, bytesRead));
+      total += bytesRead;
+      if (total > limit) throw new FoundryError(`Document exceeds the bounded read limit: ${relative}`);
+    }
+    return Buffer.concat(chunks, total);
   } catch (error) {
+    if (error instanceof FoundryError) throw error;
+    const code = error as NodeJS.ErrnoException;
+    if (code.code === 'ELOOP' || code.code === 'ENOTDIR') {
+      throw new FoundryError(`Required document is not a regular file: ${relative}`, { cause: error });
+    }
     throw new FoundryError(`Required document is unavailable: ${relative}`, { cause: error });
+  } finally {
+    await handle?.close().catch(() => undefined);
   }
-  if (!info.isFile() || info.isSymbolicLink()) throw new FoundryError(`Required document is not a regular file: ${relative}`);
-  if (info.size > limit) throw new FoundryError(`Document exceeds the bounded read limit: ${relative}`);
-  const bytes = await readFile(absolute);
-  if (bytes.length > limit) throw new FoundryError(`Document exceeds the bounded read limit: ${relative}`);
-  return bytes;
+}
+
+export async function readCheckMapping(root: string): Promise<{
+  value: FactoryCheckMapping;
+  bytes: Buffer;
+}> {
+  const bytes = await readBoundedBytes(root, FACTORY_CHECKS, 256 * 1024);
+  try {
+    return { value: checkMappingSchema.parse(JSON.parse(bytes.toString('utf8'))), bytes };
+  } catch (error) {
+    throw new FoundryError(`Factory check mapping is malformed: ${(error as Error).message}`, { cause: error });
+  }
 }
 
 export async function readBoundedText(root: string, relative: string, limit = 8 * 1024 * 1024): Promise<{
@@ -229,7 +275,8 @@ export async function assertFactoryShipGate(
   const preparingShip = allowMissingSummary
     && (state.status === 'reviewed' || state.status === 'running')
     && state.ship === null;
-  if ((!preparingShip && state.status !== 'shipping') || state.stage !== 'release' || state.lifecycle_run_id !== runId) {
+  if ((!preparingShip && !['shipping', 'completed'].includes(state.status))
+    || state.stage !== 'release' || state.lifecycle_run_id !== runId) {
     throw new FoundryError('Factory Ship review gate is not ready for this lifecycle run');
   }
   const planApproval = state.approvals.plan;

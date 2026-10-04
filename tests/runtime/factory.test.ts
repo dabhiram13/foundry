@@ -7,8 +7,11 @@ import { test } from 'node:test';
 import {
   approveFactory, cancelFactory, configureFactory, initFactory, recoverFactory, reviewFactory, runFactory, statusFactory,
 } from '../../src/core/factory.js';
-import { FACTORY_LOCK, readFactoryState, reviewEvidenceDigests } from '../../src/core/factory-contract.js';
-import { complete as lifecycleComplete } from '../../src/core/lifecycle.js';
+import {
+  FACTORY_LOCK, readBoundedBytes, readFactoryState, reviewEvidenceDigests,
+} from '../../src/core/factory-contract.js';
+import { installWorkspace } from '../../src/core/install.js';
+import { complete as lifecycleComplete, recover as lifecycleRecover } from '../../src/core/lifecycle.js';
 import { digest, withProcessLock } from '../../src/core/fs.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -21,17 +24,7 @@ async function project(providerMode = 'success', checkPass = true, hangingCheck 
   await mkdir(path.join(root, 'docs/specs'), { recursive: true });
   await writeFile(path.join(root, '.foundry/project.json'), JSON.stringify({
     name: 'factory fixture',
-    checks: [{
-      name: 'behavior',
-      command: [process.execPath, '-e', hangingCheck
-        ? `const {spawn}=require('node:child_process');const fs=require('node:fs');const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});fs.writeFileSync('check-started',String(child.pid));setInterval(()=>{},1000);`
-        : checkPass ? 'process.stdout.write("verified")' : 'process.exit(1)'],
-      cwd: '.',
-      timeout: 10,
-      required: true,
-      inputs: ['docs/specs/product.md'],
-      environment: [],
-    }],
+    checks: [],
   }));
   await writeFile(path.join(root, '.foundry/runtime.json'), JSON.stringify({
     schema_version: 1, runtime: 'typescript', runtime_version: '1',
@@ -55,6 +48,8 @@ const path=require('node:path');
 const crypto=require('node:crypto');
 const {spawn}=require('node:child_process');
 const mode=process.argv[2]||'success';
+const fixtureCheckPass=${JSON.stringify(checkPass)};
+const fixtureHangingCheck=${JSON.stringify(hangingCheck)};
 let input='';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data',chunk=>input+=chunk);
@@ -69,6 +64,14 @@ process.stdin.on('end',()=>{
     setInterval(()=>{},1000);
     return;
   }
+  if(mode==='research-hang'&&prompt.includes('current stage is Research')&&!fs.existsSync('.foundry/state/factory/research-retried')){
+    write('docs/product/research.md','# Partial Research\\n\\nSource: https://example.test/partial\\n');
+    fs.writeFileSync('.foundry/state/factory/research-retried','1');
+    const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});
+    fs.writeFileSync('provider-child-started',String(child.pid));
+    setInterval(()=>{},1000);
+    return;
+  }
   if(prompt.includes('current stage is Research')){
     write('docs/product/research.md','# Research\\n\\nSource: https://example.test/research\\n');
   }else if(prompt.includes('current stage is Plan')){
@@ -77,11 +80,47 @@ process.stdin.on('end',()=>{
     write('docs/product/design.md','# Design\\n\\nThe local product has a clear verified state.\\n');
   }else if(prompt.includes('current stage is Build')){
     if(prompt.includes('Create docs/product/tasks.md')){
-      write('docs/product/tasks.md','- [ ] Implement the local feature\\n');
+      write('docs/product/tasks.md',prompt.includes('Factory workspace: Installed journey.')
+        ? '- [ ] Implement the local feature\\n- [ ] Add a second behavior\\n'
+        : mode.startsWith('workflow-')
+          ? '- [ ] Implement the local feature\\n- [ ] Continue after bootstrap\\n'
+          : '- [ ] Implement the local feature\\n');
+    }else if(prompt.includes('first implementation turn')){
+      if(!prompt.includes('first implementation turn: create or change non-test product source')
+        ||!prompt.includes('configure a real required check in .foundry/project.json')
+        ||!prompt.includes('write docs/product/checks.json')) throw new Error('first-task bootstrap instructions missing');
+      const plan=fs.readFileSync('docs/specs/product.md','utf8');
+      const feature=plan.includes('A changed local behavior is checked')
+        ? 'verified changed local behavior' : 'verified local feature';
+      write('src/product.js','module.exports = { feature: '+JSON.stringify(feature)+' };\\n');
+      if(prompt.includes('Factory workspace: Installed journey.')) write('src/second.js','module.exports = { behavior: "pending" };\\n');
+      const checkCommand=fixtureHangingCheck
+        ? [process.execPath,'-e',"const fs=require('node:fs');if(fs.existsSync('.foundry/state/factory/check-pass'))process.exit(0);const {spawn}=require('node:child_process');const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});fs.writeFileSync('check-started',String(child.pid));setInterval(()=>{},1000);"]
+        : [process.execPath,'-e',fixtureCheckPass
+          ? "const fs=require('node:fs');const product=require('./src/product.js');if(!['verified local feature','verified changed local behavior'].includes(product.feature))process.exit(1);if(fs.existsSync('src/second.js')){const second=require('./src/second.js');if(!['pending','verified second behavior'].includes(second.behavior))process.exit(1);}"
+          : 'process.exit(1)'];
+      write('.foundry/project.json',JSON.stringify({name:'factory fixture',checks:[{
+        name:'behavior',
+        command:checkCommand,
+        cwd:'.',timeout:10,required:true,inputs:prompt.includes('Factory workspace: Installed journey.')
+          ? ['docs/specs/product.md','src/product.js','src/second.js'] : ['docs/specs/product.md','src/product.js'],environment:[]
+      },...(mode==='extra-required-check'?[{
+        name:'style',command:[process.execPath,'-e','process.exit(0)'],cwd:'.',timeout:10,required:true,
+        inputs:['src/other.txt'],environment:[]
+      }]:[])]}));
+      if(mode==='extra-required-check')write('src/other.txt','local style input\\n');
+      write('docs/product/checks.json',JSON.stringify({schema_version:1,criteria:[{id:mode==='bad-mapping'?'AC-999':'AC-001',check_name:'behavior'}]}));
+    }else if(prompt.includes('Add a second behavior')){
+      write('src/second.js','module.exports = { behavior: "verified second behavior" };\\n');
     }else{
-      write('src/product.txt','verified local feature\\n');
+      const plan=fs.readFileSync('docs/specs/product.md','utf8');
+      const feature=plan.includes('A changed local behavior is checked')
+        ? 'verified changed local behavior' : 'verified local feature';
+      write('src/product.js','module.exports = { feature: '+JSON.stringify(feature)+' };\\n');
     }
-    if(mode.startsWith('workflow-')){
+    if(mode.startsWith('workflow-')
+      &&!prompt.includes('Create docs/product/tasks.md')
+      &&!prompt.includes('first implementation turn')){
       const ledgerPath='docs/project/marketcraft.json';
       const ledger=JSON.parse(fs.readFileSync(ledgerPath,'utf8'));
       const index=ledger.records.findIndex(item=>item.kind==='criterion'&&item.stage==='verify'&&item.required===true);
@@ -116,6 +155,18 @@ process.stdin.on('end',()=>{
       write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] Reworded without approval\\n');
     }
   }else if(prompt.includes('current stage is Test')){
+    if(request.permissions?.sandbox!=='read-only') throw new Error('review provider was not read-only');
+    if(!prompt.includes('"schema_version": 1')||!prompt.includes('"status": "pass|fail|unverified"')
+      ||!prompt.includes('"plan_revision"')||!prompt.includes('"workspace_revision"')
+      ||!prompt.includes('"observation"')||!prompt.includes('"path": "project-relative/path"')
+      ||!prompt.includes('"id": "AC-001"')
+      ||!prompt.includes('"sha256": "64 lowercase hex characters"')
+      ||!prompt.includes('"blockers"')||!prompt.includes('Report every blocker')) throw new Error('review contract missing from prompt');
+    const receiptPath=prompt.split('\\n').find(line=>line.startsWith('Final verification receipt: '))?.slice('Final verification receipt: '.length);
+    const receiptHash=prompt.split('\\n').find(line=>line.startsWith('Final verification receipt SHA-256: '))?.slice('Final verification receipt SHA-256: '.length);
+    if(!receiptPath||!receiptHash||crypto.createHash('sha256').update(fs.readFileSync(receiptPath)).digest('hex')!==receiptHash) {
+      throw new Error('reviewer did not receive the exact verification receipt and hash');
+    }
     const lines=prompt.split('\\n');
     const planRevision=lines.find(line=>line.startsWith('Plan revision: ')).slice('Plan revision: '.length);
     const workspaceRevision=lines.find(line=>line.startsWith('Tested workspace revision: ')).slice('Tested workspace revision: '.length);
@@ -271,6 +322,39 @@ test('factory does not accept a builder that drops or rewords an approved criter
   assert.equal(state?.build_tasks.length, 0);
 });
 
+test('owner reapproval rebuilds a criterion under the same approved ID without replacing ledger history', async () => {
+  const root = await project();
+  await advanceToBuild(root, 'Criterion reapproval');
+  await runFactory(root);
+  const originalState = await readFactoryState(root);
+  const originalCriterion = originalState?.workflow_criteria[0];
+  assert.equal(originalCriterion?.approved_id, 'AC-001');
+  const originalLedger = JSON.parse(await readFile(path.join(root, 'docs/project/marketcraft.json'), 'utf8')) as JsonRecord;
+  const originalRecords = originalLedger.records as JsonRecord[];
+  const originalRecord = originalRecords.find((record) => record.id === originalCriterion?.id);
+  assert.ok(originalRecord);
+  await writeFile(path.join(root, 'docs/specs/product.md'),
+    '# Product plan\n\n## Acceptance criteria\n- [AC-001] A changed local behavior is checked\n');
+  await assert.rejects(runFactory(root), /Owner approval is required/);
+  const plan = await reviewFactory(root, 'plan');
+  await approveFactory(root, 'plan', String(plan.revision));
+  await runFactory(root);
+  const design = await reviewFactory(root, 'design');
+  await approveFactory(root, 'design', String(design.revision));
+  const rebuilt = await runFactory(root);
+  assert.equal(rebuilt.stage, 'verify');
+  assert.equal(rebuilt.workflow_criteria[0]?.approved_id, 'AC-001');
+  assert.equal(rebuilt.workflow_criteria[0]?.expected, 'A changed local behavior is checked');
+  assert.notEqual(rebuilt.workflow_criteria[0]?.id, originalCriterion?.id);
+  assert.match(await readFile(path.join(root, 'src/product.js'), 'utf8'), /verified changed local behavior/);
+  const ledger = JSON.parse(await readFile(path.join(root, 'docs/project/marketcraft.json'), 'utf8')) as JsonRecord;
+  const records = ledger.records as JsonRecord[];
+  assert.ok(records.some((record) => record.id === originalCriterion?.id));
+  const replacement = records.find((record) => record.id === rebuilt.workflow_criteria[0]?.id);
+  assert.equal(replacement?.supersedes, originalCriterion?.id);
+  assert.equal(originalRecord?.expected, 'A configured local check passes');
+});
+
 test('Factory rehashes state-local review evidence before Ship', async () => {
   const root = await project('state-evidence');
   await advanceToBuild(root, 'Evidence drift');
@@ -281,6 +365,57 @@ test('Factory rehashes state-local review evidence before Ship', async () => {
   const state = await readFactoryState(root);
   assert.equal(state?.status, 'failed');
   assert.equal(state?.ship, null);
+});
+
+test('Factory check mapping bytes remain frozen after Build', async () => {
+  const root = await project();
+  await advanceToBuild(root, 'Mapping drift');
+  await runFactory(root);
+  const mappingPath = path.join(root, 'docs/product/checks.json');
+  const original = await readFile(mappingPath);
+  await writeFile(mappingPath, Buffer.concat([original, Buffer.from('\n')]));
+  await assert.rejects(runFactory(root), /check mapping changed after Build freeze/);
+  const failed = await readFactoryState(root);
+  assert.equal(failed?.status, 'failed');
+  assert.equal(failed?.failure?.code, 'mapping');
+  assert.equal(failed?.workflow_criteria.length, 1);
+  await writeFile(mappingPath, original);
+  const resumed = await runFactory(root);
+  assert.equal(resumed.stage, 'release');
+});
+
+test('completed lifecycle recovery preserves shipping intent and rechecks review evidence', async () => {
+  const root = await project('state-evidence');
+  await advanceToBuild(root, 'Shipping recovery');
+  await runFactory(root);
+  await runFactory(root);
+  await runFactory(root);
+  const completed = await readFactoryState(root);
+  assert.equal(completed?.status, 'completed');
+  const controllerPath = path.join(root, '.foundry/state/factory/controller.json');
+  const controller = JSON.parse(await readFile(controllerPath, 'utf8')) as JsonRecord;
+  controller.status = 'shipping';
+  await writeFile(controllerPath, JSON.stringify(controller));
+  const lifecyclePath = path.join(root, '.foundry/state/runs', String(controller.lifecycle_run_id), 'state.json');
+  const lifecycle = JSON.parse(await readFile(lifecyclePath, 'utf8')) as JsonRecord;
+  const activePointer = JSON.stringify({ run_id: lifecycle.run_id, slug: lifecycle.slug });
+  await writeFile(path.join(root, '.foundry/state/active.json'), activePointer);
+  const reviewEvidencePath = path.join(root, '.foundry/state/factory/review.bin');
+  const reviewEvidence = await readFile(reviewEvidencePath);
+  await writeFile(reviewEvidencePath, Buffer.from([4, 3, 2, 1]));
+  const blocked = await recoverFactory(root);
+  assert.equal(blocked.status, 'shipping');
+  assert.equal(blocked.ship?.path, '.foundry/state/factory/ship.json');
+  await writeFile(reviewEvidencePath, reviewEvidence);
+  const recovered = await recoverFactory(root);
+  assert.equal(recovered.status, 'completed');
+  assert.equal(recovered.ship?.path, '.foundry/state/factory/ship.json');
+  await writeFile(reviewEvidencePath, Buffer.from([4, 3, 2, 1]));
+  await assert.rejects(runFactory(root), /review evidence changed after review/);
+  await assert.rejects(recoverFactory(root), /review evidence changed after review/);
+  await writeFile(path.join(root, '.foundry/state/active.json'), activePointer);
+  await assert.rejects(lifecycleRecover(root), /review evidence changed after review/);
+  await assert.rejects(lifecycleComplete(root), /review evidence changed after review/);
 });
 
 test('factory freezes accepted verify IDs, expectations, and required-check mappings before Build', async (t) => {
@@ -298,7 +433,8 @@ test('factory freezes accepted verify IDs, expectations, and required-check mapp
       assert.equal(state?.stage, 'build');
       assert.equal(state?.status, 'failed');
       assert.equal(state?.workflow_criteria.length, 1);
-      assert.equal(state?.workflow_criteria[0]?.id, 'AC-001');
+      assert.notEqual(state?.workflow_criteria[0]?.id, 'AC-001');
+      assert.equal(state?.workflow_criteria[0]?.approved_id, 'AC-001');
       assert.equal(state?.workflow_criteria[0]?.expected, 'A configured local check passes');
       assert.equal(state?.workflow_criteria[0]?.check_name, 'behavior');
     });
@@ -342,6 +478,30 @@ test('failed required checks leave the build task unticked and retry bounded rep
   assert.equal(recovered.build_tasks[0]?.status, 'failed');
 });
 
+test('checkpoint failure restores only the unchanged tick and preserves owner edits', async (t) => {
+  await t.test('unchanged tick is rolled back', async () => {
+    const root = await project();
+    await advanceToBuild(root, 'Checkpoint failure');
+    const hook = path.join(root, '.git/hooks/pre-commit');
+    await writeFile(hook, '#!/bin/sh\nexit 1\n');
+    await chmod(hook, 0o700);
+    await assert.rejects(runFactory(root), /Build checkpoint could not commit/);
+    assert.equal(await readFile(path.join(root, 'docs/product/tasks.md'), 'utf8'), '- [ ] Implement the local feature\n');
+    assert.equal((await readFactoryState(root))?.build_tasks[0]?.status, 'working');
+  });
+  await t.test('owner edits are preserved', async () => {
+    const root = await project();
+    await advanceToBuild(root, 'Checkpoint owner edit');
+    const hook = path.join(root, '.git/hooks/pre-commit');
+    await writeFile(hook, '#!/bin/sh\nprintf "\\n- [ ] Owner addition\\n" >> docs/product/tasks.md\nexit 1\n');
+    await chmod(hook, 0o700);
+    await assert.rejects(runFactory(root), /Build checkpoint could not commit/);
+    const tasks = await readFile(path.join(root, 'docs/product/tasks.md'), 'utf8');
+    assert.match(tasks, /- \[x\] Implement the local feature/);
+    assert.match(tasks, /- \[ \] Owner addition/);
+  });
+});
+
 test('factory cancellation kills a provider-owned stdio-ignored child and preserves stage identity', async () => {
   const root = await project('hang-child');
   const initial = await initFactory(root, { name: 'Cancellation', idea: 'Stop provider work safely.', adapter: 'fixture' });
@@ -378,6 +538,47 @@ test('factory cancellation during a configured check interrupts and cleans up it
   assert.equal(recovered.lifecycle_run_id, runId);
   assert.equal(recovered.status, 'interrupted');
   assert.equal(recovered.stage, 'build');
+  const frozenCommand = JSON.stringify(JSON.parse(await readFile(path.join(root, '.foundry/project.json'), 'utf8')).checks[0].command);
+  await writeFile(path.join(root, '.foundry/state/factory/check-pass'), '');
+  const resumed = await runFactory(root);
+  assert.equal(resumed.stage, 'verify');
+  assert.equal(resumed.lifecycle_run_id, runId);
+  assert.equal(JSON.stringify(JSON.parse(await readFile(path.join(root, '.foundry/project.json'), 'utf8')).checks[0].command), frozenCommand);
+  await runFactory(root);
+  const shipped = await runFactory(root);
+  assert.equal(shipped.status, 'completed');
+  assert.equal(shipped.lifecycle_run_id, runId);
+});
+
+test('partial Research output is canceled, recovered, and rerun at Research before progressing to Ship', async () => {
+  const root = await project('research-hang');
+  await initFactory(root, { name: 'Research recovery', idea: 'Preserve partial upstream work.', adapter: 'fixture' });
+  const running = runFactory(root).then(() => null, (error: Error) => error);
+  const pid = Number(await waitForFile(path.join(root, 'provider-child-started')));
+  await cancelFactory(root);
+  assert.match(String(await running), /cancel/i);
+  await waitForPidExit(pid);
+  assert.match(await readFile(path.join(root, 'docs/product/research.md'), 'utf8'), /Partial Research/);
+  const failed = await readFactoryState(root);
+  assert.equal(failed?.stage, 'research');
+  assert.equal(failed?.completed_stages.length, 0);
+  const recovered = await recoverFactory(root);
+  assert.equal(recovered.stage, 'research');
+  assert.equal(recovered.status, 'interrupted');
+  assert.equal((await runFactory(root)).stage, 'scope');
+  assert.match(await readFile(path.join(root, 'docs/product/research.md'), 'utf8'), /Source: https:\/\/example\.test\/research/);
+  await runFactory(root);
+  const plan = await reviewFactory(root, 'plan');
+  await approveFactory(root, 'plan', String(plan.revision));
+  await runFactory(root);
+  const design = await reviewFactory(root, 'design');
+  await approveFactory(root, 'design', String(design.revision));
+  await runFactory(root);
+  await runFactory(root);
+  const reviewed = await runFactory(root);
+  assert.equal(reviewed.stage, 'release');
+  const shipped = await runFactory(root);
+  assert.equal(shipped.status, 'completed');
 });
 
 test('factory stage writers serialize on the exclusive controller lock', async () => {
@@ -414,6 +615,8 @@ test('factory state rejects malformed and future versions', async () => {
   await assert.rejects(readFactoryState(root), /Invalid factory controller state/);
   await writeFile(statePath, JSON.stringify({ ...valid, padding: 'x'.repeat(4 * 1024 * 1024) }));
   await assert.rejects(readFactoryState(root), /bounded read limit/);
+  await symlink('missing-target.json', path.join(root, '.foundry/state/factory/linked.json'));
+  await assert.rejects(readBoundedBytes(root, '.foundry/state/factory/linked.json'), /Symlink paths are not allowed|not a regular file/);
 });
 
 test('review evidence hashing accepts bounded binary regular files', async () => {
@@ -497,4 +700,89 @@ test('installed factory route exposes help and rejects unknown options', async (
   ], { cwd: process.cwd(), encoding: 'utf8' });
   assert.equal(unknown.status, 2);
   assert.match(unknown.stderr, /Unknown option --unknown/);
+  const unknownFactory = spawnSync(process.execPath, [
+    'dist/runtime/project.cjs', 'factory', '--unknown', '--project', root,
+  ], { cwd: process.cwd(), encoding: 'utf8' });
+  assert.equal(unknownFactory.status, 2);
+  assert.match(unknownFactory.stderr, /Unknown factory option/);
+});
+
+test('preseeded Build task titles still receive the required bootstrap instructions', async () => {
+  const root = await project();
+  await advanceToBuild(root, 'Preseeded tasks');
+  await writeFile(path.join(root, 'docs/product/tasks.md'), '- [ ] Implement the preseeded behavior\n');
+  const result = await runFactory(root);
+  assert.equal(result.stage, 'verify');
+  assert.match(await readFile(path.join(root, 'src/product.js'), 'utf8'), /verified local feature/);
+  assert.equal(JSON.parse(await readFile(path.join(root, 'docs/product/checks.json'), 'utf8')).criteria[0].id, 'AC-001');
+});
+
+test('Build freezes only exact mapped checks and rejects invalid bootstrap mapping before verification', async (t) => {
+  await t.test('unrelated required check may omit the Plan input', async () => {
+    const root = await project('extra-required-check');
+    await advanceToBuild(root, 'Additional required check');
+    const state = await runFactory(root);
+    assert.equal(state.stage, 'verify');
+    assert.equal(state.workflow_criteria[0]?.check_name, 'behavior');
+    assert.deepEqual(state.workflow_criteria[0]?.check_inputs, ['docs/specs/product.md', 'src/product.js']);
+  });
+  await t.test('mapping must cover the approved Plan ID', async () => {
+    const root = await project('bad-mapping');
+    await advanceToBuild(root, 'Invalid mapping');
+    await assert.rejects(runFactory(root), /map each approved criterion exactly once/);
+    const state = await readFactoryState(root);
+    assert.equal(state?.stage, 'build');
+    assert.equal(state?.workflow_criteria.length, 0);
+    assert.notEqual(state?.build_tasks[0]?.status, 'done');
+  });
+});
+
+test('installed runtime bootstraps empty checks and ships two product-changing tasks', async () => {
+  const providerWorkspace = await project();
+  const installParent = await mkdtemp(path.join(os.tmpdir(), 'foundry-installed-factory-'));
+  const root = path.join(installParent, 'product');
+  await installWorkspace(process.cwd(), root);
+  const git = (args: string[]) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+  assert.equal(git(['init', '-q']).status, 0);
+  assert.equal(git(['config', 'user.name', 'Installed Factory Test']).status, 0);
+  assert.equal(git(['config', 'user.email', 'factory-installed-test@localhost']).status, 0);
+  const installedProject = JSON.parse(await readFile(path.join(root, '.foundry/project.json'), 'utf8')) as JsonRecord;
+  assert.deepEqual(installedProject.checks, []);
+  assert.ok((await readFile(path.join(root, '.foundry/runtime/project.cjs'))).length > 0);
+  const roles = JSON.parse(await readFile(path.join(root, '.foundry/roles.json'), 'utf8')) as JsonRecord;
+  assert.ok((roles.roles as JsonRecord[]).some((role) => role.name === 'quality-gate' && role.sandbox === 'read-only'));
+  await writeFile(
+    path.join(root, '.foundry/providers.json'),
+    await readFile(path.join(providerWorkspace, '.foundry/providers.json')),
+  );
+  assert.equal(git(['add', '.']).status, 0);
+  assert.equal(git(['commit', '-q', '-m', 'installed workspace fixture']).status, 0);
+  const cli = path.join(root, '.foundry/runtime/project.cjs');
+  const invoke = (...args: string[]): JsonRecord => {
+    const result = spawnSync(process.execPath, [cli, 'factory', ...args, '--project', root], {
+      cwd: root, encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout) as JsonRecord;
+  };
+  invoke('init', '--name', 'Installed journey', '--idea', 'Create two verified local behaviors.', '--adapter', 'fixture');
+  invoke('run');
+  invoke('run');
+  const plan = invoke('review', '--stage', 'plan');
+  invoke('approve', '--stage', 'plan', '--revision', String(plan.revision));
+  invoke('run');
+  const design = invoke('review', '--stage', 'design');
+  invoke('approve', '--stage', 'design', '--revision', String(design.revision));
+  const built = invoke('run');
+  assert.equal(built.stage, 'verify');
+  const first = await readFile(path.join(root, 'src/product.js'), 'utf8');
+  const second = await readFile(path.join(root, 'src/second.js'), 'utf8');
+  assert.match(first, /verified local feature/);
+  assert.match(second, /verified second behavior/);
+  invoke('run');
+  const completed = invoke('run');
+  assert.equal(completed.status, 'completed');
+  await assert.rejects(configureFactory(root, { model: 'replacement' }), /Completed Factory work cannot be reconfigured/);
+  assert.equal(JSON.parse(await readFile(path.join(root, '.foundry/project.json'), 'utf8')).checks.length, 1);
+  assert.ok(await readFactoryState(root));
 });

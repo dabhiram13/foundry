@@ -15,23 +15,20 @@
 .landing-nav a, .landing-nav button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0; color: var(--muted-foreground); font-size: 13px; cursor: pointer; }
 .landing-nav button:hover { color: var(--foreground); }
 .landing-nav svg { width: 14px; height: 14px; }
-.landing-header .landing-open { border-radius: 0; min-height: 40px; padding-inline: 16px; font-size: 12px; }
+.landing-header .landing-open { border-radius: 6px; min-height: 40px; padding-inline: 16px; font-size: 12px; }
 .landing-hero { padding: 96px 0 88px; text-align: center; }
-.hero-note { display: inline-flex; align-items: center; gap: 10px; min-height: 36px; padding: 6px 12px; margin-bottom: 32px; border: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; }
+.hero-note { display: inline-flex; align-items: center; gap: 10px; min-height: 36px; padding: 6px 12px; margin-bottom: 32px; border: 1px solid var(--border); border-radius: 6px; color: var(--muted-foreground); font-size: 12px; }
 .hero-note svg { width: 14px; height: 14px; }
 .landing-hero h1 { margin: 0 auto; font-size: clamp(44px, 5.3vw, 76px); font-weight: 500; line-height: 1.09; letter-spacing: -.045em; }
-.bracketed { display: inline-block; position: relative; padding: 0 20px 5px; }
-.bracketed::before, .bracketed::after { content: ''; position: absolute; top: 6px; bottom: 1px; width: 10px; border-block: 3px solid var(--foundry-accent); }
-.bracketed::before { left: 0; border-left: 3px solid var(--foundry-accent); }
-.bracketed::after { right: 0; border-right: 3px solid var(--foundry-accent); }
+.landing-title-secondary { color: var(--foundry-secondary); }
 .landing-intro { max-width: 600px; margin: 26px auto 28px; font-size: 17px; line-height: 1.7; color: var(--muted-foreground); }
 .landing-hero-actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; }
-.landing-page .landing-hero-actions [data-size=lg] { border-radius: 0; min-height: 48px; font-size: 14px; padding-inline: 24px; }
-.landing-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 10px 20px; border: 1px solid var(--foundry-control-border); font-size: 14px; background: transparent; cursor: pointer; }
+.landing-page .landing-hero-actions [data-size=lg] { border-radius: 6px; min-height: 48px; font-size: 14px; padding-inline: 24px; }
+.landing-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 10px 20px; border: 1px solid var(--foundry-control-border); border-radius: 6px; font-size: 14px; background: transparent; cursor: pointer; }
 .landing-secondary:hover { background: var(--foundry-muted); }
 .landing-local-note { display: flex; justify-content: center; gap: 10px; margin: 16px 0 0; color: var(--muted-foreground); font-size: 12px; }
 .landing-preview { position: relative; scroll-margin-top: 100px; }
-.product-walkthrough { border: 1px solid #41403e; border-radius: 6px; overflow: hidden; background: var(--foundry-surface); }
+.product-walkthrough { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--foundry-surface); }
 .walkthrough-titlebar { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 48px; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 12px; }
 .walkthrough-titlebar > span { display: inline-flex; gap: 10px; align-items: center; }
 .preview-divider { color: var(--foundry-control-border); }
@@ -41,9 +38,9 @@
 .walkthrough-sidebar > p { display: flex; align-items: center; gap: 8px; padding-inline: 12px; margin: 0 0 24px; font-size: 12px; }
 .walkthrough-sidebar > p svg { color: var(--muted-foreground); width: 15px; }
 .walkthrough-sidebar [data-slot=tabs-list] { display: flex; flex-direction: column; width: 100%; height: auto; gap: 8px; padding: 0; align-items: stretch; }
-.walkthrough-sidebar [data-slot=tabs-trigger] { flex: none; justify-content: flex-start; height: 44px; min-height: 44px; padding: 10px 12px; border-radius: 0; font-size: 12px; }
+.walkthrough-sidebar [data-slot=tabs-trigger] { flex: none; justify-content: flex-start; height: 44px; min-height: 44px; padding: 10px 12px; border-radius: 4px; font-size: 12px; }
 .walkthrough-sidebar [data-slot=tabs-trigger]::after { display: none; }
-.walkthrough-sidebar [data-slot=tabs-trigger][data-state=active] { background: var(--foundry-selected); color: var(--foundry-accent); }
+.walkthrough-sidebar [data-slot=tabs-trigger][data-state=active] { background: var(--foundry-selected); color: var(--foreground); font-weight: 600; }
 .walkthrough-sidebar .tab-highlight { display: none; }
 .walkthrough-local { display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 44px 10px 0; font-size: 11px; color: var(--muted-foreground); line-height: 18px; }
 .walkthrough-local svg { width: 14px; }
@@ -129,10 +126,6 @@
 .landing-footer nav svg { width: 14px; }
 .landing-wordmark { width: 100%; height: auto; margin-block: 64px 32px; opacity: .9; }
 .landing-footer-bottom { display: flex; justify-content: space-between; gap: 16px; font-size: 11px; color: var(--muted-foreground); }
-@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
-  html:not([data-motion=quiet]) .product-walkthrough { animation: walkthrough-enter 600ms cubic-bezier(.16,1,.3,1) both; }
-}
-@keyframes walkthrough-enter { from { opacity: .7; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 1000px) {
   .landing-shell { width: calc(100% - 64px); }
   .landing-hero { padding-block: 72px 64px; }
@@ -152,8 +145,6 @@
   .landing-hero { padding-block: 48px 48px; }
   .hero-note { font-size: 10px; gap: 6px; margin-bottom: 24px; }
   .landing-hero h1 { font-size: clamp(36px, 8.2vw, 54px); letter-spacing: -.04em; }
-  .bracketed { padding-inline: 14px; }
-  .bracketed::before, .bracketed::after { width: 7px; border-width: 2px; }
   .landing-intro { font-size: 15px; line-height: 1.7; margin: 22px auto 24px; }
   .desktop-break { display: none; }
   .landing-hero-actions { gap: 10px; }

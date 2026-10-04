@@ -108,6 +108,19 @@ evidence. Public pages must not create projects or initialize credentials.
 
 ## Verification and exclusions
 
+### Owner-requested visual refinement before the next runtime slice
+
+Keep the current composition but align landing/docs with the restrained parts of
+Cult UI and shadcn: neutral accents in dark/light docs, no orange brand selection,
+headline brackets, glow, gradients or decorative landing entrance. Keep existing
+controls, keyboard/focus behavior, mobile navigation, search, copy feedback and
+motion preferences. Add no UI dependencies; keep the compressed public script
+within 165 kB (the pre-refinement measurement was 157,344 bytes gzip).
+Reuse the existing flows and content; the implementation is the prototype. Amend
+the design system/source map and inspect rendered desktop/mobile and light/dark
+states before continuing the controller migration. This refines F-09/F-13 and
+does not authorize publishing, live AI execution or retiring Python.
+
 Use focused Node contract/unit tests, CLI/process tests, copied-state migrations,
 then existing required checks and browser journeys. Retain Python tests while
 they protect the compatibility path. Do not weaken CI/security gates to migrate.

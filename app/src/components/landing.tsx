@@ -37,7 +37,7 @@ export function Landing({ onEnter }: LandingProps) {
     <main id="landing-main" tabIndex={-1}>
       <section className="landing-shell landing-hero" aria-labelledby="landing-title">
         <a className="hero-note" href={`${docs}/getting-started/`}><Terminal aria-hidden="true" /> Local by design. Yours to build. <ArrowRight aria-hidden="true" /></a>
-        <h1 id="landing-title" tabIndex={-1}>Start with an idea.<br /><span className="bracketed">Make it real.</span></h1>
+        <h1 id="landing-title" tabIndex={-1}>Start with an idea.<br /><span className="landing-title-secondary">Make it real.</span></h1>
         <p className="landing-intro">Plan, build and test from your terminal.<br className="desktop-break" /> You approve the plan and design. You keep the code.</p>
         <div className="landing-hero-actions">
           <Button size="lg" onClick={() => goTo('landing-install')}>Install Foundry <ArrowDown aria-hidden="true" /></Button>

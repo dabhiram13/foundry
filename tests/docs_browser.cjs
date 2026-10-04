@@ -54,6 +54,15 @@ local.serve_forever()
     const publicOrigin = `http://127.0.0.1:${ports.public}`;
     await page.goto(publicOrigin);
     await page.getByRole('heading', { name: /Start with an idea\.\s*Make it real\./ }).waitFor();
+    assert.equal(await page.locator('.bracketed').count(), 0);
+    assert.equal(await page.locator('.landing-title-secondary').evaluate(el => getComputedStyle(el).color), 'rgb(163, 163, 163)');
+    assert.equal(await page.locator('.product-walkthrough').evaluate(el => getComputedStyle(el).animationName), 'none');
+    await page.getByRole('tab', { name: 'Describe it', exact: true }).focus();
+    await page.keyboard.press('ArrowDown');
+    await page.getByRole('heading', { name: 'Read the plan. Then decide.' }).waitFor();
+    assert.equal(await page.getByRole('tab', { name: 'Review it', exact: true }).getAttribute('aria-selected'), 'true');
+    await page.getByRole('button', { name: 'Install Foundry', exact: true }).first().click();
+    assert.equal(await page.locator('#landing-install').evaluate(el => el === document.activeElement), true);
     assert.equal(await page.getByRole('button', { name: 'Open local browser view' }).count(), 0);
     assert.equal(await page.locator('meta[name="foundry-token"]').count(), 0);
     await page.getByRole('navigation', { name: 'Introduction' }).getByRole('link', { name: 'Docs' }).click();
@@ -62,7 +71,16 @@ local.serve_forever()
       const origin = `http://127.0.0.1:${port}`;
       await page.setViewportSize({ width: 1440, height: 1000 });
       await page.goto(`${origin}/docs/`);
+      for (const theme of ['light', 'dark']) {
+        await page.locator('starlight-theme-select select:visible').selectOption(theme);
+        const selected = await page.locator('[aria-current="page"]').first().evaluate(el => {
+          const style = getComputedStyle(el);
+          return { color: style.color, weight: style.fontWeight };
+        });
+        assert.deepEqual(selected, { color: theme === 'dark' ? 'rgb(245, 245, 245)' : 'rgb(23, 23, 23)', weight: '600' });
+      }
       await page.getByRole('button', { name: 'Search', exact: true }).click();
+      assert.equal(await page.locator('dialog[open]').evaluate(el => getComputedStyle(el, '::backdrop').backdropFilter), 'none');
       await page.locator('dialog input').fill('subscription');
       await page.getByRole('link', { name: /Support matrix and setup recipes/ }).click();
       await page.getByRole('heading', { name: 'Support matrix and setup recipes', exact: true }).waitFor();

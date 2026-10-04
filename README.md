@@ -249,7 +249,7 @@ controller and UI work, not that a real AI run will succeed. See
 [evaluation](docs/EVALUATION.md) and [what is and is not proven](docs/VALIDATION.md).
 
 The app uses a dark [design system](docs/DESIGN-SYSTEM.md): near-black surfaces,
-Inter type, white primary controls, orange selection details and an original
+Inter type, soft-gray primary controls, neutral selection details and an original
 Foundry wordmark. Lucide icons and the original specialist portraits remain.
 The top bar keeps products, creation and account controls in reach. A stage
 sidebar puts current work beside its documents; narrow screens stack the panes.

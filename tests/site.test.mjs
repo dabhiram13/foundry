@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'node:test';
+import { gzipSync } from 'node:zlib';
 import { parse } from 'parse5';
 import { pages, pageUrl, root } from '../site/content-map.mjs';
 
@@ -59,5 +60,6 @@ test('public landing is pre-rendered and does not load the workspace client', as
   assert.doesNotMatch(html, /foundry-token|src="\/app.js"|Open local browser view/);
   const script = await readFile(path.join(output, 'public.js'), 'utf8');
   assert.doesNotMatch(script, /\/api\/snapshot|X-Foundry-Token|foundry_snapshot/);
+  assert.ok(gzipSync(script).byteLength <= 165_000, 'Public JS exceeds the 165 kB gzip budget');
   await checkLocalLinks(parse(html), '/');
 });

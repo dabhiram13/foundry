@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -24,12 +25,22 @@ Error = factory_module.Error
 
 FAKE = r'''
 import json
+import os
 from pathlib import Path
 import sys
+import time
 
 request = json.loads(sys.stdin.read())
 prompt = request["prompt"]
 root = Path.cwd()
+if calls_path := os.environ.get("FOUNDRY_CLI_CALLS"):
+    with Path(calls_path).open("a", encoding="utf-8") as handle:
+        handle.write(prompt.splitlines()[0] + "\n")
+if (root / "SLOW").exists():
+    time.sleep(60)
+if (root / "FAIL").exists():
+    print(json.dumps({"type": "error", "error": {"message": "fixture refused the request"}}))
+    raise SystemExit(1)
 if "stage: research" in prompt:
     path = root / "docs/product/research.md"
     path.parent.mkdir(parents=True, exist_ok=True)

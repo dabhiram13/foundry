@@ -2,7 +2,8 @@
 
 This is an application integration, not a component gallery or a new agent
 runtime. The owner's request is to bring Animate UI's interaction language into
-the real product while retaining Soft studio and the original role portraits.
+the real product. The original role portraits and accessible primitives remain
+in the owner-selected dark redesign; Soft studio's colors and sky are retired.
 
 ## Used in the actual app
 
@@ -17,7 +18,7 @@ the real product while retaining Soft studio and the original role portraits.
 | Radix Progress | Actual completed-stage fraction; never simulated progress. |
 | [Splitting text](https://animate-ui.com/docs/primitives/texts/splitting) | One-time welcome heading reveal. The heading has one complete accessible label; reading content stays still. |
 | [Radial intro](https://animate-ui.com/docs/components/community/radial-intro) | Six selectable original portraits around the idea. Finite reveal, upright labels, textual explanations, replay/stop, off-screen/hidden-page stopping. Not a live-agent display. |
-| Background composition | Original wispy Canvas sky and soft layered light, confined to welcome surfaces. Brief drift, then still. No ForgeUI paid source. Opaque working surfaces stay readable. |
+| Surface entrance | One short landing walkthrough entrance, then still. The earlier wispy sky is retired; working surfaces have no decorative motion. |
 
 Implementations are adapted into the existing `app/src/components/ui` wrappers
 and focused React components, rather than installing a second conflicting UI
@@ -35,8 +36,8 @@ social sharing, a cursor replacement, a carousel, decorative pin lists, or a
 second navigation system. They are not bundled as unused examples. Flip/liquid
 buttons and endlessly morphing/typing headlines are alternatives to the adopted
 buttons/text, not additional required states. Fireworks, gravity stars, hole,
-stars, hexagons and endless bubble backgrounds would compete with the requested
-quiet sky; they are not layered behind working documents. No hover card is used
+stars, hexagons and endless bubble backgrounds would compete with the work;
+they are not layered behind documents. No hover card is used
 to hide required instructions or approvals. Native model/reasoning selects remain
 native, styled to the same control system, because they hold longer lists.
 
@@ -46,7 +47,7 @@ native, styled to the same control system, because they hold longer lists.
   The system reduced-motion preference always wins.
 - MotionConfig carries the server's style nonce. No CSP policy is relaxed.
 - Press feedback: 160ms; selection/content: about 240ms; radial intro: under 1.4s;
-  clouds: under 4.8s. No perpetual decorative orbit.
+  landing entrance: 600ms. No perpetual decorative orbit.
 - All six role buttons remain usable with motion off. Starting an intro does
   not start a job. Keyboard focus or pointer selection interrupts movement.
 - Mobile puts the idea form before the role introduction. Controls remain at

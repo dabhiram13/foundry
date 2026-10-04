@@ -5,11 +5,11 @@
 @import "./studio.css";
 @source "./**/*.{ts,tsx}";
 
-@font-face { font-family: "Manrope"; font-style: normal; font-display: swap; font-weight: 200 800; src: url("/assets/manrope-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-display: swap; font-weight: 100 900; src: url("/assets/inter-latin-wght-normal.woff2") format("woff2"); }
 
 @custom-variant dark (&:is(.dark *));
 @theme inline {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -44,39 +44,39 @@
 }
 
 :root {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --foundry-canvas: #E0EDEF;
-  --foundry-surface: #FFFEFA;
-  --foundry-muted: #F3F6F3;
-  --foundry-selected: #DFE9E4;
-  --foundry-text: #263433;
-  --foundry-secondary: #52615F;
-  --foundry-icon: #52615F;
-  --foundry-subtle-icon: #667973;
-  --foundry-disabled: #687572;
-  --foundry-primary: #263433;
-  --foundry-primary-hover: #3B504B;
-  --foundry-primary-pressed: #182522;
-  --foundry-line: #D3DEDB;
-  --foundry-control-border: #829C9F;
-  --foundry-focus: #33544E;
-  --foundry-success: #376042;
-  --foundry-success-bg: #EBF1E8;
-  --foundry-warning: #745927;
-  --foundry-warning-bg: #F5EFDF;
-  --foundry-error: #9B3838;
-  --foundry-error-bg: #F9EDED;
-  --foundry-accent: #33544E;
-  --foundry-accent-bg: #E4EFE9;
-  --foundry-accent-line: #ADC5BA;
-  --foundry-review: #625021;
-  --foundry-review-bg: #F9F0CD;
-  --foundry-review-line: #DCCB91;
-  --radius-inner: 4px;
-  --radius-control: 8px;
-  --radius-container: 14px;
-  --radius-largeOverlay: 12px;
-  --radius-pill: 9999px;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --foundry-canvas: #101010;
+  --foundry-surface: #171717;
+  --foundry-muted: #1d1d1d;
+  --foundry-selected: #2b241f;
+  --foundry-text: #f5f4f2;
+  --foundry-secondary: #a8a6a3;
+  --foundry-icon: #b8b5b1;
+  --foundry-subtle-icon: #96938f;
+  --foundry-disabled: #85817c;
+  --foundry-primary: #f5f4f2;
+  --foundry-primary-hover: #dad8d4;
+  --foundry-primary-pressed: #c5c2bc;
+  --foundry-line: #303030;
+  --foundry-control-border: #77736c;
+  --foundry-focus: #ff9b66;
+  --foundry-success: #9acda8;
+  --foundry-success-bg: #1b2a20;
+  --foundry-warning: #e8c27d;
+  --foundry-warning-bg: #2b251b;
+  --foundry-error: #ffaaa0;
+  --foundry-error-bg: #321e1c;
+  --foundry-accent: #ff854d;
+  --foundry-accent-bg: #2b211b;
+  --foundry-accent-line: #795039;
+  --foundry-review: #ffb383;
+  --foundry-review-bg: #2b211b;
+  --foundry-review-line: #795039;
+  --radius-inner: 2px;
+  --radius-control: 3px;
+  --radius-container: 6px;
+  --radius-largeOverlay: 6px;
+  --radius-pill: 3px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -100,7 +100,7 @@
   --ease-feedback: cubic-bezier(0.2, 0, 0, 1);
   --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-default: none;
-  --shadow-overlay: 0 16px 64px rgba(33,32,28,.12), 0 2px 8px rgba(33,32,28,.06);
+  --shadow-overlay: 0 20px 70px rgb(0 0 0 / 50%);
   --texture: none;
   --radius: 6px;
   --background: var(--foundry-surface);
@@ -108,12 +108,12 @@
   --card: var(--foundry-surface);
   --popover: var(--foundry-surface);
   --primary: var(--foundry-primary);
-  --primary-foreground: var(--foundry-surface);
+  --primary-foreground: #101010;
   --secondary: var(--foundry-muted);
   --muted: var(--foundry-muted);
   --muted-foreground: var(--foundry-secondary);
   --accent: var(--foundry-selected);
-  --destructive: var(--foundry-error);
+  --destructive: #a52c22;
   --border: var(--foundry-line);
   --input: var(--foundry-control-border);
   --ring: var(--foundry-focus);
@@ -122,10 +122,12 @@
 }
 @layer base {
   * { @apply border-border; }
-  html { color-scheme: light; scroll-padding-top: 64px; }
+  html { color-scheme: dark; scroll-padding-top: 88px; scrollbar-color: #77736c #171717; }
   body { margin: 0; background: var(--foundry-canvas); color: var(--foreground); font-family: var(--font-sans); font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
   button, input, textarea, select { font: inherit; }
   button, a, summary { -webkit-tap-highlight-color: transparent; }
+  a { text-underline-offset: 4px; }
+  input, textarea { caret-color: var(--foundry-accent); }
   svg { flex-shrink: 0; }
   ::selection { background: var(--foundry-selected); color: var(--foundry-text); }
   :is(button,a,input,textarea,select,summary,[tabindex]):focus-visible { outline: 2px solid var(--foundry-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--foundry-surface); }
@@ -145,7 +147,7 @@
 :is([data-slot=input],[data-slot=textarea],[data-slot=native-select]) { border-radius: var(--radius-control); font-size: var(--text-body); }
 [data-slot=button][data-size=sm] { min-height: 36px; }
 [data-slot=button][data-size=lg] { min-height: 48px; }
-[data-slot=dialog-overlay] { background: rgb(33 32 28 / 25%); }
+[data-slot=dialog-overlay] { background: rgb(0 0 0 / 72%); }
 @media (max-width: 767px) {
  [data-slot=button][data-size] { min-height: 44px; min-width: 44px; }
 }

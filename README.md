@@ -205,13 +205,15 @@ Playwright 1.63.0). The test app uses fake AI responses, so passing tests show t
 controller and UI work, not that a real AI run will succeed. See
 [evaluation](docs/EVALUATION.md) and [what is and is not proven](docs/VALIDATION.md).
 
-The app uses the Soft studio [design system](docs/DESIGN-SYSTEM.md): a powder-blue
-canvas, warm paper workbench, Manrope type, Phosphor icons and the original
-specialist portraits. The top bar keeps products, creation and account controls
-in reach. Work, Documents and Activity share one product desk.
+The app uses a dark [design system](docs/DESIGN-SYSTEM.md): near-black surfaces,
+Inter type, white primary controls, orange selection details and an original
+Foundry wordmark. Phosphor icons and the original specialist portraits remain.
+The top bar keeps products, creation and account controls in reach. A stage
+sidebar puts current work beside its documents; narrow screens stack the panes.
+The landing walkthrough is labeled example content, not a live AI result.
 Animate UI adaptations bring consistent press feedback, sliding tab highlights,
-AI choice cards and consent controls, with a finite radial specialist intro and
-wispy sky on the welcome screens. Quiet motion respects your device and local
+AI choice cards and consent controls, with a finite radial specialist intro.
+Quiet motion respects your device and local
 preference. [Integration details and component choices](docs/ANIMATE-UI.md).
 
 ## Old names

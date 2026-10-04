@@ -1,187 +1,142 @@
-# Foundry Studio design system
+# Foundry design system
 
-**Direction: Soft studio, selected by the owner and implemented in the live app.** The owner rejected the first
-neutral/Geist refresh as too close to the original. This design replaces the
-visible theme and layout from the ground up; it is not another shadcn skin.
-The comparison selected Soft studio over Product journal and Workshop. Standalone
-prototypes remain visual decision aids, not proof that the live workflow works. The original specialist portraits have
-been restored in source and in the generated panel.
+## Direction
 
-## Product job before visual recipes
+The owner selected [Superset](https://superset.sh/) as the reference for a
+complete redesign of the actual app. The previous powder-blue Soft studio
+palette, rounded paper cards and wispy sky are retired, not layered underneath.
 
-Foundry turns an idea into a tested product in its own local folder. The person
-using it needs to know what is happening, what was decided, what needs their
-attention, and what happens next. Their code, documents, checks and Git history
-remain local. No design may invent progress or imply an account connection,
-publishing action, or live agent that does not exist.
+The inspected public reference uses a near-black canvas, Inter, large centered
+type, white rectangular actions, orange selection marks and a prominent product
+view. Foundry adapts that language with its own composition, vector identity,
+copy and original specialist portraits. No Superset assets, code, customer logos
+or unsupported product claims are used.
 
-The emotional direction is a small creative workshop: approachable enough to
-start an idea, precise enough to trust with real execution. The studio has a
-recognizable canvas; the work has a paper surface; specialists have familiar
-faces. It must not be interchangeable with a CRM/admin template.
+## Product truth
 
-## Observed references — October 3, 2026
+Foundry starts in the terminal and runs a local browser workspace. The person
+using it needs to know what is happening, what needs approval, and what comes
+next. Research → Plan → Design → Build → Test → Ship remains the actual order.
+Plan and Design need approval; Ship is a summary, not automatic publishing.
 
-- [Folk LinkedIn CRM](https://www.folk.app/linkedin-crm): textured powder-blue
-  full-width section; Uxum Grotesque 500 at 64px/64px in the inspected desktop
-  hero; outlined form and a large framed board with a contextual inspector.
-  These are public-page observations, not access to Folk's private app.
-- [Bencho Finds](https://bencho.dev/finds): an interaction gallery with press,
-  reveal, selection and other categories. Use it for details, not to turn
-  routine work into an animation showcase.
-- [Best Designs on X](https://bestdesignsonx.com/): the public gallery shell
-  loaded, but the feed stayed at Loading / 0 in this environment. No unseen
-  designs are used as claimed evidence.
+Codex is the built-in runtime. An OpenAI-compatible endpoint is not automatically
+a complete provider. Files stay local, but cloud AI providers receive prompts
+and selected content. Do not imply local inference, successful billing checks,
+separate live agents, or automatic deployment.
 
-No Folk artwork, brand mark, code, licensed typeface or paid component recipe is
-copied. The prototype's noise is original CSS/SVG; all other assets retain their
-own licenses.
+## Foundation
 
-## Foundations
+The semantic source is `app/src/globals.css`.
 
-| Role | Token |
+| Role | Value |
 | --- | --- |
-| Studio canvas | soft powder blue #e0edef; finite wispy sky on welcome surfaces only |
-| Working paper | warm white #fffefa |
-| Ink / primary action | #263433 |
-| Secondary text | #52615f |
-| Quiet pane / divider | #f3f6f3 / #d3dedb; control edges #829c9f |
-| Your review | #f9f0cd with #625021 text |
-| Checked work | #dce9cf with #345025 text |
-| Needs repair | #f5ddd4 with #803622 text |
-| Shape | 1px work frames, 8px controls, 14px benches, 12px dialogs; status pills and idea prompt chips |
-| Spacing | 4, 8, 12, 16, 24, 32, 48, 64, 96px |
-| Type | Manrope variable, locally bundled, SIL OFL |
-| Utility icons | Phosphor duotone, MIT; labels remain visible |
-| Specialist identity | original portrait PNGs, unchanged assets |
+| Canvas | `#101010` |
+| Work surface | `#171717` |
+| Raised/quiet surface | `#1d1d1d` |
+| Text / primary fill | `#f5f4f2` |
+| Secondary text | `#a8a6a3` |
+| Structural divider | `#303030` |
+| Control boundary | `#77736c` |
+| Accent | `#ff854d` |
+| Selection | `#2b241f` with orange detail |
+| Focus | `#ff9b66`, 2px with an offset |
+| Success | `#9acda8` on `#1b2a20` |
+| Warning | `#e8c27d` on `#2b251b` |
+| Error | `#ffaaa0` on `#321e1c` |
+| Shape | 0–3px controls; 6px work frames and dialogs |
+| Spacing | 4, 8, 12, 16, 20, 24, 32, 48, 64, 80, 96px |
 
-Type roles are deliberately distinct: studio welcome 76px/500 with tight
-tracking; product title 48px/600; work heading 28px/600; reading text 16px; dense
-controls 12–14px. Display type adapts at narrow widths; task/document typography
-stays stable. Monospace is reserved for paths, versions and execution details.
-The prototype embeds Manrope 5.2.6 and Phosphor core 2.1.1 with license notices;
-the live app uses Manrope 5.2.6 and Phosphor React 2.1.10.
+Orange identifies selection, progress and attention; it is not the fill for
+every action. Primary buttons are off-white with near-black text. Secondary
+actions are outlined or text-only. Destructive controls use a separate dark-red
+fill with white text, not the error-text token. Status always includes words or
+an icon; color alone is insufficient.
 
-## Spatial system
+Inter variable is bundled locally under SIL OFL 1.1, with its license and source
+under `app/assets/licenses/`. Monospace is reserved for paths, commands and test
+output. The original SVG wordmark and F mark share a stepped construction; use
+the full wordmark for navigation and the mark at small sizes. Do not put the
+white wordmark on a light surface without supplying an appropriate dark variant.
 
-### Studio welcome
+Type: landing title 44–76px, mobile 36–54px; section titles 30–48px; workspace
+title 32–46px; task heading 26px; reading text 14–17px; compact controls 12–14px.
+Supporting metadata can be 11–12px, never the only place a required action is
+explained. Phosphor icons remain the shared icon family.
 
-The introduction is install-first: one clear promise, actual source-install
-commands, prerequisites, the first product journey and links to task-based docs.
-Use Build This Now's public landing and start guide as information-order
-references, not as evidence for Foundry features or marketing claims. Keep the
-original portraits in one compact workflow section; do not repeat a role grid,
-six-tab explanation and fictional workspace. Reading copy is 15–18px, supporting
-labels 13–14px, with 48px primary actions and 44px secondary targets. The landing
-page's layout is owned by `app/src/landing.css`, not later override sheets.
-The existing local workspace remains available through Open workspace.
+## Landing page
 
-Inside the workspace:
+One concise promise, installation action, an interactive **example walkthrough**,
+three practical benefits, source installation, short FAQ and documentation links.
+The example stays visibly labeled at its top and bottom; its illustrative tasks
+and tests do not write product data, run AI or claim a customer outcome.
 
-Replace the generic sidebar-plus-form introduction with a clear global top bar
-and a colored studio canvas. A large, concise headline and the original crew
-sit beside a focused paper idea sheet. The form has a visible idea label,
-useful examples, a name and one creation action. Local ownership is a short
-note, not a disclaimer wall. Existing work can be resumed below.
+Use the real commands: clone the repository, enter it, run `./foundry`. The copy
+control reports both success and failure. Installation scrolls to and focuses
+the command section. Open workspace enters the actual app; Create your first
+product focuses the real composer. No invented package installer or waitlist.
 
-Real empty workspaces never contain the prototype's fictional products.
+The walkthrough uses Radix tabs with arrow-key navigation. It has a finite
+entrance, not an autoplay carousel. The heading and reading content stay still.
 
-### Product desk
+## Workspace
 
-One framed workbench, three distinct jobs:
+A compact top bar exposes products, creation, account/AI settings and Quiet
+motion. The empty workspace contains a labeled idea composer, examples, a name
+and one creation action. It never contains example projects or fake history.
+The original selectable portraits are secondary to the composer and explain
+roles, not live activity. Their existing finite radial motion is retained.
 
-1. Top: a horizontal six-step workflow spine. Current, selected, completed and future are
-   separate states. Inspecting a step does not start it.
-2. Center: the current job and one next action. Build shows tasks and checks;
-   Plan/Design lead with the document requiring a decision; failure leads with
-   the literal error and a safe next action.
-3. Right: relevant specialist portraits, short activity and saved decisions.
-   Context reflects the selected product/state, never another example's history.
+The product desk has three jobs:
+1. Left: Research, Plan, Design, Build, Test, Ship. Selected, current, complete
+   and future are distinct. Inspecting a step does not start it.
+2. Center: current work and one next action. Plan/Design lead with the document
+   to review; Build shows tasks/checks; failures expose their actual cause.
+3. Right: relevant roles, saved documents and recent activity for this product.
 
-Work, Documents and Activity share the desk rather than becoming independent
-stacks of decorative cards. Long ideas have an expand affordance so the work is
-not pushed out of reach. A step with no work has no invented outputs.
+Work, Documents and Activity stay in the same desk. Long ideas can expand;
+empty stages never invent output. Settings, product drawers and document
+reviews use the same dark tokens, compact controls and semantic states.
 
-### Reading and settings
+## Interaction and accessibility
 
-Documents have a calm reading measure, visible version and a persistent approval
-footer. Settings are compact but clearly grouped by account, engine and roles.
-Keep existing exact-version approval and model/reasoning behavior. Modals trap
-focus, lock background scroll, close with Escape, and restore their opener.
+- Keep the existing Radix focus traps, Escape handling, scroll lock and opener
+  restoration. Do not replace them with hand-rolled modal behavior.
+- Visible labels and generous label areas for checkboxes. Subscription consent
+  is never preselected. Engine selection never starts a job or signs in.
+- Primary actions are 40px on desktop, hero installation 48px. Mobile controls
+  are at least 44px. Icon-only controls always have accessible names.
+- Finite press feedback ~160ms; selection/reveal ~240ms; portrait entrance
+  under 1.4s; landing entrance 600ms. No perpetual decorative animation.
+- Quiet motion persists locally. The system reduced-motion preference wins.
+  Disabling motion never disables selection, focus or dialog closing.
+- The server's style nonce remains intact. No CSP relaxation.
 
-## Component contract
+## Responsive layout
 
-Own the visible styles and compositions; reuse the tested unstyled accessibility
-behavior of the existing Radix-backed primitives. Replacing that behavior with
-another library would not itself improve design taste.
+Desktop landing content is bounded at 1160px. Desktop work has a 176px stage
+sidebar and a 250px context pane. At 1000px context moves beneath the work;
+below 768px stages form a locally scrollable horizontal list. The current stage
+remains reachable. Narrow layouts place the composer before the portraits.
 
-- Primary buttons are ink, secondary actions are outlined paper or plain text.
-- Inputs are visibly labeled with adjacent validation; a placeholder is not a label.
-- One strong frame groups the desk; proximity groups the contents before more boxes.
-- Status always includes words and an icon, never color alone.
-- Portraits identify roles, not fictional parallel live agents.
-- Press/hover feedback is brief and does not move surrounding layout.
-- Loading matches the actual surface; failures explain what went wrong and what next.
-- Animate UI adaptations provide 160ms feedback and about 240ms selections and
-  surface entrances. Welcome headings reveal once, the radial intro settles in
-  under 1.4 seconds and the sky rests after 4.8 seconds. No decorative loops.
-  Quiet motion and the device preference remove movement without breaking close,
-  focus or selection behavior. [Component mapping](ANIMATE-UI.md) records the
-  catalog decisions and the upstream MIT + Commons Clause license.
+Use 20px mobile gutters, wrap long titles and file paths, and constrain local
+scrolling to the relevant list or document. Check 360px/390px and actual 200%
+zoom for horizontal page overflow. Approval remains reachable in long documents.
 
-## Responsive contract
+## Tooling and verification
 
-Desktop uses a spacious welcome and a paper desk with steps above work and context.
-At 1000px and below, context moves under the work; its native disclosure can collapse.
-At narrow widths the step spine scrolls locally and reveals the current step.
+[Impeccable](https://github.com/pbakaus/impeccable) was loaded for the redesign:
+product truth, new visual composition, rendered critique, then mechanical audit.
+It is not an installed project hook or a guarantee of design quality.
+The existing Radix wrappers, Motion and Animate UI adaptations remain; there
+is no second component kit. See [component mapping](ANIMATE-UI.md).
 
-The global top bar groups Your products, New product and Account & AI with labeled
-Phosphor icons. Your products opens a keyboard-accessible, scroll-locking drawer;
-there is no persistent sidebar. Product settings stay next to the product title.
+Source ownership: semantic tokens in `globals.css`; workspace layout in
+`workspace.css`; landing composition in `components/landing.tsx` and
+`landing.css`; shared motion/selection in `studio.css`. Generated browser and
+self-contained MCP panel assets must be rebuilt from these sources.
 
-Use at least 44px controls, 20px mobile gutters, wrapped long titles and locally
-scrolling stage navigation. At 360/390px and actual 200% zoom there must be no
-horizontal page overflow. Approval stays reachable at both ends of long content.
-Keep DOM reading order and keyboard order aligned with the visible layout.
-
-## Design skills and library decision
-
-Read as research, not installed hooks or authority:
-
-- [Impeccable](https://github.com/pbakaus/impeccable): shape before build;
-  assess information order, topology, density, typography and specificity
-  before mechanical polish.
-- [UI Skills](https://github.com/ibelick/ui-skills): focused interaction rules
-  for targets, focus, loading, feedback and motion.
-- [Anthropic frontend-design](https://github.com/anthropics/skills/tree/main/skills/frontend-design):
-  useful aesthetic framing, but broad guidance is not a Foundry-specific system.
-
-Complete systems considered: [Untitled UI React](https://github.com/untitleduico/react)
-(MIT open subset; PRO separately licensed) and [Radix Themes](https://www.radix-ui.com/themes).
-Both improve consistency and speed, but their default look risks the same
-generic result the owner rejected. [Base UI](https://base-ui.com/) is a strong
-MIT unstyled greenfield foundation, not a complete visual system.
-
-Recommendation: this owned Foundry Studio language with existing headless
-behavior retained. Do not install a new CLI, design hook or paid kit merely to
-claim the UI was redesigned.
-
-## Integration and verification boundary
-
-Semantic tokens live in app/src/globals.css, compositions in main.tsx/workspace.css
-and the introduction in components/landing.tsx and landing.css. Settings, document
-readers, roles and the embedded panel use the same system. Internal stage IDs
-and all real workflow behavior remain.
-
-Run TypeScript, regenerate the panel, and pass all configured framework checks.
-Then exercise the real app at desktop/mobile widths, with keyboard, Escape/
-return focus, scroll lock, long content, empty/loading/error states, retry/stop,
-reduced motion, 200% zoom and CSP monitoring. Keep the strict per-document nonce.
-
-The previous neutral treatment's rendered QA is superseded. Its delayed-document
-navigation failure is closed by the current real-app scripted journey, not by
-prototype QA. Fresh rendered testing also verifies the lifecycle feedback fix,
-mobile views, actual 200% zoom and nonce-backed dialog styles. The acceptance
-comparison and current evidence are in docs/UI-DESIGN.md. Live AI, account
-sign-in, deployment, native MCP host rendering and exhaustive accessibility
-certification remain separate verification work.
+Run TypeScript, panel build, both browser journeys and README framework checks.
+Separately inspect rendered desktop/mobile layouts, keyboard/return focus,
+reduced motion, 200% zoom, contrast, long/empty/loading/error states and network
+errors. A passing simulated-provider journey is not live AI qualification,
+successful sign-in, deployment, MCP-host rendering or owner design acceptance.

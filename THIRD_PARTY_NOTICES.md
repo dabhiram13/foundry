@@ -28,4 +28,13 @@ of the Foundry application, not a standalone component bundle. The framework's
 MIT license does not remove the upstream restriction on component redistribution.
 
 Motion is pinned in package.json; its MIT notices are retained in the bundle.
-The wispy Canvas sky is original Foundry code, not ForgeUI's paid Zephyr source.
+
+## Typography and identity
+
+Inter variable Latin normal is vendored from `@fontsource-variable/inter` 5.2.8
+under SIL OFL 1.1. Its [license](app/assets/licenses/Inter-OFL.txt) and
+[source record](app/assets/licenses/Inter-SOURCE.md) are retained. It is served
+locally and embedded in the MCP panel, not fetched from a font CDN.
+
+The Foundry mark and wordmark are original SVG artwork. Superset's public page
+is a visual reference, not a source of copied artwork, code or brand assets.

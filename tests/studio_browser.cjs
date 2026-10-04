@@ -36,19 +36,26 @@ server.serve_forever()
     await page.addInitScript(() => {
       window.studioCspErrors = [];
       document.addEventListener('securitypolicyviolation', event => window.studioCspErrors.push(event.violatedDirective));
-      const animate = Element.prototype.animate;
-      Element.prototype.animate = function (...args) {
-        if (this instanceof HTMLCanvasElement) this.dataset.animationStarts = String(Number(this.dataset.animationStarts || 0) + 1);
-        return animate.apply(this, args);
-      };
     });
     await page.goto(`http://127.0.0.1:${port}/#welcome`);
-    await page.locator('.sky-background canvas[data-animation-starts="1"]').waitFor();
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForFunction(() => document.querySelector('.sky-background canvas').getAnimations().length === 0);
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(250);
-    assert.equal(await page.locator('.sky-background canvas').getAttribute('data-animation-starts'), '1', 'Scrolling back must not restart the sky');
+    await page.getByRole('heading', {name:/Start with an idea\.\s*Make it real\./}).waitFor();
+    for (const asset of ['/assets/foundry-wordmark.svg', '/assets/inter-latin-wght-normal.woff2']) {
+      assert.equal((await page.request.get(`http://127.0.0.1:${port}${asset}`)).status(), 200, `New brand asset not served: ${asset}`);
+    }
+    assert.equal(await page.locator('.sky-background').count(), 0, 'The retired sky must not remain behind the dark design');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'dark');
+    const mutations = [];
+    page.on('request', request => { if (request.method() === 'POST') mutations.push(request.url()); });
+    const walkthrough = page.getByRole('region', {name:'Example product walkthrough'});
+    await walkthrough.getByText('Example walkthrough', {exact:true}).waitFor();
+    await walkthrough.getByRole('tab', {name:'Review the plan',exact:true}).focus();
+    await page.keyboard.press('ArrowDown');
+    await walkthrough.getByRole('heading', {name:'Follow the work. Not a wall of chat.'}).waitFor();
+    await page.keyboard.press('ArrowDown');
+    await walkthrough.getByText('Illustrative test output', {exact:true}).waitFor();
+    await page.keyboard.press('Home');
+    await walkthrough.getByRole('heading', {name:'A home for your next good read.'}).waitFor();
+    assert.deepEqual(mutations, [], 'Exploring the example must not write data or start AI');
     const install = 'git clone https://github.com/dabhiram13/foundry.git\ncd foundry\n./foundry';
     assert.equal(await page.getByLabel('Installation commands').textContent(), install);
     for (const width of [1440, 768, 390, 360]) {
@@ -56,6 +63,10 @@ server.serve_forever()
       assert.ok(await page.getByRole('button', {name:'Install Foundry', exact:true}).evaluate(el => el.getBoundingClientRect().height >= 48));
       assert.ok(await page.getByRole('button', {name:'Copy commands', exact:true}).evaluate(el => el.getBoundingClientRect().height >= 44));
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      for (const name of ['Follow the build', 'See the checks', 'Review the plan']) {
+        await walkthrough.getByRole('tab', {name, exact:true}).click();
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${name} overflows at ${width}px`);
+      }
     }
     await page.setViewportSize({width:1440, height:1000});
     await page.getByRole('button', {name:'Install Foundry', exact:true}).click();
@@ -125,6 +136,11 @@ server.serve_forever()
     await page.getByLabel('Name', {exact:true}).fill('Motion check');
     await page.getByRole('button', {name:'Create product',exact:true}).click();
     await page.getByRole('heading', {name:'Motion check',exact:true}).waitFor();
+    await page.locator('.context-activity').getByText('Workspace created', {exact:true}).waitFor();
+    assert.equal(await page.locator('.context-activity').getByText('Research · Completed', {exact:true}).count(), 0);
+    await page.getByRole('tab', {name:/^Activity/}).click();
+    await page.locator('#activity').getByText('Workspace created', {exact:true}).waitFor();
+    await page.getByRole('tab', {name:'Work',exact:true}).click();
     assert.equal(await page.getByRole('progressbar', {name:'Progress',exact:true}).getAttribute('aria-valuenow'), '0');
     await page.locator('#settings-button').click();
     await page.waitForFunction(() => {

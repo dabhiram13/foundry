@@ -19,7 +19,6 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Checkbox, ChoiceGroup, CopyButton, Disclosure, Progress, SplitText } from '@/components/ui/animate-ui';
 import { StudioMotion, MotionToggle } from '@/components/studio-motion';
 import { SpecialistIntro } from '@/components/specialist-intro';
-import { SkyBackground } from '@/components/sky-background';
 
 type RoleSettings = {model?: string | null; reasoning?: string | null};
 type Artifact = {path: string; stage: string};
@@ -59,6 +58,7 @@ const examples: [string, string][] = [
 const cap = (value: string = '') => value.replace(/(^|[_-])(\w)/g, (_, sep, letter) => (sep ? ' ' : '') + letter.toUpperCase());
 const label = (stage: string = '') => stageNames[stage] || cap(stage);
 const statusLabel = (status: string = '') => ({awaiting_approval:'Needs your review', running:'Working', interrupted:'Stopped'} as Record<string,string>)[status] || cap(status);
+const historyLabel = (entry: History) => entry.note === 'Product workspace installed' ? 'Workspace created' : `${label(entry.stage)} · ${statusLabel(entry.status)}`;
 const roleName = (value: string | {name: string}) => typeof value === 'string' ? value : value.name;
 const roleLabel = (name: string) => cap(name.replace(/^foundry[-_]/, ''));
 const stamp = (value?: string) => { if (!value) return ''; const d = new Date(value); return Number.isNaN(d.valueOf()) ? value : d.toLocaleString([], {dateStyle:'medium', timeStyle:'short'}); };
@@ -294,7 +294,7 @@ function Workspace() {
     <div className="workspace-shell">
       <a className="workspace-skip" href="#main" onClick={event=>{event.preventDefault();document.getElementById('main')?.focus();}}>Skip to work</a>
       <header className="workspace-topbar">
-        <Button id="home-button" className="studio-brand" variant="ghost" aria-label="Foundry home" onClick={()=>home()}><img src="/assets/foundry-mark.svg" alt="" width="28" height="28"/><strong>Foundry</strong></Button>
+        <Button id="home-button" className="studio-brand" variant="ghost" aria-label="Foundry home" onClick={()=>home()}><img src="/assets/foundry-wordmark.svg" alt="Foundry" width="123" height="21"/></Button>
         <nav className="studio-navigation" aria-label="Workspace navigation">
           <Button id="mobile-menu" variant="ghost" aria-haspopup="dialog" aria-expanded={navigationOpen} aria-controls={navigationOpen?'product-drawer':undefined} onClick={()=>{drawerDestination.current=null;setNavigationOpen(true);}}><SquaresFour aria-hidden="true"/>Your products<span id="workspace-count" className="nav-count" aria-hidden="true">{products.length}</span></Button>
           <Button id="new-product" variant="ghost" onClick={()=>home(true)}><Plus aria-hidden="true"/>New product</Button>
@@ -314,7 +314,7 @@ function Workspace() {
       <div id="main" aria-busy={!!busy} className="workspace-main" tabIndex={-1}>
         <div className="page-feedback"><Feedback id="notice" message={pageNotice}/></div>
         {!snapshot.projects?<section className="page loading-state" role="status"><Loader2 className={notice?.error?'':'spinner'} aria-hidden="true"/><h1>{notice?.error?'Your workspace is unavailable':'Opening your workspace'}</h1><p>{notice?.error?'Check the local connection, then try again. Your saved products stay where they are.':'Loading your products.'}</p>{notice?.error&&<Button onClick={()=>perform('refresh',async()=>{})} disabled={!!busy}>Try again</Button>}</section>:!p?<section id="welcome" className="page home-page">
-          <div className="idea-desk sky-surface"><SkyBackground/><header className="page-heading home-heading"><div><span className="eyebrow"><Folder aria-hidden="true"/>Your local workspace</span><h1 id="heading" tabIndex={-1}><SplitText text="What do you want to build?"/></h1><p>Start with a problem worth solving. Foundry helps you turn it into a product, one clear step at a time.</p></div></header>
+          <div className="idea-desk"><header className="page-heading home-heading"><div><h1 id="heading" tabIndex={-1}><SplitText text="What do you want to build?"/></h1><p>Start with the problem you want to solve. You’ll review a plan before any code is written.</p></div></header>
           <section className="new-product-section surface">
             <form id="create-form" onSubmit={event=>{event.preventDefault();perform('create',async()=>{const product=await api('create',{name,idea});await refresh();setName('');setIdea('');choose(product.id);setNotice({text:'Created. Start research when you are ready.'});});}}>
               <label htmlFor="idea" className="composer-label"><SquarePen aria-hidden="true"/>Describe your idea</label>
@@ -378,13 +378,13 @@ function Workspace() {
                 <details className="desk-context" open><summary><Users aria-hidden="true"/>People &amp; documents<ChevronRight aria-hidden="true"/></summary><div>
                   <section className="specialist-section"><div className="section-label"><h3><Users aria-hidden="true"/>For this step</h3><Button variant="ghost" size="sm" onClick={()=>openSettings('specialists')}>Adjust roles<ArrowRight/></Button></div>
                     <ul className="stage-specialists">{(p.roles?.length?p.roles:stageRoles[viewedStage]||stageRoles.research).map(role=><li key={role} className="specialist-card"><RoleAvatar role={role} size={32} active={!inspecting&&!!running}/><span><strong>{roleLabel(role)}</strong></span></li>)}</ul>
-                  </section>{documents(p,true)}<section className="context-activity"><div className="section-label"><h3>Latest activity</h3></div>{p.history?.length?<ol>{p.history.slice(-3).reverse().map((entry,index)=><li key={index}><strong>{label(entry.stage)} · {statusLabel(entry.status)}</strong><time dateTime={entry.at}>{stamp(entry.at)}</time></li>)}</ol>:<p className="empty-copy">Your first step starts the story.</p>}</section></div></details>
+                  </section>{documents(p,true)}<section className="context-activity"><div className="section-label"><h3>Latest activity</h3></div>{p.history?.length?<ol>{p.history.slice(-3).reverse().map((entry,index)=><li key={index}><strong>{historyLabel(entry)}</strong><time dateTime={entry.at}>{stamp(entry.at)}</time></li>)}</ol>:<p className="empty-copy">Your first step starts the story.</p>}</section></div></details>
                 </div>
               </div>
 
             </TabsContent>
             <TabsContent value="documents">{documents(p)}</TabsContent>
-            <TabsContent value="activity"><section className="activity-section surface"><div className="section-label"><h3>Activity</h3><span>Everything that happened</span></div><ol id="activity" className="activity">{[...(p.history||[])].reverse().map((entry,index)=><li key={`${entry.at}-${index}`}>{entry.status==='failed'?<CircleAlert/>:entry.status==='completed'?<CircleCheck/>:<Clock3/>}<div><strong>{label(entry.stage)} · {statusLabel(entry.status)}</strong><p>{entry.note||'Product record updated.'}</p></div><time dateTime={entry.at}>{stamp(entry.at)}</time></li>)}</ol>{!p.history?.length&&<div className="empty-state"><Clock3/><h3>Nothing yet</h3><p>Each step will be listed here as it runs.</p></div>}</section></TabsContent>
+            <TabsContent value="activity"><section className="activity-section surface"><div className="section-label"><h3>Activity</h3><span>Everything that happened</span></div><ol id="activity" className="activity">{[...(p.history||[])].reverse().map((entry,index)=><li key={`${entry.at}-${index}`}>{entry.status==='failed'?<CircleAlert/>:entry.status==='completed'?<CircleCheck/>:<Clock3/>}<div><strong>{historyLabel(entry)}</strong><p>{entry.note||'Product record updated.'}</p></div><time dateTime={entry.at}>{stamp(entry.at)}</time></li>)}</ol>{!p.history?.length&&<div className="empty-state"><Clock3/><h3>Nothing yet</h3><p>Each step will be listed here as it runs.</p></div>}</section></TabsContent>
           </Tabs>
         </section>}
       </div>

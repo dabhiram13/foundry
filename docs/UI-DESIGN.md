@@ -1,5 +1,10 @@
 # Foundry workspace design
 
+> Historical implementation notes for the earlier Soft studio revision.
+> That visual direction is superseded by the owner-selected dark redesign.
+> Use the current [design system](DESIGN-SYSTEM.md) and
+> [redesign specification](specs/dark-foundry-redesign.md) for new work.
+
 Foundry uses genuine [shadcn/ui](https://ui.shadcn.com/) components, React, and
 Tailwind. The October 3, 2026 request replaces the neutral Figtree foundation with
 the owner-selected Soft studio design system, a paper idea sheet and a six-step

@@ -124,7 +124,9 @@ class FactoryUITests(unittest.TestCase):
             self.assertEqual(response.headers.get('Content-Type'), 'font/woff2')
             self.assertEqual(response.read(),
                              (self.service.root / 'app/assets/manrope-latin-wght-normal.woff2').read_bytes())
-        for asset, mime in [('figtree-latin-400-normal.woff2', 'font/woff2'),
+        for asset, mime in [('foundry-wordmark.svg', 'image/svg+xml'),
+                            ('inter-latin-wght-normal.woff2', 'font/woff2'),
+                            ('figtree-latin-400-normal.woff2', 'font/woff2'),
                             ('bots/designer.png', 'image/png')]:
             with urlopen(self.url + '/assets/' + asset) as response:
                 self.assertEqual(response.headers.get_content_type(), mime)

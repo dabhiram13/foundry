@@ -23,6 +23,8 @@ STATIC_ASSETS = {
     '/app.js': ('app.js', 'text/javascript', False),
     '/style.css': ('style.css', 'text/css', False),
     '/assets/foundry-mark.svg': ('assets/foundry-mark.svg', 'image/svg+xml', True),
+    '/assets/foundry-wordmark.svg': ('assets/foundry-wordmark.svg', 'image/svg+xml', True),
+    '/assets/inter-latin-wght-normal.woff2': ('assets/inter-latin-wght-normal.woff2', 'font/woff2', True),
     '/assets/manrope-latin-wght-normal.woff2': ('assets/manrope-latin-wght-normal.woff2', 'font/woff2', True),
 }
 for _weight in (400, 500, 600):

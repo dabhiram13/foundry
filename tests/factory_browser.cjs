@@ -161,7 +161,7 @@ async function assertNoOverflow(page, label) {
     await page.route('**/api/snapshot',slowInitial);
     await page.goto(url);
     // Standalone entry is the real landing; the embedded panel opens the workspace directly.
-    await page.getByRole('heading', {name:'Your idea. Built on your terms.', exact:true}).waitFor();
+    await page.getByRole('heading', {name:/Start with an idea\.\s*Make it real\./}).waitFor();
     await page.getByRole('button', {name:'Install Foundry', exact:true}).click();
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'landing-install');
     await page.getByRole('button', {name:'Open workspace', exact:true}).first().click();
@@ -170,16 +170,14 @@ async function assertNoOverflow(page, label) {
     await page.unroute('**/api/snapshot',slowInitial);
     assert.equal(initialSnapshots,1,'Periodic snapshots overlapped on a slow connection');
 
-    // The shared Soft studio system is local, including its font and portraits.
+    // Landing typography and workspace portraits use local assets.
     await page.locator('#mobile-menu').click();
     await page.getByRole('button', {name:'About Foundry', exact:true}).click();
-    await page.getByRole('heading', {name:'Your idea. Built on your terms.', exact:true}).waitFor();
+    await page.getByRole('heading', {name:/Start with an idea\.\s*Make it real\./}).waitFor();
     await page.evaluate(() => document.fonts.ready);
-    assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /Manrope/);
-    assert.equal(await page.evaluate(() => [...document.fonts].some(font => font.family === 'Manrope' && font.status === 'loaded')), true);
-    assert.ok(await page.locator('img.role-avatar').count() > 0, 'Requested specialist portraits are missing');
-    assert.equal(await page.locator('.role-avatar svg').count(), 0, 'Role glyph replacement is still rendered');
-    await page.getByRole('heading', {name:'Up and running, without the guessing.', exact:true}).waitFor();
+    assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /Inter/);
+    assert.equal(await page.evaluate(() => [...document.fonts].some(font => font.family === 'Inter' && font.status === 'loaded')), true);
+    await page.getByRole('heading', {name:/Less babysitting\.\s*More building\./}).waitFor();
     for (const width of [1280, 768, 390, 360]) {
       await page.setViewportSize({width, height:900});
       await assertNoOverflow(page, `Introduction ${width}px`);
@@ -208,6 +206,8 @@ async function assertNoOverflow(page, label) {
     await page.getByLabel('Describe your idea').fill('Help a studio owner keep evidence-backed client decisions and release notes in one local workspace.');
     await page.getByRole('button', {name:'Create product', exact:true}).click();
     await page.getByRole('heading', {name:'Recovery workspace', exact:true}).waitFor();
+    assert.ok(await page.locator('.stage-specialists img.role-avatar').count() > 0, 'Requested specialist portraits are missing from the workspace');
+    assert.equal(await page.locator('.stage-specialists .role-avatar svg').count(), 0, 'Role glyph replacement is still rendered');
     const recoveryId = await page.evaluate(async () => {
       const response = await fetch('/api/snapshot', {headers:{'X-Foundry-Token':document.querySelector('meta[name="foundry-token"]').content}});
       return (await response.json()).projects.find(item => item.name === 'Recovery workspace').id;
@@ -260,12 +260,12 @@ async function assertNoOverflow(page, label) {
     const keyboardFocus = await stageRail.locator('[aria-current="step"]').evaluate(el => ({visible:el.matches(':focus-visible'), outline:getComputedStyle(el).outlineWidth}));
     assert.deepEqual(keyboardFocus, {visible:true, outline:'2px'});
     await page.locator('#stage-title').click();
-    await page.waitForFunction(() => getComputedStyle(document.querySelector('#stages [aria-pressed="true"]')).backgroundColor === 'rgb(255, 254, 250)');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('#stages [aria-pressed="true"]')).backgroundColor === 'rgb(43, 36, 31)');
     const selection = await stageRail.locator('[aria-pressed="true"]').evaluate(el => {
       const style=getComputedStyle(el);
-      return {height:el.offsetHeight, background:style.backgroundColor, border:style.borderBottomWidth, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
+      return {height:el.offsetHeight, background:style.backgroundColor, border:style.borderLeftWidth, borderColor:style.borderLeftColor, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
     });
-    assert.deepEqual(selection, {height:56, background:'rgb(255, 254, 250)', border:'2px', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the Soft studio underline-selection contract');
+    assert.deepEqual(selection, {height:56, background:'rgb(43, 36, 31)', border:'2px', borderColor:'rgb(255, 133, 77)', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the dark vertical rail contract');
     assert.equal(await page.locator('#stage-work-panel .surface').count(), 0, 'Work panel contains nested cards');
     assert.equal(await page.locator('.page-tabs').evaluate(el => el.scrollHeight <= el.clientHeight), true, 'Product tabs have an unnecessary vertical scrollbar');
 
@@ -562,7 +562,7 @@ async function assertNoOverflow(page, label) {
       }
     }
     await page.emulateMedia({reducedMotion:'reduce'});
-    assert.match(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('color-scheme')), /light/);
+    assert.match(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('color-scheme')), /dark/);
     await page.getByRole('button', {name:'Your products'}).click();
     assert.equal(await page.locator('#products').count(), 1, 'Product drawer duplicated the product navigation');
     for (const target of await page.locator('.product-drawer .product-link').all()) {

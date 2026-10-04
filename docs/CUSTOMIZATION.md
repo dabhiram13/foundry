@@ -5,6 +5,13 @@ owner's control. Choose small/feature/product depth from WORKFLOW.md; use the
 record schema and gates in WORKFLOW-CONTRACTS.md and provider capabilities in
 PROVIDERS.md. Keep backward-compatible `.foundry` storage and `foundry-*` names.
 
+The terminal command is the supported configuration surface:
+`./foundry --products-dir PATH configure PROJECT --provider NAME --model MODEL
+--reasoning REASONING`. Omitted preferences preserve saved values; an explicit
+empty model or reasoning resets it. The framework registry is copied into a
+product only at `new` time. Edit a product's local `.foundry/providers.json`
+only after reviewing its adapter contract and billing mode.
+
 ## Add a workflow skill
 
 Create `.agents/skills/foundry-NAME/SKILL.md` with supported `name` and `description`

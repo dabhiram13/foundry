@@ -46,30 +46,35 @@ server.serve_forever()
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'dark');
     const mutations = [];
     page.on('request', request => { if (request.method() === 'POST') mutations.push(request.url()); });
-    const walkthrough = page.getByRole('region', {name:'Example product walkthrough'});
-    await walkthrough.getByText('Example walkthrough', {exact:true}).waitFor();
-    await walkthrough.getByRole('tab', {name:'Review the plan',exact:true}).focus();
+    const walkthrough = page.getByRole('region', {name:'Terminal getting-started example'});
+    await walkthrough.getByText('Example commands', {exact:true}).waitFor();
+    assert.equal(await walkthrough.getByRole('tab').count(), 3, 'Terminal walkthrough must expose all three steps');
+    await walkthrough.getByRole('tab', {name:'Describe it',exact:true}).focus();
     await page.keyboard.press('ArrowDown');
-    await walkthrough.getByRole('heading', {name:'Follow the work. Not a wall of chat.'}).waitFor();
+    await walkthrough.getByRole('heading', {name:'Read the plan. Then decide.'}).waitFor();
     await page.keyboard.press('ArrowDown');
-    await walkthrough.getByText('Illustrative test output', {exact:true}).waitFor();
+    await walkthrough.getByRole('heading', {name:'Build it. Check it. Keep it.'}).waitFor();
     await page.keyboard.press('Home');
-    await walkthrough.getByRole('heading', {name:'A home for your next good read.'}).waitFor();
+    await walkthrough.getByRole('heading', {name:'Your idea. A folder of its own.'}).waitFor();
     assert.deepEqual(mutations, [], 'Exploring the example must not write data or start AI');
-    const install = 'git clone https://github.com/dabhiram13/foundry.git\ncd foundry\n./foundry';
+    const install = 'git clone https://github.com/dabhiram13/foundry.git\ncd foundry\n./foundry --help';
     assert.equal(await page.getByLabel('Installation commands').textContent(), install);
     for (const width of [1440, 768, 390, 360]) {
       await page.setViewportSize({width, height:900});
-      assert.ok(await page.getByRole('button', {name:'Install Foundry', exact:true}).evaluate(el => el.getBoundingClientRect().height >= 48));
+      assert.ok(await page.getByRole('button', {name:'Install Foundry', exact:true}).last().evaluate(el => el.getBoundingClientRect().height >= 48));
       assert.ok(await page.getByRole('button', {name:'Copy commands', exact:true}).evaluate(el => el.getBoundingClientRect().height >= 44));
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-      for (const name of ['Follow the build', 'See the checks', 'Review the plan']) {
+      for (const name of ['Describe it', 'Review it', 'Build and check']) {
         await walkthrough.getByRole('tab', {name, exact:true}).click();
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${name} overflows at ${width}px`);
       }
     }
     await page.setViewportSize({width:1440, height:1000});
-    await page.getByRole('button', {name:'Install Foundry', exact:true}).click();
+    assert.equal(await page.locator('.landing-header').getByRole('button', {name:'Projects', exact:true}).count(), 0, 'Landing header must not expose project controls');
+    assert.equal(await page.locator('.landing-header').getByRole('button', {name:'Settings', exact:true}).count(), 0, 'Landing header must not expose settings controls');
+    assert.equal(await page.locator('.landing-header').getByRole('button', {name:'Create product', exact:true}).count(), 0, 'Landing header must not expose product creation');
+    assert.equal(await page.getByRole('button', {name:'Install Foundry', exact:true}).count(), 2);
+    await page.getByRole('button', {name:'Install Foundry', exact:true}).first().click();
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'landing-install');
     await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', {
       configurable: true, value: {writeText: async text => { window.copiedInstall = text; }}
@@ -82,15 +87,15 @@ server.serve_forever()
     }));
     await page.getByRole('button', {name:'Copy commands', exact:true}).click();
     await page.getByText('Could not copy. Select and copy the text instead.', {exact:true}).waitFor();
-    await page.getByRole('button', {name:'Can I use Claude, Qwen or another AI?', exact:true}).click();
-    await page.getByText(/An OpenAI-compatible endpoint alone is not enough/).waitFor();
+    await page.getByRole('button', {name:'Which AI can I use?', exact:true}).click();
+    await page.getByText(/Adding an API key or model URL alone is not enough/).waitFor();
     await page.getByRole('button', {name:'Does my code stay on my computer?', exact:true}).click();
     await page.getByText(/Local storage does not mean local AI processing/).waitFor();
     for (const href of await page.locator('a[href*="/blob/main/docs/"]').evaluateAll(links => links.map(link => link.href))) {
       const file = new URL(href).pathname.split('/blob/main/')[1];
       assert.ok(fs.existsSync(path.join(root, file)), `Missing documentation target: ${file}`);
     }
-    await page.getByRole('button', {name:'Create your first product', exact:true}).click();
+    await page.getByRole('button', {name:'Open local browser view', exact:true}).click();
     await page.getByLabel('Describe your idea').waitFor();
     await page.goto(`http://127.0.0.1:${port}/#workspace`);
     await page.getByRole('heading', { name: 'What do you want to build?', exact: true }).waitFor();

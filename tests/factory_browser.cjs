@@ -162,9 +162,14 @@ async function assertNoOverflow(page, label) {
     await page.goto(url);
     // Standalone entry is the real landing; the embedded panel opens the workspace directly.
     await page.getByRole('heading', {name:/Start with an idea\.\s*Make it real\./}).waitFor();
-    await page.getByRole('button', {name:'Install Foundry', exact:true}).click();
+    assert.equal(await page.getByRole('button', {name:'Install Foundry', exact:true}).count(), 2, 'Landing must expose the header and hero install actions');
+    assert.equal(await page.locator('.landing-header').getByRole('button', {name:'Projects', exact:true}).count(), 0, 'Landing header must not expose project controls');
+    assert.equal(await page.locator('.landing-header').getByRole('button', {name:'Settings', exact:true}).count(), 0, 'Landing header must not expose settings controls');
+    assert.equal(await page.locator('.landing-header').getByRole('button', {name:'Create product', exact:true}).count(), 0, 'Landing header must not expose product creation');
+    assert.match(await page.getByLabel('Installation commands').textContent(), /\.\/foundry --help/);
+    await page.getByRole('button', {name:'Install Foundry', exact:true}).first().click();
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'landing-install');
-    await page.getByRole('button', {name:'Open workspace', exact:true}).first().click();
+    await page.getByRole('button', {name:'Open local browser view', exact:true}).click();
 
     await page.getByRole('button',{name:'Create product',exact:true}).waitFor({timeout:10000});
     await page.unroute('**/api/snapshot',slowInitial);
@@ -184,7 +189,7 @@ async function assertNoOverflow(page, label) {
     }
     await page.setViewportSize({width:1280,height:900});
     assert.equal(await page.locator('.landing-role').count(), 0, 'Landing must not repeat the full role directory');
-    await page.getByRole('button', {name:'Open workspace', exact:true}).first().click();
+    await page.getByRole('button', {name:'Open local browser view', exact:true}).click();
     await page.getByRole('button', {name:'Create product', exact:true}).waitFor();
 
     // Account controls are available before a product exists, without live credentials.
@@ -576,7 +581,7 @@ async function assertNoOverflow(page, label) {
     }
     await page.emulateMedia({reducedMotion:'reduce'});
     assert.match(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('color-scheme')), /dark/);
-    await page.getByRole('button', {name:'Your products'}).click();
+    await page.getByRole('button', {name:'Projects', exact:true}).click();
     assert.equal(await page.locator('#products').count(), 1, 'Product drawer duplicated the product navigation');
     for (const target of await page.locator('.product-drawer .product-link').all()) {
       const box=await target.boundingBox();
@@ -589,13 +594,13 @@ async function assertNoOverflow(page, label) {
     assert.equal(await page.getByRole('dialog').count(), 1, 'Product navigation remained open behind settings');
     await page.getByRole('button', {name:'Close settings'}).click();
     await page.waitForFunction(() => document.activeElement?.id === 'account-button');
-    await page.getByRole('button', {name:'Your products'}).click();
-    await page.getByRole('button', {name:'Close products'}).click();
+    await page.getByRole('button', {name:'Projects', exact:true}).click();
+    await page.getByRole('button', {name:'Close projects', exact:true}).click();
     await page.waitForFunction(() => document.activeElement?.id === 'mobile-menu');
-    await page.getByRole('button', {name:'Your products'}).click();
+    await page.getByRole('button', {name:'Projects', exact:true}).click();
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => document.activeElement?.id === 'mobile-menu');
-    await page.getByRole('button', {name:'Your products'}).click();
+    await page.getByRole('button', {name:'Projects', exact:true}).click();
     const sheetBackdrop = page.locator('[data-slot="sheet-overlay"]');
     await sheetBackdrop.click({position:{x:(await sheetBackdrop.boundingBox()).width - 24, y:420}});
     await sheetBackdrop.waitFor({state:'detached'});
@@ -606,7 +611,7 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('heading', {name:'Recovery workspace', exact:true}).waitFor();
     await page.getByRole('button', {name:'Workspace', exact:true}).click();
     await page.getByRole('heading', {name:'What do you want to build?', exact:true}).waitFor();
-    await page.getByRole('button', {name:'Your products'}).click();
+    await page.getByRole('button', {name:'Projects', exact:true}).click();
     if(!await page.locator('#products').isVisible()) await page.locator('#mobile-menu').click();
     await page.locator('#products').getByRole('button', {name:'Recovery workspace', exact:true}).click();
 

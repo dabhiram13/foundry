@@ -25,9 +25,11 @@ original standards-based implementation of the published flow.
 
 ## Install and connect
 
-The normal entry is `./foundry`, then **Account & runtime → Continue with
-ChatGPT**. First launch installs the pinned local dependencies. For direct
-command-line inspection, the same bridge is available:
+The terminal is the normal entry for local product work. ChatGPT consent and
+execution are browser-only: use `./foundry ui`, then **Settings → Continue with
+ChatGPT**. `./foundry run` refuses the experimental ChatGPT adapter rather than
+pretending browser OAuth is available. First launch installs the pinned local
+dependencies. For direct command-line inspection, the same bridge is available:
 
 ```sh
 python3 -m venv .venv

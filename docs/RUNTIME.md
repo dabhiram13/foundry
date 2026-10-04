@@ -1,4 +1,27 @@
-# Local run integrity and recovery
+# Runtime and recovery
+
+## Local Factory commands
+
+The terminal launcher is the primary entry point:
+
+| Goal | Command |
+| --- | --- |
+| Create a project | `./foundry new NAME --idea "One useful local journey"` |
+| Confirm the intended Codex subscription | `./foundry configure NAME --confirm-subscription` |
+| Advance one step | `./foundry run NAME` |
+| Read the Plan or Design when approval is requested | `./foundry review NAME` |
+| Approve the version you reviewed | `./foundry approve NAME --revision SHA256_FROM_REVIEW` |
+| Cancel a running step | `./foundry stop NAME` |
+
+Each `run` advances exactly one step. Plan and Design require explicit owner
+approval of the version returned by `review`; a changed version is refused.
+`stop` asks the active provider process to cancel; when no step is running, it
+leaves the project unchanged. `status`
+reports saved history and the next command. `./foundry ui` is an optional view
+over the same products and state directory. Do not edit `.foundry/state/` by
+hand.
+
+## Local run integrity and recovery
 
 Foundry 0.2 keeps `scripts/foundry.py`, `.foundry/project.json`, existing run
 IDs and installed-product metadata compatible. `scripts/marketcraft.py` is the

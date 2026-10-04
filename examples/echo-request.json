@@ -1,0 +1,19 @@
+{
+  "adapter": "echo",
+  "kind": "bounded-model",
+  "prompt": "Return this local smoke request unchanged.",
+  "required_capabilities": ["structured_output"],
+  "billing": {"mode": "local"},
+  "budget": {
+    "max_attempts": 1,
+    "max_concurrency": 1,
+    "max_elapsed_seconds": 30,
+    "max_api_dollars": 0
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {"echo": {"type": "string"}},
+    "required": ["echo"],
+    "additionalProperties": false
+  }
+}

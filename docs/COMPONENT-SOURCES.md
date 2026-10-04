@@ -1,6 +1,6 @@
 # Foundry: component-source implementation map
 
-Research date: 2026-10-04. This is a proposal, not an implementation or installation record.
+Research date: 2026-10-04. This map records the reviewed source choices and implementation.
 
 ## Selected stack
 
@@ -59,9 +59,9 @@ https://base-ui.com/react/components/autocomplete
 
 Current pinned dependencies observed: react/react-dom 19.3.0, radix-ui 1.6.7, motion 12.23.24, class-variance-authority 0.7.1, clsx 2.1.1, tailwind-merge 3.7.0, Tailwind tooling 4.3.3.
 
-Proposed new runtime packages:
+Pinned runtime additions:
 - `@base-ui/react`: npm stable 1.8.0 observed, published 2026-09-04. Declares React/React DOM 17, 18 or 19 compatibility. Date libraries are optional peers; do not add them for Autocomplete.
-- `lucide-react`: stable 1.51.0 observed; declares React 19 compatibility. Needed by the selected shadcn source and the previously proposed consistent Lucide icon direction. Keep existing Phosphor until all usages are migrated; do not mix equivalent icons indefinitely.
+- `lucide-react`: stable 1.51.0 observed; declares React 19 compatibility. Used by the shadcn source and shared icon direction; Phosphor imports have been removed.
 
 These versions are pinned for the implementation. Check the saved verification report for actual integration results; peer compatibility alone is not a passing build.
 

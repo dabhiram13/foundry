@@ -53,7 +53,10 @@ Solid arrows below represent explicit work or calls. Reading instructions does n
 
 ```mermaid
 flowchart TB
-    O["Owner: idea, constraints and decisions"] --> K["Coordinator<br/>factory.py + selected agent runtime"]
+    O["Owner: terminal commands, idea and decisions"] --> CLI["factory_cli.py<br/>Primary local entry"]
+    O --> UI["Optional browser UI<br/>Same Factory state"]
+    CLI --> K["Coordinator<br/>factory.py + selected agent runtime"]
+    UI --> K
     M["Repository workflows, roles and references"] -. "reads relevant materials" .-> K
     K -->|"implements and integrates"| A["Application in its own product workspace"]
     K -->|"record / guide / context / gate"| W["workflow.py"]
@@ -137,7 +140,13 @@ A completed model turn verifies that request, not the application. See
 
 ## 5. Use the repository without a global Foundry skill
 
-Run `./foundry`, enter a product name and idea, and continue through the review points. You can also open the repository in a supported coding assistant and describe the product. The coordinator can read the repository instructions directly, choose a separate product folder, and invoke the installer. You do not need to install or invoke `$foundry` first.
+Run `./foundry --help`, create a product with `new`, and continue through
+`run`, `review` and exact-revision `approve` commands. `./foundry ui` is an
+optional browser view over the same Factory state. You can also open the
+repository in a supported coding assistant and describe the product. The
+coordinator can read the repository instructions directly, choose a separate
+product folder, and invoke the installer. You do not need to install or invoke
+`$foundry` first.
 
 For an explicit local installation:
 

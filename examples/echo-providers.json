@@ -1,0 +1,14 @@
+{
+  "adapters": [
+    {
+      "name": "echo",
+      "kind": "bounded-model",
+      "command": [
+        "/absolute/path/to/python3",
+        "/absolute/path/to/foundry/examples/echo_adapter.py"
+      ],
+      "capabilities": ["cancel", "jsonl", "structured_output"],
+      "billing_modes": ["local"]
+    }
+  ]
+}

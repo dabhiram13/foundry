@@ -1,47 +1,46 @@
-import { ArrowRight, Check, FileText, Folder, GitBranch, ListChecks, SquarePen as NotePencil, Terminal } from 'lucide-react';
+import { ArrowUpRight, GitBranch, ListChecks, SquarePen, Terminal } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Button } from './ui/button';
 
-export function ProductWalkthrough({ onEnter }: { onEnter: () => void }) {
-  return <section className="product-walkthrough" aria-label="Example product walkthrough">
+export function ProductWalkthrough() {
+  return <section className="product-walkthrough" aria-label="Terminal getting-started example">
     <div className="walkthrough-titlebar">
-      <span><img src="/assets/foundry-mark.svg" alt="" width="18" height="18" /> Foundry <span className="preview-divider">/</span> Reading list</span>
-      <span className="example-label">Example walkthrough</span>
+      <span><img src="/assets/foundry-mark.svg" alt="" width="18" height="18" /> Foundry <span className="preview-divider">/</span> From your terminal</span>
+      <span className="example-label">Example commands</span>
     </div>
-    <Tabs defaultValue="plan" orientation="vertical" className="walkthrough-tabs">
+    <Tabs defaultValue="idea" orientation="vertical" className="walkthrough-tabs">
       <aside className="walkthrough-sidebar">
-        <p><Folder aria-hidden="true" /> Your product</p>
-        <TabsList variant="line" aria-label="Explore the example">
-          <TabsTrigger value="plan"><NotePencil aria-hidden="true" /> Review the plan</TabsTrigger>
-          <TabsTrigger value="build"><Terminal aria-hidden="true" /> Follow the build</TabsTrigger>
-          <TabsTrigger value="test"><ListChecks aria-hidden="true" /> See the checks</TabsTrigger>
+        <p><Terminal aria-hidden="true" /> How it works</p>
+        <TabsList variant="line" aria-label="Explore the steps">
+          <TabsTrigger value="idea"><SquarePen aria-hidden="true" /> Describe it</TabsTrigger>
+          <TabsTrigger value="review"><ListChecks aria-hidden="true" /> Review it</TabsTrigger>
+          <TabsTrigger value="build"><GitBranch aria-hidden="true" /> Build and check</TabsTrigger>
         </TabsList>
         <span className="walkthrough-local"><GitBranch aria-hidden="true" /> Saved on your computer</span>
       </aside>
       <div className="walkthrough-content">
-        <TabsContent value="plan">
-          <div className="walkthrough-status"><span className="status-square" /> Your review comes first</div>
-          <h2>A home for your next good read.</h2>
-          <p>A small reading list. Save a link, add a note, and find it again when you have time.</p>
-          <div className="walkthrough-document"><div><FileText aria-hidden="true" /><span>First version</span></div><ul><li><Check aria-hidden="true" /> Save a link with a title and a note</li><li><Check aria-hidden="true" /> Mark an article as read</li><li><Check aria-hidden="true" /> Search your saved articles</li></ul><p>Leave shared lists and recommendations for later.</p></div>
-          <p className="walkthrough-caption">You approve the plan and design before Foundry writes product code.</p>
+        <TabsContent value="idea">
+          <div className="walkthrough-status"><span className="status-square" /> Start with one useful job</div>
+          <h2>Your idea. A folder of its own.</h2>
+          <p>After installation and Codex sign-in, describe the first version. Creating a project does not start AI work.</p>
+          <pre className="terminal-example" aria-label="Create and configure a project"><code>{'./foundry new "Reading list" \\\n  --idea "Save links and mark them read"\n\n./foundry configure reading-list \\\n  --confirm-subscription'}</code></pre>
+          <p className="walkthrough-caption">Confirm only if Codex uses the subscription login you intend. Your plan’s usage limits still apply.</p>
+        </TabsContent>
+        <TabsContent value="review">
+          <div className="walkthrough-status"><span className="status-square" /> Your approval comes first</div>
+          <h2>Read the plan. Then decide.</h2>
+          <p>Run Research, then Plan. Each command runs one step and returns control to you.</p>
+          <pre className="terminal-example" aria-label="Run Research and Plan, then review"><code>{'./foundry run reading-list\n./foundry run reading-list\n./foundry review reading-list'}</code></pre>
+          <p className="walkthrough-caption">Review prints the document and its revision. Approve that exact revision to continue. Repeat for Design before any product code is built.</p>
         </TabsContent>
         <TabsContent value="build">
-          <div className="walkthrough-status"><span className="status-square" /> One small task at a time</div>
-          <h2>Follow the work. Not a wall of chat.</h2>
-          <p>See what is finished, what needs attention and what comes next.</p>
-          <ol className="walkthrough-tasks"><li><Check aria-hidden="true" /><span>Create the reading list<small>Example: complete, checks passed</small></span></li><li><span className="status-square" /><span>Add search<small>Example: current task</small></span></li><li><span className="task-outline" aria-hidden="true" /><span>Mark articles as read<small>Example: next task</small></span></li></ol>
-          <p className="walkthrough-caption">Each completed task gets checked and saved in Git. If a check fails, Foundry tries to fix it.</p>
-        </TabsContent>
-        <TabsContent value="test">
-          <div className="walkthrough-status"><span className="status-square" /> Know what was checked</div>
-          <h2>Read the results. Keep the code.</h2>
-          <p>Tests and unfinished work stay visible. A summary is not a promise that everything is ready for customers.</p>
-          <div className="walkthrough-checks"><span>Illustrative test output</span><code><span>✓ Save a link</span><span>✓ Find a saved article</span><span>✓ Mark an article as read</span></code><p>Publishing: not started. That is your decision.</p></div>
-          <p className="walkthrough-caption">Your product folder holds the code, decisions, test results and Git history.</p>
+          <div className="walkthrough-status"><span className="status-square" /> Small changes. Real checks.</div>
+          <h2>Build it. Check it. Keep it.</h2>
+          <p>After both approvals, run Build. Foundry works through small tasks, runs checks and saves completed tasks in Git.</p>
+          <pre className="terminal-example" aria-label="Build and inspect progress"><code>{'./foundry run reading-list\n./foundry status reading-list'}</code></pre>
+          <p className="walkthrough-caption">Continue with Test and Ship when prompted. Ship writes a summary; it does not publish. Failed work stays visible and needs your attention.</p>
         </TabsContent>
       </div>
     </Tabs>
-    <div className="walkthrough-footer"><p>An example, not a live AI run. Try the real workspace.</p><Button variant="ghost" onClick={onEnter}>Open Foundry <ArrowRight aria-hidden="true" /></Button></div>
+    <div className="walkthrough-footer"><p>Example commands, not a live AI run. No browser required.</p><a className="landing-secondary" href="https://github.com/dabhiram13/foundry/blob/main/docs/GETTING-STARTED.md">Follow the guide <ArrowUpRight aria-hidden="true" /></a></div>
   </section>;
 }

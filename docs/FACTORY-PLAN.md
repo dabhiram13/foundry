@@ -9,6 +9,11 @@ Deliver a **Codex-first software factory for the owner**, with a small plugin in
 
 The global `$foundry` shortcut is optional. Installing a shortcut is not a release milestone. The useful milestone is: give Foundry a name and idea, settle scope, see a working product, interrupt/resume it, and verify the actual result.
 
+The supported local entry is now `./foundry --help` and the terminal
+`new`/`configure`/`run`/`review`/`approve` flow. `./foundry ui` remains an
+optional browser view over the same Factory state; legacy browser flags are
+compatibility forms, not the primary workflow.
+
 ## Implemented local architecture
 
 The local controller and panel now exist. The hosted adapter remains a future path; the OAuth route uses the documented experimental App Server boundary. See the current README for exact setup and capabilities.

@@ -13,8 +13,10 @@ the product decisions. You do the work and keep the next step clear.
 
 ## Building a new product
 
-- Start the app with `./foundry`. It runs the steps: Research, Plan, Design,
-  Build, Test, Ship. The owner approves the plan and the design.
+- Start with `./foundry --help` or `./foundry` for terminal commands. Use
+  `new`, `configure`, `run`, `review` and exact-revision `approve` to move
+  through Research, Plan, Design, Build, Test and Ship. The optional browser
+  view is `./foundry ui`; the owner approves the plan and design.
 - To add Foundry to an existing product from the command line, follow
   `skills/foundry/SKILL.md` and point its framework path at this checkout.
 - Put product code in that product's own folder, never in this repository.

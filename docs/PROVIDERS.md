@@ -1,7 +1,32 @@
 # Provider and runtime adapters
 
+## Support matrix and setup recipes
+
+| Route | Kind | Billing | Terminal Factory support | Consent/qualification |
+| --- | --- | --- | --- | --- |
+| `codex` | `agent-runtime` | local subscription confirmation | Yes | `codex login`, then `configure --confirm-subscription` |
+| `chatgpt` | experimental `agent-runtime` | browser OAuth subscription | Browser UI only | Use `./foundry ui`; terminal cannot perform browser consent |
+| Registered local agent | `agent-runtime` | local only for Factory | Only after local qualification | Register in the product's `.foundry/providers.json` |
+| Registered bounded adapter | `bounded-model` | usually local | No Factory product stages | Narrow protocol smoke only; metadata is not qualification |
+| Lower-level API route | protocol-dependent | explicit API contract | Never authorized by Factory CLI | Requires `allow_api`, acknowledgement, reservation and budget |
+
+Quick Codex setup:
+
+```sh
+codex login
+./foundry new my-product --idea "One small local product"
+./foundry configure my-product --confirm-subscription
+./foundry run my-product
+```
+
+For a no-AI protocol check, use the isolated
+[echo adapter example](../examples/README.md). Never register its fake command
+in a user's real configuration. A model endpoint or key is not an agent
+runtime: Factory needs tools, permissions, progress and cancellation.
+
 Foundry's local factory dispatches authorized stages through this process boundary.
-The lower-level commands also remain available to an interactive coordinator.
+The terminal `./foundry` launcher is the primary factory entry. The browser UI
+is optional; lower-level commands remain available to an interactive coordinator.
 Starting a factory run uses the selected runtime and its account allowance;
 creating a workspace does not. The controller owns stage selection, result
 integration and real checks. Authentication and product verification remain
@@ -154,6 +179,65 @@ Do not register a shell wrapper that merely claims to enforce sandboxing. Native
 Codex approval/sandbox rules remain authoritative. Remote tasks that detach from
 the owned process group need an independently implemented remote cancellation
 contract before they can claim `cancel`.
+
+### Developer recipe: reviewed local agent executable
+
+Use this only for an existing executable that has already been reviewed and
+tested to implement Foundry's `marketcraft-jsonl-v1` agent-runtime contract.
+Foundry does not ship Claude or Qwen adapters, and does not connect arbitrary
+model URLs or API keys as agent runtimes. The executable path and adapter name
+below are placeholders, not bundled integrations or provider claims.
+
+For new projects, add this adapter to the checkout's `.foundry/providers.json`;
+Foundry copies that registry into a product only when it is created:
+
+```json
+{
+  "adapters": [{
+    "name": "reviewed-agent",
+    "kind": "agent-runtime",
+    "command": ["/absolute/path/to/reviewed-agent"],
+    "capabilities": ["jsonl", "cancel", "tools", "permissions"],
+    "billing_modes": ["local"]
+  }]
+}
+```
+
+Inspect the registered metadata, then create and run a product:
+
+```sh
+./foundry providers
+./foundry new my-product --idea "One useful local product" --provider reviewed-agent
+./foundry run my-product
+```
+
+For an existing product, add the same entry to that product's
+`.foundry/providers.json`, then inspect and select it explicitly:
+
+```sh
+./foundry --products-dir /absolute/path/to/products providers my-product
+./foundry --products-dir /absolute/path/to/products configure my-product --provider reviewed-agent
+./foundry --products-dir /absolute/path/to/products run my-product
+```
+
+Before using an adapter for real product work, qualify the actual executable in
+a disposable product:
+
+- Confirm it edits the intended file through its tools and that the product's
+  declared check catches both correct and incorrect behavior.
+- Exercise the requested read-only and write policies. The adapter must enforce
+  them; registry metadata alone provides no sandbox or permission boundary.
+- Cancel a running step and verify the owned process stops and Foundry reports
+  interruption. Test failure propagation and confirm no other provider is
+  silently selected.
+- If it advertises session continuation, verify the same session actually
+  resumes with prior context; otherwise do not advertise that capability.
+
+The [echo example](../examples/README.md) tests a local bounded-model request
+format only. It does not qualify an agent, prove compatibility with a live
+provider, or show that capability metadata enforces permissions. Codex remains
+the only built-in agent executable; experimental ChatGPT execution remains
+browser-only.
 
 ## Budgets and billing facts
 

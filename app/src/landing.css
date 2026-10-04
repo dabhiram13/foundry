@@ -69,9 +69,10 @@
 .walkthrough-checks { padding: 20px; background: var(--foundry-canvas); margin: 24px 0 18px; font-size: 11px; color: var(--muted-foreground); }
 .walkthrough-checks code { display: grid; gap: 12px; margin-block: 20px; color: var(--foundry-success); font-size: 13px; }
 .walkthrough-checks p { font-size: 12px; }
+.terminal-example { padding: 20px; margin: 24px 0 18px; max-width: 100%; border: 1px solid var(--border); background: var(--foundry-canvas); color: var(--foreground); font-size: 13px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
 .walkthrough-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 20px; border-top: 1px solid var(--border); }
 .walkthrough-footer p { margin: 0; font-size: 11px; color: var(--muted-foreground); }
-.walkthrough-footer button { min-height: 44px; font-size: 12px; }
+.walkthrough-footer .landing-secondary { min-height: 44px; padding: 8px 0; border: 0; font-size: 12px; }
 .landing-principles { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px 48px; padding-block: 32px 80px; }
 .landing-principles > div { display: flex; align-items: center; gap: 10px; color: var(--muted-foreground); font-size: 12px; }
 .landing-principles svg { width: 15px; height: 15px; color: var(--foundry-subtle-icon); }

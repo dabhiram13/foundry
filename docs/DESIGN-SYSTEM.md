@@ -14,9 +14,9 @@ or unsupported product claims are used.
 
 ## Product truth
 
-Foundry starts in the terminal and runs a local browser workspace. The person
-using it needs to know what is happening, what needs approval, and what comes
-next. Research → Plan → Design → Build → Test → Ship remains the actual order.
+Foundry starts in the terminal; its optional local browser view shows the same
+saved projects. The person using it needs to know what is happening, what needs
+approval, and what comes next. Research → Plan → Design → Build → Test → Ship remains the actual order.
 Plan and Design need approval; Ship is a summary, not automatic publishing.
 
 Codex is the built-in runtime. An OpenAI-compatible endpoint is not automatically
@@ -67,20 +67,21 @@ explained. Lucide icons are the shared icon family.
 
 One concise promise, installation action, an interactive **example walkthrough**,
 three practical benefits, source installation, short FAQ and documentation links.
-The example stays visibly labeled at its top and bottom; its illustrative tasks
-and tests do not write product data, run AI or claim a customer outcome.
+The example stays visibly labeled at its top and bottom; its displayed commands
+do not create product data, run AI or claim a customer outcome.
 
-Use the real commands: clone the repository, enter it, run `./foundry`. The copy
-control reports both success and failure. Installation scrolls to and focuses
-the command section. Open workspace enters the actual app; Create your first
-product focuses the real composer. No invented package installer or waitlist.
+Use the real commands: clone the repository, enter it, run `./foundry --help`,
+then create work from the terminal. The copy control reports both success and
+failure. Installation scrolls to and focuses the command section. Open local
+browser view enters the actual app; terminal `new` creates the real product.
+No invented package installer or waitlist.
 
 The walkthrough uses Radix tabs with arrow-key navigation. It has a finite
 entrance, not an autoplay carousel. The heading and reading content stay still.
 
 ## Workspace
 
-A compact top bar exposes products, creation, account/AI settings and Quiet
+A compact top bar exposes Projects, creation, Settings and Quiet
 motion. The empty workspace contains a labeled idea composer, examples, a name
 and one creation action. It never contains example projects or fake history.
 The original selectable portraits are secondary to the composer and explain

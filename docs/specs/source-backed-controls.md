@@ -32,6 +32,11 @@ AI runs, public deployment or merge are authorized by this implementation.
 Native scrolling and semantic lists remain where extra wrappers add no value.
 
 ## Checks
+The later owner-approved [terminal-first amendment](terminal-first-entry.md)
+extends this run with real terminal commands and aligned installation/provider
+documentation. It also authorizes merging after checks pass; the earlier
+no-merge boundary above applied to the control implementation alone.
+
 Run npx tsc --noEmit, npm run build:panel, the focused studio browser journey,
 then scripts/marketcraft.py verify in the documented Node22/Python3.11 environment.
 Review actual rendered controls, including popup-inside-dialog interaction,

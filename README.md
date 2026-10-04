@@ -1,6 +1,6 @@
 # Foundry
 
-**Describe an idea. Foundry researches it, plans it with you, builds it, and tests it, all on your computer.**
+**Describe an idea. Your product files stay in the folder you choose. When you run a step, a cloud AI provider may receive its prompt and selected files.**
 
 You stay in charge of the big decisions: you approve the plan and the design before
 anything is built. Foundry only calls a product done when its real tests pass.
@@ -9,41 +9,55 @@ anything is built. Foundry only calls a product done when its real tests pass.
 
 ## Start
 
-Install from source on macOS or Linux:
+Install from source on macOS or Linux. Foundry is terminal-first; the browser
+workspace is an optional local view:
 
 ```sh
 git clone https://github.com/dabhiram13/foundry.git
 cd foundry
-./foundry
+./foundry --help
 ```
 
-The first run sets up a Python environment and opens `http://127.0.0.1:8765`.
+The first run sets up a Python environment. Create and run a product without
+opening a browser:
+
+```sh
+codex login
+./foundry new reading-list --idea "A local reading list with unread filtering."
+./foundry configure reading-list --confirm-subscription
+./foundry run reading-list
+./foundry run reading-list
+./foundry review reading-list
+# Approve the exact revision printed by review:
+./foundry approve reading-list --revision SHA256_FROM_REVIEW
+```
+
+`./foundry` and `./foundry --help` only print terminal help. Use
+`./foundry ui` for the optional local browser view at `http://127.0.0.1:8765`.
 You need Python 3.11+, Git, and the Codex CLI. Rebuilding the app needs Node 22+.
 It runs on macOS and Linux. Signing in with ChatGPT currently needs the macOS
 Keychain; the Codex login works wherever Codex does.
 
 If you already have this checkout, run `./foundry` from it; no need to clone again.
 You need access to the repository to clone it. There is no published package
-installer or complete terminal-only workflow yet.
+installer. The old browser launch forms `./foundry --port`,
+`./foundry --products-dir PATH` (without a terminal command) and
+`./foundry --no-browser` remain for compatibility and are deprecated.
 
 **[Start guide: installation, sign-in and your first product](docs/GETTING-STARTED.md)**
 · **[Browse the docs](docs/README.md)**
 
-1. Sign in with `codex login` using your ChatGPT subscription. In the workspace,
-   describe what you want to build, give it a name, and select **Create product**.
-2. Select **Confirm AI login**, keep **Codex (your login)** selected, confirm your
-   subscription login and **Save settings**. The separate **Continue with
-   ChatGPT** connection is experimental; you do not need it for the Codex route.
-3. Select **Start Research**. Foundry researches the idea and writes a plan.
-4. Read the plan and select **Approve and continue**. Do the same for the design.
-5. Foundry builds the product, runs its tests, and writes a ship summary.
-   If a test fails, it stops and shows you why.
-6. Your product is in its own folder. Publishing, hosting, and connecting paid
+1. Sign in with `codex login` using your ChatGPT subscription.
+2. Use `./foundry new`, `configure`, `run`, `review` and `approve` to move
+   through Research, Plan, Design, Build, Test and Ship. Plan and Design always
+   require the owner's exact-revision approval; no command publishes a product.
+3. Your product is in its own folder. Publishing, hosting, and connecting paid
    services are separate decisions you make yourself.
 
 Products are saved under the sibling `products/` folder, each with its own code,
 Git history, plan, settings, and test results. Use `--products-dir PATH` to save
-them somewhere else, and `--port 8766` to use another port.
+them somewhere else on each terminal command. Use `./foundry ui --port 8766`
+to select another browser port.
 
 ## The six steps
 
@@ -54,7 +68,7 @@ them somewhere else, and `--port 8766` to use another port.
 | Design | Screens, steps, empty and error states, mobile layout | **You approve** |
 | Build | Splits the plan into small tasks; builds, tests, and saves a Git checkpoint for each | Foundry |
 | Test | Runs the product's tests and reports anything it could not check | Foundry |
-| Ship | A short summary of what was built, tested, and still missing | You publish |
+| Ship | A short summary of what was built, tested, and still missing | You decide what happens next |
 
 If the plan or design changes after you approve it, Foundry asks you again.
 
@@ -76,8 +90,10 @@ The Build step on the product page lists the tasks and shows which one is runnin
 
 ```mermaid
 flowchart TB
-    O["You: idea and approvals"] --> U["Browser app / ChatGPT plugin panel"]
-    U --> F["factory.py: runs the steps, waits for approvals, recovers"]
+    O["You: terminal commands and approvals"] --> CLI["factory_cli.py"]
+    O --> U["Optional local browser view"]
+    CLI --> F["factory.py: runs the steps, waits for approvals, recovers"]
+    U --> F
     M["Workflows and roles"] --> F
     F --> P["providers.py: runs the AI in a separate process with limits"]
     P --> C["Codex login / ChatGPT plan / your own engine"]
@@ -106,8 +122,11 @@ runtime inspection of how your account is billed. On macOS it uses the Codex des
 to use another one. The ChatGPT plan option uses the official sign-in flow and is
 still experimental. See [ChatGPT setup](docs/CHATGPT.md).
 
-You can add your own engine in `.foundry/providers.json`. It needs to run tools,
-respect permissions, and report progress; a plain model API is not enough. See
+You can add a reviewed local agent executable in `.foundry/providers.json`. It
+must actually run tools, respect permissions, and report progress; a plain model
+endpoint or API key is not an agent runtime. A custom product step needs a
+tested local agent connection and local billing. The separate lower-level
+provider API route is explicitly paid and never enabled by the product CLI. See
 [providers](docs/PROVIDERS.md).
 
 Foundry ships **28 roles** (for example planner, designer, backend, quality gate).
@@ -207,7 +226,7 @@ controller and UI work, not that a real AI run will succeed. See
 
 The app uses a dark [design system](docs/DESIGN-SYSTEM.md): near-black surfaces,
 Inter type, white primary controls, orange selection details and an original
-Foundry wordmark. Phosphor icons and the original specialist portraits remain.
+Foundry wordmark. Lucide icons and the original specialist portraits remain.
 The top bar keeps products, creation and account controls in reach. A stage
 sidebar puts current work beside its documents; narrow screens stack the panes.
 The landing walkthrough is labeled example content, not a live AI result.

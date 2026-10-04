@@ -1,16 +1,59 @@
 #!/bin/sh
-# First use prepares an isolated runtime, then opens the local factory.
+# First use prepares the isolated runtime, then opens the requested interface.
 set -eu
 foundry_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 foundry_python="$foundry_root/.venv/bin/python"
+if [ -x "$foundry_python" ]; then
+  check_python="$foundry_python"
+else
+  check_python=$(command -v python3 || true)
+fi
+if [ -z "$check_python" ] || ! "$check_python" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
+  foundry_version=unavailable
+  if [ -n "$check_python" ]; then
+    foundry_version=$("$check_python" -c 'import sys; print(".".join(map(str, sys.version_info[:3])))' 2>/dev/null || printf unavailable)
+  fi
+  printf 'Foundry requires Python 3.11 or newer (found %s).\n' "$foundry_version" >&2
+  exit 2
+fi
 if [ ! -x "$foundry_python" ]; then
   python3 -m venv "$foundry_root/.venv"
 fi
-foundry_digest=$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$foundry_root/requirements.txt")
+foundry_digest=$("$foundry_python" -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$foundry_root/requirements.txt")
 if [ ! -f "$foundry_root/.venv/.requirements-sha256" ] || [ "$(cat "$foundry_root/.venv/.requirements-sha256")" != "$foundry_digest" ]; then
   "$foundry_python" -m pip install -r "$foundry_root/requirements.txt"
   printf '%s' "$foundry_digest" > "$foundry_root/.venv/.requirements-sha256"
 fi
 PATH="$foundry_root/.venv/bin:$PATH"
 export PATH
-exec "$foundry_python" "$foundry_root/scripts/factory_ui.py" "$@"
+if [ "$#" -eq 0 ]; then
+  set -- --help
+fi
+case "$1" in
+  ui)
+    shift
+    exec "$foundry_python" "$foundry_root/scripts/factory_ui.py" "$@"
+    ;;
+  --port|--no-browser)
+    exec "$foundry_python" "$foundry_root/scripts/factory_ui.py" "$@"
+    ;;
+  --products-dir)
+    if [ "$#" -ge 3 ]; then
+      case "$3" in
+        ui)
+          foundry_products_dir=$2
+          shift 3
+          exec "$foundry_python" "$foundry_root/scripts/factory_ui.py" --products-dir "$foundry_products_dir" "$@"
+          ;;
+        --port|--no-browser)
+          exec "$foundry_python" "$foundry_root/scripts/factory_ui.py" "$@"
+          ;;
+        *)
+          exec "$foundry_python" "$foundry_root/scripts/factory_cli.py" "$@"
+          ;;
+      esac
+    fi
+    exec "$foundry_python" "$foundry_root/scripts/factory_ui.py" "$@"
+    ;;
+esac
+exec "$foundry_python" "$foundry_root/scripts/factory_cli.py" "$@"

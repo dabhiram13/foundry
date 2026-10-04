@@ -38,8 +38,8 @@ The semantic source is `app/src/globals.css`.
 | Structural divider | `#303030` |
 | Control boundary | `#77736c` |
 | Accent | `#ff854d` |
-| Selection | `#2b241f` with orange detail |
-| Focus | `#ff9b66`, 2px with an offset |
+| Selection | `#292929`; orange detail only for progress/attention |
+| Focus | `#d1ceca`, 2px with an offset |
 | Success | `#9acda8` on `#1b2a20` |
 | Warning | `#e8c27d` on `#2b251b` |
 | Error | `#ffaaa0` on `#321e1c` |
@@ -61,7 +61,7 @@ white wordmark on a light surface without supplying an appropriate dark variant.
 Type: landing title 44–76px, mobile 36–54px; section titles 30–48px; workspace
 title 32–46px; task heading 26px; reading text 14–17px; compact controls 12–14px.
 Supporting metadata can be 11–12px, never the only place a required action is
-explained. Phosphor icons remain the shared icon family.
+explained. Lucide icons are the shared icon family.
 
 ## Landing page
 
@@ -96,6 +96,19 @@ The product desk has three jobs:
 Work, Documents and Activity stay in the same desk. Long ideas can expand;
 empty stages never invent output. Settings, product drawers and document
 reviews use the same dark tokens, compact controls and semantic states.
+
+## Source-backed controls
+
+Field, Input, Textarea and InputGroup share one neutral focus boundary. Model
+settings use Base UI Autocomplete for suggestions and custom IDs; reasoning uses
+Radix Select, with “Use the default” saved as the existing empty value. Picker
+popups must stay keyboard-safe inside Settings. Never use an action menu for a
+form selection. The source map and licenses are in docs/COMPONENT-SOURCES.md.
+
+Keep the composer unboxed around its fields. Group real work surfaces with Card,
+use Item for rows and persistent Alert for feedback. Native page/dialog scrolling
+remains preferable to nested scroll areas. No arbitrary demo loading placeholders.
+Quiet motion is a labeled Radix switch; device reduced motion remains authoritative.
 
 ## Interaction and accessibility
 

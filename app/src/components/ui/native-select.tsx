@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { CaretDown as ChevronDownIcon } from "@phosphor-icons/react"
+import { ChevronDown as ChevronDownIcon } from 'lucide-react';
 
 function NativeSelect({
   className,

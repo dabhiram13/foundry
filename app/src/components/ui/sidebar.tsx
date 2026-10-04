@@ -3,7 +3,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
-import { SidebarSimple as PanelLeftIcon } from "@phosphor-icons/react"
+import { PanelLeft as PanelLeftIcon } from 'lucide-react';
 import { Slot } from "radix-ui"
 
 import { useIsMobile } from "@/hooks/use-mobile"

@@ -260,12 +260,12 @@ async function assertNoOverflow(page, label) {
     const keyboardFocus = await stageRail.locator('[aria-current="step"]').evaluate(el => ({visible:el.matches(':focus-visible'), outline:getComputedStyle(el).outlineWidth}));
     assert.deepEqual(keyboardFocus, {visible:true, outline:'2px'});
     await page.locator('#stage-title').click();
-    await page.waitForFunction(() => getComputedStyle(document.querySelector('#stages [aria-pressed="true"]')).backgroundColor === 'rgb(43, 36, 31)');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('#stages [aria-pressed="true"]')).backgroundColor === 'rgb(41, 41, 41)');
     const selection = await stageRail.locator('[aria-pressed="true"]').evaluate(el => {
       const style=getComputedStyle(el);
       return {height:el.offsetHeight, background:style.backgroundColor, border:style.borderLeftWidth, borderColor:style.borderLeftColor, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
     });
-    assert.deepEqual(selection, {height:56, background:'rgb(43, 36, 31)', border:'2px', borderColor:'rgb(255, 133, 77)', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the dark vertical rail contract');
+    assert.deepEqual(selection, {height:56, background:'rgb(41, 41, 41)', border:'2px', borderColor:'rgb(255, 133, 77)', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the dark vertical rail contract');
     assert.equal(await page.locator('#stage-work-panel .surface').count(), 0, 'Work panel contains nested cards');
     assert.equal(await page.locator('.page-tabs').evaluate(el => el.scrollHeight <= el.clientHeight), true, 'Product tabs have an unnecessary vertical scrollbar');
 
@@ -405,7 +405,8 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('tab', {name:'AI', exact:true}).click();
     await page.getByRole('button', {name:'Model and reasoning', exact:true}).click();
     await page.getByLabel('Model', {exact:true}).fill('owner-selected-model');
-    await page.getByLabel('Reasoning', {exact:true}).selectOption('high');
+    await page.getByLabel('Reasoning', {exact:true}).click();
+    await page.getByRole('option', {name:'High',exact:true}).click();
     await page.getByRole('radio', {name: 'fixture-error A registered local runtime adapter.', exact: true}).click();
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
     await page.locator('#settings-notice:visible').waitFor();
@@ -418,7 +419,8 @@ async function assertNoOverflow(page, label) {
     const visibleRoleCount = await page.locator('.role-row:visible').count();
     assert.ok(visibleRoleCount > 0 && visibleRoleCount < allRoleCount, 'Specialist search did not filter');
     await page.getByLabel('Backend', {exact:true}).fill('backend-specialist-model');
-    await page.getByLabel('Backend reasoning', {exact:true}).selectOption('medium');
+    await page.getByLabel('Backend reasoning', {exact:true}).click();
+    await page.getByRole('option', {name:'Medium',exact:true}).click();
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
     await page.getByText('Settings saved.').waitFor();
     await page.locator('#settings').waitFor({state:'detached'});
@@ -426,15 +428,17 @@ async function assertNoOverflow(page, label) {
     await page.getByRole('tab', {name:'AI', exact:true}).click();
     await page.getByRole('button', {name:'Model and reasoning', exact:true}).click();
     assert.equal(await page.getByLabel('Model', {exact:true}).inputValue(), 'owner-selected-model');
-    assert.equal(await page.getByLabel('Reasoning', {exact:true}).inputValue(), 'high');
+    assert.equal(await page.getByLabel('Reasoning', {exact:true}).textContent(), 'High');
     await page.getByRole('tab', {name:'Roles', exact:true}).click();
     assert.equal(await page.getByLabel('Backend', {exact:true}).inputValue(), 'backend-specialist-model');
     await page.getByLabel('Backend', {exact:true}).fill('');
-    await page.getByLabel('Backend reasoning', {exact:true}).selectOption('');
+    await page.getByLabel('Backend reasoning', {exact:true}).click();
+    await page.getByRole('option', {name:'Use the default',exact:true}).click();
     await page.getByRole('tab', {name:'AI', exact:true}).click();
     await page.getByRole('button', {name:'Model and reasoning', exact:true}).click();
     await page.getByLabel('Model', {exact:true}).fill('');
-    await page.getByLabel('Reasoning', {exact:true}).selectOption('');
+    await page.getByLabel('Reasoning', {exact:true}).click();
+    await page.getByRole('option', {name:'Use the default',exact:true}).click();
     await page.getByRole('button', {name:'Save settings', exact:true}).click();
     await page.locator('#settings').waitFor({state:'detached'});
     await page.getByRole('button', {name:'Settings', exact:true}).click();
@@ -468,9 +472,18 @@ async function assertNoOverflow(page, label) {
     let createRequests=0;
     const countCreate=request=>{if(request.method()==='POST'&&request.url().endsWith('/api/create')) createRequests++;};
     page.on('request',countCreate);
-    await page.route('**/api/create',async route=>{await new Promise(resolve=>setTimeout(resolve,300));await route.continue();},{times:1});
+    let releaseCreate, createStarted;
+    const createGate=new Promise(resolve=>{releaseCreate=resolve;});
+    const createPending=new Promise(resolve=>{createStarted=resolve;});
+    await page.route('**/api/create',async route=>{createStarted();await createGate;await route.continue();},{times:1});
     await page.getByRole('button', {name:'Create product', exact:true}).click();
-    await page.getByRole('button', {name:'Create product', exact:true}).evaluate(button=>button.click());
+    await createPending;
+    try {
+      assert.equal(await page.locator('[data-action=create]').isDisabled(),true);
+      await page.locator('[data-action=create]').evaluate(button=>button.click());
+    } finally {
+      releaseCreate();
+    }
     await page.getByRole('heading', {name:'Pause recovery', exact:true}).waitFor();
     releaseSnapshot(); await snapshotDone;
     await page.unroute('**/api/snapshot',holdSnapshot);
@@ -630,6 +643,7 @@ async function assertNoOverflow(page, label) {
     console.log('Factory browser journey passed: account simulation, examples, two products, provider failure/retry, stop/retry, stale review defense, sanitized documents, release, settings recovery and inheritance, responsive/keyboard/reduced-motion checks, persistence, and MCP bridge routing. No live inference or credentials.');
     if (process.env.FOUNDRY_KEEP_BROWSER_FIXTURE) console.log(`Fixture preserved at ${temp}`);
   } catch (error) {
+    console.error('Factory journey failure:', error);
     console.error('Pending API requests:', [...pendingRequests].map(request => new URL(request.url()).pathname));
     if (page) { await page.screenshot({path:'/tmp/foundry-ui-failure.png',fullPage:true}).catch(()=>{}); console.error('UI failure state:', await page.locator('body').innerText().catch(()=>'')); }
     throw error;

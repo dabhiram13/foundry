@@ -17,6 +17,7 @@ def bundle(source, output, *, tsconfig=False):
     if tsconfig:
         command.append(f'--tsconfig={root / "tsconfig.json"}')
         notice = (app / 'assets/animate-ui.LICENSE.md').read_text()
+        notice += '\nshadcn/ui source adaptations\n' + (app / 'assets/licenses/shadcn-ui.txt').read_text()
         command.append('--banner:js=/*! Animate UI adaptations\n' + notice + '\n*/')
     subprocess.run(command, check=True)
 

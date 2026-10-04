@@ -1,7 +1,7 @@
 // Radial composition adapted from Animate UI; finite motion and role controls are Foundry additions.
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView } from 'motion/react';
-import { ArrowCounterClockwise, Pause } from '@phosphor-icons/react';
+import { RotateCcw as ArrowCounterClockwise, Pause } from 'lucide-react';
 import { RoleAvatar } from './specialists';
 import { Button } from './ui/button';
 import { useStudioMotion } from './studio-motion';

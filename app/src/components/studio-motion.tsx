@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { MotionConfig } from 'motion/react';
-import { Pause, Wind } from '@phosphor-icons/react';
+import { useId } from 'react';
+import { Switch as SwitchPrimitive } from 'radix-ui';
 
 const MotionContext = createContext({ reduced: false, quiet: false, toggle: () => {} });
 export const useStudioMotion = () => useContext(MotionContext);
@@ -39,9 +40,11 @@ export function StudioMotion({ children, nonce }: { children: ReactNode; nonce?:
 
 export function MotionToggle() {
   const { reduced, quiet, toggle } = useStudioMotion();
-  return <button type="button" className="motion-toggle" aria-pressed={quiet} onClick={toggle}
-    title={reduced && !quiet ? 'Your device requests reduced motion' : 'Reduce decorative motion'}>
-    {reduced ? <Pause aria-hidden="true"/> : <Wind aria-hidden="true"/>}
+  const id = useId();
+  return <label className="motion-toggle" htmlFor={id} title={reduced && !quiet ? 'Your device requests reduced motion' : 'Reduce decorative motion'}>
+    <SwitchPrimitive.Root id={id} checked={quiet} onCheckedChange={toggle} className="motion-switch" aria-label="Quiet motion">
+      <SwitchPrimitive.Thumb className="motion-switch-thumb" />
+    </SwitchPrimitive.Root>
     <span>Quiet motion</span>
-  </button>;
+  </label>;
 }

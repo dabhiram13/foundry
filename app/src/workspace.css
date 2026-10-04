@@ -188,10 +188,9 @@
 .settings-header [data-slot=dialog-description] { color: var(--muted-foreground); font-size: 13px; margin-top: 8px; }
 .settings-tabs { margin: 24px 0; }
 .settings-dialog .feedback { margin-top: 16px; }
-.settings-dialog label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 500; }
+.settings-dialog label { font-size: 13px; font-weight: 500; }
 .settings-dialog input, .settings-dialog select { font-size: 13px; }
-.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-.field-grid [data-slot=native-select-wrapper] { width: 100%; }
+.field-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; margin-top: 8px; }
 .field-help { color: var(--muted-foreground); font-size: 12px; line-height: 20px; margin: 8px 0 0; }
 .account-panel { display: flex; gap: 16px; padding: 8px 0 16px; }
 .account-panel > svg { width: 24px; height: 24px; margin-top: 2px; color: var(--muted-foreground); }
@@ -200,15 +199,11 @@
 .account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; }
 .account-actions a { display: flex; align-items: center; gap: 4px; color: var(--muted-foreground); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; min-height: 40px; }
 .account-actions a svg { width: 14px; height: 14px; }
-.role-search { position: relative; }
-.role-search > svg { position: absolute; left: 12px; top: 12px; width: 16px; height: 16px; color: var(--muted-foreground); }
-.role-search input { padding-left: 36px; }
-.roles { max-height: 360px; overflow-y: auto; margin-top: 20px; padding: 4px; scroll-padding: 8px; }
-.role-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; align-items: center; padding: 14px 0; border-top: 1px solid var(--border); }
+.roles { margin-top: 28px; }
+.role-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; padding: 0 0 24px; margin: 0 0 24px; border-bottom: 1px solid var(--border); }
 .role-row[hidden] { display: none; }
-.role-row label.role-identity { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12px; }
+.role-row .role-identity { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 14px; font-size: 13px; }
 .role-identity small { display: block; margin-top: 4px; color: var(--muted-foreground); font-size: 11px; font-weight: 400; line-height: 18px; }
-.role-row [data-slot=native-select-wrapper] { width: 100%; }
 .settings-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
 .settings-footer span { font-size: 12px; color: var(--muted-foreground); }
 .artifact-dialog { display: flex; flex-direction: column; gap: 0; width: calc(100vw - 32px); max-width: 880px !important; height: min(900px, calc(100dvh - 32px)); max-height: calc(100dvh - 32px); padding: 0; overflow: hidden; }
@@ -285,8 +280,7 @@
  .activity time { max-width: 76px; text-align: right; line-height: 18px; }
  .settings-dialog { padding: 24px 20px; }
  .field-grid { grid-template-columns: 1fr; gap: 16px; }
- .role-row { grid-template-columns: 1fr 1fr; }
- .role-row label { grid-column: 1 / -1; }
+ .role-row { grid-template-columns: minmax(0,1fr); }
  .settings-footer span { max-width: 140px; line-height: 20px; }
  .artifact-dialog { width: calc(100vw - 16px); height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); }
  .artifact-header { padding: 20px; }

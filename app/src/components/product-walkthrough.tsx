@@ -1,4 +1,4 @@
-import { ArrowRight, Check, FileText, Folder, GitBranch, ListChecks, NotePencil, Terminal } from '@phosphor-icons/react';
+import { ArrowRight, Check, FileText, Folder, GitBranch, ListChecks, SquarePen as NotePencil, Terminal } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
 

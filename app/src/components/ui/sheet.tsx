@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { X as XIcon } from "@phosphor-icons/react"
+import { X as XIcon } from 'lucide-react';
 import { Dialog as SheetPrimitive } from "radix-ui"
 import { motion } from "motion/react"
 import { useStudioMotion } from "../studio-motion"

@@ -1,4 +1,5 @@
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, Code, GitBranch, GithubLogo, Terminal } from '@phosphor-icons/react';
+import { ArrowDown, ArrowRight, ArrowUpRight, Check, Code, GitBranch, Terminal } from 'lucide-react';
+import { Card } from './ui/card';
 import { Button } from '@/components/ui/button';
 import { MotionToggle, useStudioMotion } from './studio-motion';
 import { CopyButton, Disclosure } from './ui/animate-ui';
@@ -27,7 +28,7 @@ export function Landing({ onEnter }: LandingProps) {
         <nav className="landing-nav" aria-label="Introduction">
           <button onClick={() => goTo('landing-workflow')}>How it works</button>
           <a href={`${docs}/README.md`}>Docs <ArrowUpRight aria-hidden="true" /></a>
-          <a href={repository}>GitHub <GithubLogo aria-hidden="true" /></a>
+          <a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a>
         </nav>
         <Button className="landing-open" size="sm" onClick={() => onEnter()}>Open workspace <ArrowUpRight aria-hidden="true" /></Button>
       </div>
@@ -40,7 +41,7 @@ export function Landing({ onEnter }: LandingProps) {
         <p className="landing-intro">Your idea, a clear plan, working code.<br className="desktop-break" /> Build with AI on your computer. You decide what happens next.</p>
         <div className="landing-hero-actions">
           <Button size="lg" onClick={() => goTo('landing-install')}>Install Foundry <ArrowDown aria-hidden="true" /></Button>
-          <a className="landing-secondary" href={repository}><GithubLogo aria-hidden="true" /> View source</a>
+          <a className="landing-secondary" href={repository}><ArrowUpRight aria-hidden="true" /> View source</a>
         </div>
         <p className="landing-local-note">macOS &amp; Linux <span aria-hidden="true">·</span> Bring your Codex login</p>
       </section>
@@ -54,9 +55,9 @@ export function Landing({ onEnter }: LandingProps) {
       <section className="landing-shell landing-features" aria-labelledby="features-title">
         <div className="landing-section-heading"><h2 id="features-title">Less babysitting.<br /><span>More building.</span></h2><p>Not another blank chat. A clear path from the first idea to code you can open, test and keep.</p></div>
         <div className="landing-feature-grid">
-          <article className="landing-feature feature-plan"><h3>A plan before a pile of code.</h3><p>Start with what matters. Review the plan and design before Foundry builds the first version.</p><div className="plan-diagram" aria-label="Idea, plan and design with your approval, then build"><span>Idea</span><ArrowRight aria-hidden="true" /><span>Plan &amp; design</span><ArrowRight aria-hidden="true" /><strong>Your approval</strong><ArrowRight aria-hidden="true" /><span>Build</span></div></article>
-          <article className="landing-feature"><h3>Small steps. Real checks.</h3><p>Follow each task as it is built and tested. If a check fails, Foundry makes up to three repair attempts, then asks for help.</p><div className="feature-detail"><Check aria-hidden="true" /><span>Build <span aria-hidden="true">/</span> Test <span aria-hidden="true">/</span> Save</span></div></article>
-          <article className="landing-feature"><h3>Nothing hidden. Nothing locked in.</h3><p>Keep the code, notes and Git history in your product folder. Open them in your editor. Publishing is a separate decision.</p><div className="feature-detail"><GitBranch aria-hidden="true" /><code>your-products / your-next-idea</code></div></article>
+          <Card className="landing-feature feature-plan"><h3>A plan before a pile of code.</h3><p>Start with what matters. Review the plan and design before Foundry builds the first version.</p><div className="plan-diagram" aria-label="Idea, plan and design with your approval, then build"><span>Idea</span><ArrowRight aria-hidden="true" /><span>Plan &amp; design</span><ArrowRight aria-hidden="true" /><strong>Your approval</strong><ArrowRight aria-hidden="true" /><span>Build</span></div></Card>
+          <Card className="landing-feature"><h3>Small steps. Real checks.</h3><p>Follow each task as it is built and tested. If a check fails, Foundry makes up to three repair attempts, then asks for help.</p><div className="feature-detail"><Check aria-hidden="true" /><span>Build <span aria-hidden="true">/</span> Test <span aria-hidden="true">/</span> Save</span></div></Card>
+          <Card className="landing-feature"><h3>Nothing hidden. Nothing locked in.</h3><p>Keep the code, notes and Git history in your product folder. Open them in your editor. Publishing is a separate decision.</p><div className="feature-detail"><GitBranch aria-hidden="true" /><code>your-products / your-next-idea</code></div></Card>
         </div>
       </section>
 

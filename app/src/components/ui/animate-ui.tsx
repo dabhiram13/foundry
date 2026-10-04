@@ -2,7 +2,7 @@
 import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Accordion, Checkbox as CheckboxPrimitive, Progress as ProgressPrimitive, RadioGroup } from 'radix-ui';
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, Copy, CaretDown } from '@phosphor-icons/react';
+import { Check, Copy, ChevronDown as CaretDown } from 'lucide-react';
 import { Button } from './button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
 import { useStudioMotion } from '../studio-motion';

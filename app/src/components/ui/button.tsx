@@ -6,7 +6,7 @@ import { motion, type HTMLMotionProps } from "motion/react"
 import { useStudioMotion } from "../studio-motion"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,opacity,transform] duration-[var(--motion-feedback)] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,opacity,transform] duration-[var(--motion-feedback)] outline-none disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -53,12 +53,6 @@ function Button({
     children?: React.ReactNode
   }) {
   const { reduced } = useStudioMotion()
-  const [ripple, setRipple] = React.useState<{ x: number; y: number; size: number; id: number } | null>(null)
-  React.useEffect(() => {
-    if (!ripple) return
-    const timer = setTimeout(() => setRipple(null), 500)
-    return () => clearTimeout(timer)
-  }, [ripple])
   const classes = cn(buttonVariants({ variant, size, className }))
   if (asChild) return <Slot.Root data-slot="button" data-variant={variant} data-size={size} className={classes} onClick={onClick} {...props as React.ComponentProps<"button">}>{children}</Slot.Root>
 
@@ -68,18 +62,10 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={classes}
-      whileHover={reduced || props.disabled || variant === 'ghost' || variant === 'link' ? undefined : { scale: 1.015 }}
-      whileTap={reduced || props.disabled ? undefined : { scale: .975 }}
-      onClick={event => {
-        if (!reduced && !props.disabled && variant === 'default') {
-          const rect = event.currentTarget.getBoundingClientRect()
-          const size = Math.max(rect.width, rect.height) * 2
-          setRipple({ x: (event.detail ? event.clientX - rect.left : rect.width / 2) - size / 2, y: (event.detail ? event.clientY - rect.top : rect.height / 2) - size / 2, size, id: Date.now() })
-        }
-        onClick?.(event)
-      }}
+      whileTap={reduced || props.disabled ? undefined : { scale: .98 }}
+      onClick={onClick}
       {...props}
-    >{children}{ripple && !reduced && <motion.span aria-hidden="true" className="button-ripple" key={ripple.id} style={{ left: ripple.x, top: ripple.y, width: ripple.size, height: ripple.size }} initial={{ scale: 0, opacity: .2 }} animate={{ scale: 1, opacity: 0 }} transition={{ duration: .45 }}/>}</motion.button>
+    >{children}</motion.button>
   )
 }
 

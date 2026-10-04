@@ -38,3 +38,13 @@ locally and embedded in the MCP panel, not fetched from a font CDN.
 
 The Foundry mark and wordmark are original SVG artwork. Superset's public page
 is a visual reference, not a source of copied artwork, code or brand assets.
+
+## shadcn/ui and Base UI
+
+Fields, Select, Card, Item, Alert, Empty, Spinner and supporting primitives adapt
+[shadcn/ui New York v4](https://github.com/shadcn-ui/ui/tree/295a1f114a138f23b5dfee0e0c6812394dfeb90c/apps/v4/registry/new-york-v4/ui).
+Its MIT license is retained in [app/assets/licenses/shadcn-ui.txt](app/assets/licenses/shadcn-ui.txt)
+and embedded in generated assets. Local adaptations share Foundry's tokens and
+retain the animated Button. Model suggestions compose Base UI's free-form
+Autocomplete; this is not a shadcn Combobox. Base UI and Lucide package notices
+are retained by the bundle. See [component sources](docs/COMPONENT-SOURCES.md).

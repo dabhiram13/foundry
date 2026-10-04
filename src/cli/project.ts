@@ -3,6 +3,10 @@ import { FoundryError, normalizeLocalPath, within } from '../core/fs.js';
 import { installWorkspace } from '../core/install.js';
 import { complete, pauseOrResume, recover, start, status, verify } from '../core/lifecycle.js';
 import { context, gate, guide, record } from '../core/workflow.js';
+import {
+  approveFactory, cancelFactory, configureFactory, factoryHelp, initFactory, recoverFactory,
+  reviewFactory, runFactory, statusFactory,
+} from '../core/factory.js';
 import { cancel, execute, providerStatus, registry, reconcile } from '../runtime/providers.js';
 
 type Options = Record<string, string | boolean | string[]>;
@@ -28,6 +32,7 @@ Usage:
   project providers run --request PATH [--project PATH]
   project providers status [TASK_ID] [--project PATH]
   project providers cancel|reconcile TASK_ID [--project PATH]
+  project factory init|configure|status|run|review|approve|cancel|recover [options]
 `;
 }
 
@@ -136,6 +141,27 @@ const PROVIDER_SPECS: Record<string, OptionSpec> = {
   },
 };
 
+const FACTORY_SPECS: Record<string, OptionSpec> = {
+  init: {
+    value: [...PROJECT_OPTION, 'name', 'idea', 'adapter', 'model', 'reasoning', 'billing'],
+    list: ['role'],
+    boolean: ['confirmed'],
+    positional: 0,
+  },
+  configure: {
+    value: [...PROJECT_OPTION, 'adapter', 'model', 'reasoning', 'billing'],
+    list: ['role'],
+    boolean: ['confirmed'],
+    positional: 0,
+  },
+  status: { value: [...PROJECT_OPTION], positional: 0 },
+  run: { value: [...PROJECT_OPTION], positional: 0 },
+  review: { value: [...PROJECT_OPTION, 'stage'], positional: 0 },
+  approve: { value: [...PROJECT_OPTION, 'stage', 'revision'], positional: 0 },
+  cancel: { value: [...PROJECT_OPTION], positional: 0 },
+  recover: { value: [...PROJECT_OPTION], positional: 0 },
+};
+
 function action(arguments_: string[]): string {
   const first = arguments_[0];
   return first && !first.startsWith('--') ? first : '';
@@ -236,6 +262,56 @@ async function providersCommand(arguments_: string[]): Promise<number> {
   return result.status === 'completed' ? 0 : result.status === 'canceled' ? 130 : 1;
 }
 
+async function factoryCommand(arguments_: string[]): Promise<number> {
+  const requested = action(arguments_);
+  if (requested === 'help' || requested === '--help' || !requested) {
+    process.stdout.write(`${factoryHelp()}\n`);
+    return 0;
+  }
+  const spec = FACTORY_SPECS[requested];
+  if (!spec) throw new FoundryError('Usage: project factory init|configure|status|run|review|approve|cancel|recover');
+  const { options } = parse(arguments_.slice(1), spec);
+  const root = rootOption(options);
+  if (requested === 'init') {
+    output(await initFactory(root, {
+      name: requiredOption(options, 'name'),
+      idea: requiredOption(options, 'idea'),
+      adapter: requiredOption(options, 'adapter'),
+      model: stringOption(options, 'model'),
+      reasoning: stringOption(options, 'reasoning'),
+      billing: stringOption(options, 'billing') as 'local' | 'subscription' | undefined,
+      confirmed: options.confirmed === true,
+      roles: stringListOption(options, 'role'),
+    }));
+  } else if (requested === 'configure') {
+    output(await configureFactory(root, {
+      adapter: stringOption(options, 'adapter'),
+      model: stringOption(options, 'model'),
+      reasoning: stringOption(options, 'reasoning'),
+      billing: stringOption(options, 'billing') as 'local' | 'subscription' | undefined,
+      confirmed: options.confirmed === true,
+      roles: stringListOption(options, 'role'),
+    }));
+  } else if (requested === 'status') {
+    output(await statusFactory(root));
+  } else if (requested === 'run') {
+    output(await runFactory(root));
+  } else if (requested === 'review') {
+    const stage = stringOption(options, 'stage');
+    if (stage && stage !== 'plan' && stage !== 'design') throw new FoundryError('Factory review stage must be plan or design');
+    output(await reviewFactory(root, stage as 'plan' | 'design' | undefined));
+  } else if (requested === 'approve') {
+    const stage = requiredOption(options, 'stage');
+    if (stage !== 'plan' && stage !== 'design') throw new FoundryError('Factory approval stage must be plan or design');
+    output(await approveFactory(root, stage, requiredOption(options, 'revision')));
+  } else if (requested === 'cancel') {
+    output(await cancelFactory(root));
+  } else {
+    output(await recoverFactory(root));
+  }
+  return 0;
+}
+
 export async function main(arguments_ = process.argv.slice(2)): Promise<number> {
   const [command, ...rest] = arguments_;
   if (!command || command === '--help' || command === '-h' || command === 'help') {
@@ -283,6 +359,7 @@ export async function main(arguments_ = process.argv.slice(2)): Promise<number> 
   }
   if (command === 'workflow') return workflowCommand(rest);
   if (command === 'providers') return providersCommand(rest);
+  if (command === 'factory') return factoryCommand(rest);
   throw new FoundryError(`Unknown command ${command}. Use --help.`);
 }
 

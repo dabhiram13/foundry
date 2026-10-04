@@ -7,15 +7,18 @@ This document maps the current local factory and the reusable materials inherite
 ## TypeScript migration status
 
 The diagrams below describe the active Python controller. The parallel TypeScript
-foundation in `src/core/`, `src/runtime/` and `src/cli/` is a contributor preview,
-not a replacement for that controller. It adds validated contracts, a neutral
-role catalog and an isolated project CLI. Python and TypeScript workspaces must
-not be written by both runtimes; there is no automatic state migration yet.
+runtime in `src/core/`, `src/runtime/` and `src/cli/` now includes an opt-in
+per-workspace Factory controller preview through the installed project CLI. Its
+strict controller state, revision-bound Plan/Design approvals, bounded build
+loop and validated read-only Test review reuse the TypeScript lifecycle,
+workflow, provider and role contracts. It is not a replacement for the Python
+launcher, server, browser UI or MCP, and Python and TypeScript workspaces must not
+be written by both runtimes; there is no automatic state migration.
 
-Structured review validation is implemented as a contract, but is **not yet wired
-into the active Factory Test/Ship steps**. Provider registration also remains
-different from qualification. Those migrations must be completed and tested before
-the launcher changes. See the [preview](specs/typed-runtime-preview.md) and
+The preview does not qualify live providers or enforce their advertised
+capabilities, port the public Python surfaces, or authorize publication. Those
+migrations and qualifications remain outstanding before any launcher change.
+See the [preview](specs/typed-runtime-preview.md) and
 [full migration scope](specs/typed-foundry.md).
 
 ## 1. Materials already inside this repository

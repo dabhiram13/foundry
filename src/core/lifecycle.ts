@@ -8,6 +8,7 @@ import {
   atomicJson, atomicWrite, canonicalJson, digest, exists, findProjectRoot, FoundryError, now,
   readJson, rejectSymlinkComponents, within, withProcessLock,
 } from './fs.js';
+import { assertFactoryShipGate, readFactoryState } from './factory-contract.js';
 
 const runtimeMarkerSchema = z.object({
   schema_version: z.literal(1),
@@ -268,7 +269,7 @@ function executableFor(command: string, cwd: string): string | null {
   return null;
 }
 
-async function snapshot(root: string, exclude: readonly string[] = []): Promise<string> {
+export async function workspaceRevision(root: string, exclude: readonly string[] = []): Promise<string> {
   const files: Record<string, string> = {};
   for (const file of await sourceFiles(root)) {
     const relative = path.relative(root, file).split(path.sep).join('/');
@@ -611,7 +612,7 @@ export async function pauseOrResume(rootInput: string, pause: boolean): Promise<
   });
 }
 
-export async function verify(rootInput: string): Promise<number> {
+export async function verify(rootInput: string, cancelRequested: () => boolean = () => false): Promise<number> {
   const root = await requireRuntimeWorkspace(rootInput, 'verify');
   return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
     const [statePath, state] = await requireActive(root);
@@ -619,7 +620,7 @@ export async function verify(rootInput: string): Promise<number> {
       throw new FoundryError('Recover the interrupted run before verifying again.');
     }
     const checks = await configuredChecks(root);
-    const before = await snapshot(root);
+    const before = await workspaceRevision(root);
     const batchName = `.foundry/state/runs/${state.run_id}/verification-${randomUUID()}`;
     const receipts: CheckReceipt[] = [];
     const evidence: Record<string, unknown> = {
@@ -639,10 +640,19 @@ export async function verify(rootInput: string): Promise<number> {
     process.on('SIGTERM', interrupt);
     try {
       for (const check of checks) {
-        if (interrupted) break;
+        if (interrupted || cancelRequested()) {
+          interrupted = true;
+          break;
+        }
         evidence.current_check = check.name;
         await atomicJson(root, `${batchName}/receipts.json`, evidence);
-        const result = await runCheck(root, check, `${batchName}/${check.name}.log`, state.run_id, () => interrupted);
+        const result = await runCheck(
+          root,
+          check,
+          `${batchName}/${check.name}.log`,
+          state.run_id,
+          () => interrupted || cancelRequested(),
+        );
         result.receipt.run_id = state.run_id;
         result.receipt.inputs_sha256 = before;
         receipts.push(result.receipt);
@@ -654,7 +664,8 @@ export async function verify(rootInput: string): Promise<number> {
       process.off('SIGINT', interrupt);
       process.off('SIGTERM', interrupt);
     }
-    const after = await snapshot(root);
+    interrupted = interrupted || cancelRequested();
+    const after = await workspaceRevision(root);
     const passed = !interrupted
       && receipts.length === checks.length
       && receipts.every((receipt) => !receipt.required || (receipt.status === 'passed' && receipt.exit_code === 0))
@@ -690,7 +701,7 @@ async function completionEvidence(root: string, state: RunState): Promise<[strin
   const completion = typeof state.completion === 'object' && state.completion !== null
     ? state.completion as { path?: string }
     : null;
-  const fingerprint = await snapshot(root, completion?.path ? [completion.path] : []);
+  const fingerprint = await workspaceRevision(root, completion?.path ? [completion.path] : []);
   if (evidence.run_id !== state.run_id || evidence.passed !== true
     || evidence.inputs_before !== fingerprint || evidence.inputs_after !== fingerprint) {
     throw new FoundryError('Verification is stale or mismatched. Run verify again.');
@@ -766,6 +777,13 @@ export async function complete(rootInput: string): Promise<number> {
     }
     if (!['verified', 'completing', 'completed'].includes(current.status) || !current.verification) {
       throw new FoundryError('Completion needs a fresh successful verify run.');
+    }
+    const factory = await readFactoryState(root);
+    if (factory) {
+      if (factory.lifecycle_run_id !== current.run_id) {
+        throw new FoundryError('Factory controller does not own this lifecycle run');
+      }
+      await assertFactoryShipGate(root, current.run_id, current.verification, await workspaceRevision(root));
     }
     let state = current;
     if (state.status !== 'completed') {

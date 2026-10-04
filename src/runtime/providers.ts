@@ -139,6 +139,9 @@ const savedTaskSchema = z.object({
 
 export type ProviderRequest = z.infer<typeof requestSchema>;
 type JsonRecord = Record<string, unknown>;
+export interface ExecuteOptions {
+  onStarted?: (taskId: string) => Promise<void> | void;
+}
 
 const STATE = '.foundry/state/providers';
 const MAX_INPUT = 256 * 1024;
@@ -789,7 +792,12 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
   return outcome;
 }
 
-export async function execute(rootInput: string, rawRequest: unknown, taskId?: string): Promise<JsonRecord> {
+export async function execute(
+  rootInput: string,
+  rawRequest: unknown,
+  taskId?: string,
+  options: ExecuteOptions = {},
+): Promise<JsonRecord> {
   const root = await requireRuntimeWorkspace(rootInput, 'run a provider task');
   const request = requestSchema.parse(rawRequest);
   const { adapter, settings } = await prepare(root, request);
@@ -843,6 +851,17 @@ export async function execute(rootInput: string, rawRequest: unknown, taskId?: s
       await saveTask(root, task);
       return task;
     }).then(async (saved) => {
+      try {
+        await options.onStarted?.(identifier);
+      } catch (error) {
+        await withRegistryLock(root, async () => {
+          attempt.status = 'unknown';
+          attempt.error = { code: 'start_callback', message: 'The controller could not persist its started task state' };
+          saved.status = 'unknown';
+          await saveTask(root, saved);
+        });
+        throw new FoundryError('Provider start callback failed; process execution was not started', { cause: error });
+      }
       const outcome = await processTask(root, adapter, settings, request, saved, attempt);
     return withRegistryLock(root, async () => {
       attempt.status = outcome;

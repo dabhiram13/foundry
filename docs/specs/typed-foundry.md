@@ -45,6 +45,45 @@ after cutover. Optional providers and archived test tooling may require it.
 
 ## Review contract (lead-owned)
 
+### Next bounded slice: per-workspace controller preview
+
+Add a TypeScript controller to the installed project CLI under `factory` commands.
+It runs the six stages in a fresh TypeScript-owned workspace; it does not replace
+the public Python launcher, multi-project registry, browser service or MCP server.
+The existing installer creates the workspace first. A strict versioned controller
+record and exclusive process lease live under `.foundry/state/factory/`.
+
+- FC-01: `init`, `configure`, `status`, `run`, `review`, `approve`, `cancel` and
+  `recover` operate without a Python subprocess. A local fake adapter exercises
+  Research through Ship, with no account, API billing or external publication.
+- FC-02: Plan and Design require an explicit reviewed SHA-256. Plan approval
+  freezes the exact `approvedCriteria` IDs and expectations. Changed approval
+  documents invalidate downstream work; omitted or altered required criteria
+  cannot be hidden by a builder's workflow ledger.
+- FC-03: Build retains the bounded task/check/repair/checkpoint loop (at most 12
+  tasks, at most three repairs per failed task attempt). Failed commands cannot
+  advance a task. Use the existing TypeScript lifecycle and workflow functions,
+  not a second check runner or handcrafted lifecycle state.
+- FC-04: Test settles controller-written command evidence before its final
+  verification snapshot, then dispatches a read-only reviewer. Parse its final
+  output using `validateReview`; require exact approved coverage and revision
+  binding, safe bounded evidence reads and unchanged inputs after review.
+  Missing, malformed, failed, unverified, stale or blocking reviews prevent Ship.
+- FC-05: Ship is a controller-generated local summary, not another provider turn
+  that can alter the reviewed product. Revalidate the review, evidence, approvals,
+  lifecycle and workflow before completion. Direct low-level completion in a
+  controller-managed workspace must enforce the same gate. Publication remains
+  `not_authorized`. Recovery does not infer acceptance from a completed AI task.
+- FC-06: Cancellation reaches both provider work and controller-run checks, and
+  retains an interrupted state; dead-process recovery preserves the run identity.
+  Concurrent writers and malformed/future state fail closed. Billing is local or
+  explicitly confirmed subscription only; no API inference or provider fallback.
+
+Reuse the neutral role catalog. Model/reasoning selections remain explicit and
+provider capability failures are surfaced, not silently removed. Test fixtures
+prove protocol behavior only. This slice does not qualify live providers, migrate
+legacy workspaces, promise a sandbox from metadata, or establish model honesty.
+
 Test runs configured checks through the controller, then a read-only provider
 reviews the approved criteria and saved results. A successfully completed provider
 turn is not a passing review. Its final output is a JSON review result with the

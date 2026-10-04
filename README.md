@@ -115,9 +115,12 @@ More detail: [architecture](docs/ARCHITECTURE.md),
 
 ### TypeScript migration
 
-The default launcher still uses Python. A separate, strictly typed project-runtime
-preview is available for contributors; it does **not** yet replace the six-step
-controller, browser or MCP service. It refuses to mutate existing Python projects.
+The default launcher, Python server and MCP still use the existing Python
+controller. A strictly typed, per-workspace `factory` controller preview is
+available through the installed Node project CLI; it does **not** replace the
+public launcher, browser UI or MCP service, and it refuses to mutate Python-owned
+workspaces. Plan and Design require exact-revision owner approvals; Test requires
+a validated read-only review and Ship remains local with publication unauthorized.
 See the [preview boundaries](docs/specs/typed-runtime-preview.md) and
 [migration plan](docs/specs/typed-foundry.md). No migration or faster-performance
 claim is implied by the language change. Products built with Foundry can use any

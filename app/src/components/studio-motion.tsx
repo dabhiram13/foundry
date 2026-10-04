@@ -7,7 +7,7 @@ const MotionContext = createContext({ reduced: false, quiet: false, toggle: () =
 export const useStudioMotion = () => useContext(MotionContext);
 
 function useSystemReducedMotion() {
-  const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [reduced, setReduced] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(() => {
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReduced(preference.matches);

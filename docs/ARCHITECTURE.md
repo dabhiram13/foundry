@@ -4,6 +4,20 @@ Foundry's product direction is a **provider-independent software factory**: give
 
 This document maps the current local factory and the reusable materials inherited from the `32d5a87` baseline. A separately installed global Foundry skill is optional convenience packaging. It is not the factory and is not required to use the repository.
 
+## TypeScript migration status
+
+The diagrams below describe the active Python controller. The parallel TypeScript
+foundation in `src/core/`, `src/runtime/` and `src/cli/` is a contributor preview,
+not a replacement for that controller. It adds validated contracts, a neutral
+role catalog and an isolated project CLI. Python and TypeScript workspaces must
+not be written by both runtimes; there is no automatic state migration yet.
+
+Structured review validation is implemented as a contract, but is **not yet wired
+into the active Factory Test/Ship steps**. Provider registration also remains
+different from qualification. Those migrations must be completed and tested before
+the launcher changes. See the [preview](specs/typed-runtime-preview.md) and
+[full migration scope](specs/typed-foundry.md).
+
 ## 1. Materials already inside this repository
 
 ```mermaid

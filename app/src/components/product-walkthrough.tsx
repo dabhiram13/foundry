@@ -41,6 +41,6 @@ export function ProductWalkthrough() {
         </TabsContent>
       </div>
     </Tabs>
-    <div className="walkthrough-footer"><p>Example commands, not a live AI run. No browser required.</p><a className="landing-secondary" href="https://github.com/dabhiram13/foundry/blob/main/docs/GETTING-STARTED.md">Follow the guide <ArrowUpRight aria-hidden="true" /></a></div>
+    <div className="walkthrough-footer"><p>Example commands, not a live AI run. No browser required.</p><a className="landing-secondary" href="/docs/getting-started/">Follow the guide <ArrowUpRight aria-hidden="true" /></a></div>
   </section>;
 }

@@ -3,8 +3,12 @@
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import base64
+import hashlib
 import json
+import mimetypes
 from pathlib import Path
+import re
 import secrets
 import threading
 from urllib.parse import parse_qs, urlsplit
@@ -34,6 +38,40 @@ for _asset in sorted((ROOT / 'app/assets/bots').glob('*.png')):
     if _asset.is_file() and _asset.resolve().parent == (ROOT / 'app/assets/bots').resolve():
         _name = _asset.relative_to(ROOT / 'app').as_posix()
         STATIC_ASSETS['/' + _name] = (_name, 'image/png', True)
+
+
+def documentation_assets():
+    """Only expose files emitted by the static docs build, never repository files."""
+    directory = providers._path(ROOT, 'site/dist')
+    assets = {}
+    if not directory.is_dir():
+        return assets
+    for path in directory.rglob('*'):
+        relative = path.relative_to(directory).as_posix()
+        if not relative.startswith(('docs/', '_astro/', 'pagefind/')):
+            continue
+        providers._path(ROOT, 'site/dist/' + relative)
+        if not path.is_file():
+            continue
+        url = '/' + relative
+        if url.endswith('/index.html'):
+            url = url[:-10]
+        assets[url] = (path, mimetypes.guess_type(path.name)[0] or 'application/octet-stream')
+    return assets
+
+
+def documentation_policy(content):
+    directives = []
+    for tag, directive in (('script', 'script-src'), ('style', 'style-src')):
+        hashes = []
+        for body in re.findall(rf'<{tag}\b[^>]*>(.*?)</{tag}>', content, re.DOTALL | re.IGNORECASE):
+            encoded = base64.b64encode(hashlib.sha256(body.encode()).digest()).decode()
+            hashes.append(f"'sha256-{encoded}'")
+        extra = " 'wasm-unsafe-eval'" if tag == 'script' else ''
+        directives.append(f"{directive} 'self'{extra} " + ' '.join(hashes))
+    return ("default-src 'self'; " + '; '.join(directives)
+            + "; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; "
+            "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 
 
 class Service:
@@ -148,18 +186,19 @@ class Service:
 
 def make_server(service, port=0):
     token = secrets.token_urlsafe(32)
+    docs_assets = documentation_assets()
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
 
-        def send(self, status, content, mime='application/json'):
+        def send(self, status, content, mime='application/json', policy=None):
             style_nonce = secrets.token_urlsafe(24)
             if mime == 'text/html' and isinstance(content, str):
                 content = content.replace('__FOUNDRY_STYLE_NONCE__', style_nonce)
-            if mime == 'application/json':
-                body = json.dumps(content).encode()
-            elif isinstance(content, bytes):
+            if isinstance(content, bytes):
                 body = content
+            elif mime == 'application/json':
+                body = json.dumps(content).encode()
             else:
                 body = content.encode()
             self.send_response(status)
@@ -169,7 +208,7 @@ def make_server(service, port=0):
             self.send_header('Cache-Control', 'no-store')
             self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Referrer-Policy', 'no-referrer')
-            self.send_header('Content-Security-Policy', f"default-src 'self'; script-src 'self'; style-src 'self' 'nonce-{style_nonce}'; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+            self.send_header('Content-Security-Policy', policy or f"default-src 'self'; script-src 'self'; style-src 'self' 'nonce-{style_nonce}'; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
             self.end_headers()
             self.wfile.write(body)
 
@@ -189,6 +228,24 @@ def make_server(service, port=0):
                 elif parsed.path == '/api/artifact':
                     params = parse_qs(parsed.query)
                     self.send(200, service.factory.artifact_record(params['id'][0], params['path'][0]))
+                elif parsed.path in docs_assets:
+                    path, mime = docs_assets[parsed.path]
+                    providers._path(ROOT, path.relative_to(ROOT))
+                    if mime == 'text/html':
+                        content = path.read_text()
+                        self.send(200, content, mime, documentation_policy(content))
+                    else:
+                        self.send(200, path.read_bytes(), mime, documentation_policy(''))
+                elif parsed.path == '/docs':
+                    self.send_response(302)
+                    self.send_header('Location', '/docs/')
+                    self.send_header('Content-Length', '0')
+                    self.end_headers()
+                elif parsed.path.startswith('/docs/') and not docs_assets:
+                    self.send_response(302)
+                    self.send_header('Location', 'https://github.com/dabhiram13/foundry/blob/main/docs/README.md')
+                    self.send_header('Content-Length', '0')
+                    self.end_headers()
                 elif parsed.path in STATIC_ASSETS:
                     name, mime, binary = STATIC_ASSETS[parsed.path]
                     path = ROOT / 'app' / name

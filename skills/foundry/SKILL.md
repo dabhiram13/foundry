@@ -9,7 +9,7 @@ The framework checkout is `{{FRAMEWORK_ROOT}}`. Read its `docs/WORKFLOW.md`,
 `docs/WORKFLOW-CONTRACTS.md`, and `docs/PROVIDERS.md`. This checkout supplies the
 installer and reusable contracts; build application code in the product workspace.
 
-1. Read the idea/change and workspace instructions. Sri remains the product driver;
+1. Read the idea/change and workspace instructions. The owner makes product decisions;
    choose the next useful action at small, feature, or product depth. A planning or
    review request authorizes that scope only. Use the guide for a read-only next
    step, not as permission to implement, spend, connect, or publish.

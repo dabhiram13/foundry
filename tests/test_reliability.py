@@ -331,7 +331,7 @@ class ReliabilityTests(unittest.TestCase):
             root = self.make_project(Path(tmp))
             checked_root = foundry.project_root(root)
             foundry.atomic_json(root / '.foundry/install-pending.json', {'incomplete':True})
-            with self.assertRaisesRegex(foundry.Error, 'incomplete'):
+            with self.assertRaisesRegex(foundry.Error, 'install journal blocks legacy mutation'):
                 self.start(checked_root)
 
     def test_sigterm_stops_check_and_persists_interrupted_receipt(self):

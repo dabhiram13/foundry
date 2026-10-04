@@ -1,15 +1,15 @@
 ---
 name: marketcraft
-description: Guide an idea, feature, or fix through Marketcraft with adaptive depth, evidence, UX handoffs, scoped implementation, and real checks.
+description: Compatibility entry for Foundry using the historical Marketcraft name; preserves existing product setup and workflow names.
 ---
 
-# Marketcraft
+# Marketcraft compatibility entry
 
 The framework checkout is `{{FRAMEWORK_ROOT}}`. Read its `docs/WORKFLOW.md`,
 `docs/WORKFLOW-CONTRACTS.md`, and `docs/PROVIDERS.md`. This checkout supplies the
 installer and reusable contracts; build application code in the product workspace.
 
-1. Read the idea/change and workspace instructions. Sri remains the product driver;
+1. Read the idea/change and workspace instructions. The owner makes product decisions;
    choose the next useful action at small, feature, or product depth. A planning or
    review request authorizes that scope only. Use the guide for a read-only next
    step, not as permission to implement, spend, connect, or publish.
@@ -43,4 +43,4 @@ If the framework checkout is unavailable, explain how to reconnect its current
 location. Do not fetch a substitute framework or change unrelated projects.
 
 Compatibility names remain `product-foundry`, `foundry-*`, `scripts/foundry.py`,
-and `.foundry`; use `marketcraft` and `scripts/marketcraft.py` for new instructions.
+and `.foundry`; use `foundry` for new conversations and the compatible `scripts/marketcraft.py` CLI.

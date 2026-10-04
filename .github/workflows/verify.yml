@@ -28,13 +28,33 @@ jobs:
       - name: Web application behavior
         working-directory: tests/fixtures/web_app
         run: python3 -m unittest test_app -v
+      - name: Check TypeScript project runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.19.0
+          cache: npm
       - name: Install pinned browser test library
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: TypeScript runtime contracts
+        run: |
+          npm run typecheck:runtime
+          npm run build:runtime
+          npm run test:runtime
       - name: Build and check plugin panel
         run: |
           npx tsc --noEmit
           npm run build:panel
           git diff --exit-code -- app/app.js app/style.css app/panel.html app/assets/manrope-latin-wght-normal.woff2
+      - name: Build and test public documentation
+        run: |
+          npm run build:site
+          npm run test:site
+      - name: Documentation asset server contracts
+        run: python3 -m unittest discover -s tests -p test_docs_assets.py -v
+      - name: Documentation browser journey
+        env:
+          FOUNDRY_PYTHON: /tmp/foundry-env/bin/python
+        run: npm run test:docs-browser
       - name: Factory UI journey
         env:
           FOUNDRY_PYTHON: /tmp/foundry-env/bin/python

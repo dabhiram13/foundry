@@ -1,7 +1,7 @@
 # Foundry workflow
 
-The owner describes an idea or change normally. Sri remains the product driver;
-the parent Codex session coordinates context, paths, delegation, and evidence.
+The owner describes an idea or change normally and remains the product driver.
+The coordinating session manages context, paths, delegation, and evidence.
 There is no separate agent service. Choose the next useful action from the current
 request, accepted decisions, available capabilities, and saved evidence.
 

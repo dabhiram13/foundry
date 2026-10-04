@@ -23,8 +23,8 @@ installed copies under `.foundry/`. Bundled skills have mixed provenance;
 upstream revisions. Missing origin information is not proof of ownership, and a
 local integrity hash is not an upstream revision or license determination.
 
-Marketcraft is the current product name. Compatibility entry points and `.foundry`
-paths retain their older names. Renaming does not alter origin or licensing.
+Foundry is the current product name. Marketcraft and Product Foundry are historical
+names retained in compatibility entry points and records. Renaming does not alter origin or licensing.
 Preserve notices with copied material. Any future adoption needs an identified
 source/revision, applicable notices, dependency review, and a demonstrated use case;
 this change imports no additional skills or proprietary skeleton.

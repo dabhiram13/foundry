@@ -19,6 +19,11 @@ import threading
 import time
 import uuid
 
+try:
+    from . import foundry
+except ImportError:
+    import foundry
+
 
 ACTIONS = {"provider"}
 CAPABILITIES = {"jsonl", "structured_output", "resume", "cancel", "permissions",
@@ -576,6 +581,7 @@ def _process(root, adapter, settings, request, task, attempt, credential_env=Non
 
 def execute(root, request, task_id=None, *, credential_env=None, on_started=None):
     # Private host seam. Credentials are neither request fields nor persisted settings.
+    foundry.reject_typescript_workspace(root, "run a provider task")
     if credential_env is not None and (not isinstance(credential_env, dict) or
             set(credential_env) != {"ACCESS_TOKEN"} or
             not isinstance(credential_env["ACCESS_TOKEN"], str) or not credential_env["ACCESS_TOKEN"]):
@@ -640,6 +646,7 @@ def execute(root, request, task_id=None, *, credential_env=None, on_started=None
 
 
 def cancel(root, task_id):
+    foundry.reject_typescript_workspace(root, "cancel a provider task")
     with _lock(root, f"{STATE}/registry.lock"):
         task = load_task(root, task_id)
         if task["status"] != "running":
@@ -650,6 +657,7 @@ def cancel(root, task_id):
 
 def reconcile(root, task_id, acknowledge_stopped=False):
     """A dead lease cannot prove a detached child or external effect has stopped."""
+    foundry.reject_typescript_workspace(root, "reconcile a provider task")
     with _lock(root, f"{STATE}/leases/{task_id}.lock", False):
         with _lock(root, f"{STATE}/registry.lock"):
             task = load_task(root, task_id)

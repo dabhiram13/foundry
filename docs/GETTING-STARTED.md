@@ -23,7 +23,8 @@ git --version
 codex --version
 ```
 
-Node 22+ is needed only to rebuild the developer panel. Foundry's launcher
+Node.js 24 LTS is needed to build the developer panel, docs site or TypeScript
+preview; it is not needed just to use the stable Python launcher. Foundry's launcher
 bootstraps its private Python environment and existing requirements; it is not
 an npm package or hosted service.
 

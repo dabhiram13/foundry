@@ -301,6 +301,7 @@ def _receipt(root, item):
 def record(root, payload):
     """Append a validated immutable record, capturing exact local input/link revisions."""
     root = Path(root).resolve()
+    foundry.reject_typescript_workspace(root, "record workflow evidence")
     data = _load(root)
     _validate(root, payload, {r["id"]: r for r in data["records"]})
     with _lock(root):

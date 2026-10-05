@@ -11,6 +11,7 @@ import {
   FACTORY_LOCK, readBoundedBytes, readFactoryState, reviewEvidenceDigests, writeFactoryState,
 } from '../../src/core/factory-contract.js';
 import { installWorkspace } from '../../src/core/install.js';
+import { ProjectService } from '../../src/core/projects.js';
 import { complete as lifecycleComplete, recover as lifecycleRecover } from '../../src/core/lifecycle.js';
 import { digest, withProcessLock } from '../../src/core/fs.js';
 
@@ -22,8 +23,9 @@ async function project(
   checkPass = true,
   hangingCheck = false,
   ignorePaths: string[] = [],
+  parent = os.tmpdir(),
 ): Promise<string> {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-factory-'));
+  const root = await mkdtemp(path.join(parent, 'foundry-runtime-factory-'));
   await mkdir(path.join(root, '.foundry'), { recursive: true });
   await mkdir(path.join(root, 'docs/product'), { recursive: true });
   await mkdir(path.join(root, 'docs/specs'), { recursive: true });
@@ -268,8 +270,10 @@ async function waitForPidExit(pid: number): Promise<void> {
   assert.fail(`Owned child process ${pid} remained alive`);
 }
 
-test('factory completes Research through Ship with approvals, a real check and checkpoint', async () => {
-  const root = await project();
+test('factory completes Research through Ship with approvals, a real check and checkpoint', async (t) => {
+  const products = await mkdtemp(path.join(os.tmpdir(), 'foundry-shipped-project-'));
+  t.after(() => rm(products, { recursive: true, force: true }));
+  const root = await project('success', true, false, [], products);
   await initFactory(root, {
     name: 'Local preview',
     idea: 'Build a local product with one verified behavior.',
@@ -301,6 +305,15 @@ test('factory completes Research through Ship with approvals, a real check and c
   assert.equal(completed?.status, 'completed');
   assert.deepEqual(completed?.completed_stages, ['research', 'scope', 'design', 'build', 'verify', 'release']);
   assert.equal((await readFile(path.join(root, '.foundry/state/factory/ship.json'), 'utf8')).includes('not_authorized'), true);
+  const service = new ProjectService(path.resolve('.'), products);
+  const status = await service.status(path.basename(root));
+  assert.equal(status.status, 'completed');
+  assert.ok((status.artifacts as JsonRecord[]).some((artifact) => artifact.path === 'docs/product/release.md'));
+  const summary = await service.artifact(path.basename(root), 'docs/product/release.md');
+  assert.match(String(summary.content), /Ship summary/);
+  assert.match(String(summary.content), /Publication: not_authorized/);
+  assert.match(String(summary.content), new RegExp(String(completed?.verification_receipt)));
+  await assert.rejects(service.artifact(path.basename(root), '.foundry/state/factory/ship.json'), /not an allowed/);
 });
 
 test('build checkpoints succeed with ignored state and exclude private files', async () => {

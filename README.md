@@ -144,6 +144,8 @@ and makes an initial local Git checkpoint containing only framework metadata,
 neutral roles, the ignore rules and the idea; provider configuration, runtime
 bundles, state and common credential files are excluded. Configure the adapter
 connection and explicitly confirm subscription billing where required.
+The typed UI reads the Ship summary from the saved, validated controller record;
+it does not expect a provider-generated `docs/product/release.md`.
 
 The typed controller assigns one primary role to each stage. Role-specific
 model/reasoning preferences apply only when that role is assigned to the active

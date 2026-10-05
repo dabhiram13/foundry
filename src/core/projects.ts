@@ -7,7 +7,7 @@ import {
 } from './factory.js';
 import {
   FACTORY_STAGE_LABELS, FACTORY_STAGES, readBoundedBytes, readBoundedText, readFactoryState,
-  roleSettingsSchema, type FactoryStage, type FactoryState, type FactoryStatus,
+  factoryShipSchema, roleSettingsSchema, type FactoryStage, type FactoryState, type FactoryStatus,
 } from './factory-contract.js';
 import {
   atomicWrite, digest, expandUserPath, exists, FoundryError, rejectSymlinkComponents, within,
@@ -28,6 +28,23 @@ const FACTORY_DOCUMENTS: ReadonlyArray<readonly [string, string]> = [
   ['docs/product/release.md', 'release'],
 ];
 const REQUIRED_CAPABILITIES = ['tools', 'jsonl', 'cancel', 'permissions'] as const;
+const SHIP_DOCUMENT = 'docs/product/release.md';
+
+async function shipDocument(root: string, state: FactoryState): Promise<string | null> {
+  if (state.status !== 'completed' || state.ship?.path !== '.foundry/state/factory/ship.json') return null;
+  try {
+    const file = await readBoundedText(root, state.ship.path);
+    if (digest(file.bytes) !== state.ship.sha256) return null;
+    const ship = factoryShipSchema.parse(JSON.parse(file.text));
+    if (ship.run_id !== state.lifecycle_run_id || ship.plan_revision !== state.approvals.plan?.revision
+      || ship.verification_receipt !== state.verification_receipt
+      || ship.workspace_revision !== state.review?.workspace_revision
+      || ship.review_sha256 !== digest(JSON.stringify(state.review?.result))) return null;
+    return ship.summary;
+  } catch {
+    return null;
+  }
+}
 
 export interface FactoryRoleMap {
   research?: string;
@@ -434,8 +451,10 @@ export class ProjectService {
     }
     const artifacts: JsonRecord[] = [];
     for (const [relative, stage] of FACTORY_DOCUMENTS) {
+      if (relative === SHIP_DOCUMENT) continue;
       if (await exists(root, relative)) artifacts.push({ path: relative, stage });
     }
+    if (await shipDocument(root, status) !== null) artifacts.push({ path: SHIP_DOCUMENT, stage: 'release' });
     const roles = [...new Set(Object.values(status.roles))];
     const result: JsonRecord = {
       ...project.summary,
@@ -723,6 +742,12 @@ export class ProjectService {
       typeof item === 'object' && item !== null && (item as JsonRecord).path === relative
     ));
     if (!listed) throw new FoundryError('Artifact is not present in the project');
+    if (relative === SHIP_DOCUMENT) {
+      const state = await readFactoryState(project.root);
+      const summary = state ? await shipDocument(project.root, state) : null;
+      if (summary === null) throw new FoundryError('The saved Ship summary is unavailable or changed');
+      return { path: relative, stage: 'release', revision: digest(summary), content: summary };
+    }
     const file = await readBoundedText(project.root, relative);
     const stage = FACTORY_DOCUMENTS.find(([candidate]) => candidate === relative)?.[1] ?? 'document';
     return { path: relative, stage, revision: digest(file.bytes), content: file.text };

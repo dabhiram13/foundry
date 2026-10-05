@@ -2,6 +2,25 @@
 # First use prepares the isolated runtime, then opens the requested interface.
 set -eu
 foundry_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ "${1:-}" = typed ]; then
+  shift
+  foundry_node=$(command -v node || true)
+  if [ -z "$foundry_node" ]; then
+    printf 'Foundry typed runtime requires Node 24 in PATH.\n' >&2
+    exit 2
+  fi
+  foundry_node_major=$("$foundry_node" -p 'process.versions.node.split(".")[0]' 2>/dev/null || printf 0)
+  if [ "$foundry_node_major" -ne 24 ]; then
+    printf 'Foundry typed runtime requires Node 24 (found %s).\n' "$("$foundry_node" -p 'process.versions.node' 2>/dev/null || printf unavailable)" >&2
+    exit 2
+  fi
+  foundry_bundle="$foundry_root/dist/runtime/foundry.cjs"
+  if [ ! -f "$foundry_bundle" ]; then
+    printf 'The typed runtime bundle is missing. Run npm ci && npm run build:runtime, then retry.\n' >&2
+    exit 2
+  fi
+  exec "$foundry_node" "$foundry_bundle" "$@"
+fi
 foundry_python="$foundry_root/.venv/bin/python"
 if [ -x "$foundry_python" ]; then
   check_python="$foundry_python"

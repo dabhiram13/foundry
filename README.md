@@ -129,6 +129,27 @@ See the [preview boundaries](docs/specs/typed-runtime-preview.md) and
 claim is implied by the language change. Products built with Foundry can use any
 suitable language.
 
+The opt-in `./foundry typed ...` commands now share one TypeScript project
+service across the terminal CLI, a token-protected loopback browser transport
+(`typed ui`, port 4321 by default), and a restricted stdio MCP server (`typed
+mcp`). Use Node 24 and build the bundle first with `npm ci && npm run
+build:runtime`; the typed route never installs dependencies or uses Python.
+It lists legacy children without changing them. MCP tools can inspect, create,
+run, cancel, recover and read listed documents, but cannot configure or approve;
+those owner actions stay in the CLI or authenticated local browser. Provider
+login remains in the provider's own CLI. These shared transports are still an
+opt-in preview, not a replacement for the default Python launcher or its UI.
+New typed workspaces do not start provider work; initialize and commit their Git
+history before the first run. Configure the adapter connection and explicitly
+confirm subscription billing where required.
+
+The typed controller assigns one primary role to each stage. Role-specific
+model/reasoning preferences apply only when that role is assigned to the active
+stage; provider metadata does not prove permission enforcement. The runtime
+filters child-process environment variables to an OS baseline plus an adapter's
+explicit variable allowlist. This is **not OS isolation**: a provider process
+still runs as the same user and may access that user's files and network.
+
 The [static documentation site](docs/DOCUMENTATION.md) adds searchable `/docs/`
 pages without a project service or account. It is built from this repository's
 Markdown; no public hosting is configured by these build commands.

@@ -28,6 +28,12 @@ preview; it is not needed just to use the stable Python launcher. Foundry's laun
 bootstraps its private Python environment and existing requirements; it is not
 an npm package or hosted service.
 
+The TypeScript runtime is an opt-in preview. Its commands require Node 24 and a
+prebuilt `dist/runtime/foundry.cjs` bundle; from the checkout, run
+`npm ci && npm run build:runtime` when that bundle is absent. The typed route
+does not install dependencies automatically and does not require Python in
+`PATH`.
+
 ## 2. Install and inspect the terminal commands
 
 From the folder where you keep projects:
@@ -174,6 +180,45 @@ Claude or Qwen. To connect an existing local agent executable, follow the
 Product steps require an actually tested connection with local billing. The
 separate paid API route is not enabled by these commands; see the technical
 provider guide for its explicit billing rules.
+
+## Optional TypeScript runtime
+
+The default `./foundry ...` commands above still use the Python runtime. To try
+the separate TypeScript service, build its bundle once, then opt in explicitly:
+
+```sh
+npm ci
+npm run build:runtime
+./foundry typed new reading-list --idea "A local reading list with unread filtering."
+./foundry typed list --json
+./foundry typed status reading-list
+./foundry typed configure reading-list --role build=backend
+```
+
+Creation installs a TypeScript-owned workspace without starting provider work.
+The typed runtime defaults to the same sibling `products/` folder; pass
+`--products-dir PATH` to any typed command to select another. `typed run`
+advances one stage. Plan and Design still require exact-revision owner approval;
+subscription setup can be saved unconfirmed, but execution requires explicit
+confirmation. The first Build implementation turn must add product source,
+configure real required checks, and write `docs/product/checks.json` with one
+explicit mapping for each approved Plan criterion. Mappings must include the
+Plan document as a check input and are frozen before checks run.
+
+Before a first `typed run`, initialize and commit the workspace's Git history,
+log in through the selected provider's own CLI, and explicitly confirm
+subscription billing when required. These are setup instructions, not evidence
+that a live provider has been qualified.
+
+`./foundry typed ui --port 4321 --no-browser` starts an authenticated,
+loopback-only browser transport. `./foundry typed mcp` starts the official
+stdio MCP transport; its model-facing tools intentionally omit configure and
+approve. Provider sign-in stays in the provider's own CLI. This typed preview
+does not migrate or mutate legacy/unmarked children, expose paid Factory API
+billing, or qualify live provider permissions. Environment filtering limits
+which variables are inherited by adapter processes, but is not OS isolation:
+same-user file and network access remain possible. See
+[the provider guide](PROVIDERS.md) and [migration boundaries](specs/typed-foundry.md).
 
 ## Troubleshooting
 

@@ -7,13 +7,13 @@ This document maps the current local factory and the reusable materials inherite
 ## TypeScript migration status
 
 The diagrams below describe the active Python controller. The parallel TypeScript
-runtime in `src/core/`, `src/runtime/` and `src/cli/` now includes an opt-in
-per-workspace Factory controller preview through the installed project CLI. Its
+runtime in `src/core/`, `src/runtime/`, `src/cli/` and `src/transports/` includes
+an opt-in multi-project service exposed by `./foundry typed`, an authenticated
+loopback HTTP transport, and an official-SDK stdio MCP transport. They reuse the
 strict controller state, revision-bound Plan/Design approvals, bounded build
-loop and validated read-only Test review reuse the TypeScript lifecycle,
-workflow, provider and role contracts. It is not a replacement for the Python
-launcher, server, browser UI or MCP, and Python and TypeScript workspaces must not
-be written by both runtimes; there is no automatic state migration.
+loop and validated read-only Test review. This is not a replacement for the
+default Python launcher, browser UI or MCP. Python and TypeScript workspaces must
+not be written by both runtimes; there is no automatic state migration.
 
 Build can begin from the installer's empty required-check list: task planning is
 separate from the first implementation task, which must add product source, real
@@ -23,10 +23,12 @@ an input. Frozen check settings remain distinct from the Plan-pinned workflow
 criterion contract. Completion and recovery preserve the same Test review gate;
 Ship creates only a local summary.
 
-The preview does not qualify live providers or prove their advertised
-capabilities are enforced, port the public Python surfaces, or authorize
-publication. Those migrations and qualifications remain outstanding before
-any launcher change.
+The typed terminal, HTTP and MCP surfaces are an opt-in preview. The HTTP server
+binds to loopback and requires a local token for APIs; stdio MCP does not expose
+configuration or approval tools. The preview does not qualify live providers or
+prove their advertised capabilities are enforced, port the default Python
+launcher, or authorize publication. Those migrations and qualifications remain
+outstanding before any default launcher change.
 See the [preview](specs/typed-runtime-preview.md) and
 [full migration scope](specs/typed-foundry.md).
 

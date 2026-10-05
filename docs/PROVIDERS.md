@@ -49,6 +49,32 @@ local summary after configured checks, final verification and validated read-onl
 review; publication remains unauthorized. See the
 [TypeScript preview boundary](specs/typed-runtime-preview.md).
 
+The shared TypeScript application service is available through `./foundry typed`
+commands, its authenticated loopback UI, and a stdio MCP transport. HTTP and MCP
+delegate to the same workspace controller; MCP deliberately omits configure and
+approve tools. Typed project setup permits an unconfirmed subscription setting,
+but a run is refused until the owner explicitly confirms. The typed Factory does
+not select API billing. Provider login stays in the provider's own CLI; account
+sign-in/out are not implemented by the typed transports.
+The installer does not initialize Git or start provider work. Before the first
+typed run, initialize and commit the workspace history, complete provider login,
+and confirm subscription consent explicitly where the selected adapter requires it.
+
+The provider-neutral role catalog retains 28 role IDs and permissions. A typed
+workspace has one primary role per Factory stage; `configure --role
+STAGE=ROLE` changes that stage's assignment. Role model/reasoning preferences
+are keyed by role name and are used only when that role is assigned to the stage
+currently running. They do not create parallel helper agents.
+
+For child processes, the TypeScript runtime passes a small operating-system
+baseline plus only names listed by the selected adapter in its `environment`
+allowlist. Missing values are not forwarded. Codex API keys are added only for
+validated lower-level API billing, which the typed Factory does not select.
+Explicitly forwarded adapter variables are part of the process resume contract.
+This filtering is **not OS isolation**: adapters still run with the same user's
+file and network permissions. Review adapter code and environment declarations;
+metadata alone does not prove enforcement.
+
 The installed workspace may start with no required checks. Before the first Build
 check, its first implementation task must add product source and real required
 checks, then map every approved Plan ID exactly once in

@@ -18,6 +18,8 @@ test('installed runtime is copied and usable without Python', async () => {
   assert.equal(project.name, path.basename(target));
   const runtime = await readFile(path.join(target, '.foundry/runtime/project.cjs'), 'utf8');
   assert.match(runtime, /Foundry TypeScript project runtime/);
+  assert.match(await readFile(path.join(target, '.foundry/runtime/foundry.cjs'), 'utf8'), /foundry-typed/);
+  assert.match(await readFile(path.join(target, '.foundry/runtime/foundry-worker.cjs'), 'utf8'), /Factory worker/);
   const child = spawnSync(process.execPath, [path.join(target, '.foundry/runtime/project.cjs'), '--help'], {
     encoding: 'utf8',
     env: { PATH: path.dirname(process.execPath), HOME: os.tmpdir() },

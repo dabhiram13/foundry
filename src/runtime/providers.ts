@@ -11,6 +11,7 @@ import {
   readJson, within, withProcessLock,
 } from '../core/fs.js';
 import { requireRuntimeWorkspace } from '../core/lifecycle.js';
+import { providerEnvironment } from './environment.js';
 
 const CAPABILITIES = ['jsonl', 'structured_output', 'resume', 'cancel', 'permissions', 'tools', 'browser', 'model_selection', 'reasoning_selection'] as const;
 const BILLING_MODES = ['subscription', 'api', 'local'] as const;
@@ -20,6 +21,8 @@ const adapterSchema = z.object({
   command: z.array(z.string().min(1).refine((part) => !part.includes('\0'))).min(1),
   capabilities: z.array(z.enum(CAPABILITIES)).min(1),
   billing_modes: z.array(z.enum(BILLING_MODES)).min(1),
+  environment: z.array(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/)).max(64)
+    .refine(names => new Set(names).size === names.length, 'Environment names must be unique').optional(),
 }).strict();
 const requestSchema = z.object({
   adapter: z.string().min(1).default('codex'),
@@ -192,10 +195,10 @@ export async function registry(root: string): Promise<Record<string, ProviderAda
   return result;
 }
 
-function redactor(environment: NodeJS.ProcessEnv): (value: unknown) => unknown {
+function redactor(environment: NodeJS.ProcessEnv, selectedNames: readonly string[] = []): (value: unknown) => unknown {
   const sensitiveKey = /secret|password|passwd|api[_-]?key|authorization|cookie|credential|private[_-]?key|^token$|access[_-]?token|refresh[_-]?token/i;
   const secrets = Object.entries(environment)
-    .filter(([key, value]) => sensitiveKey.test(key) && typeof value === 'string' && value.length >= 4)
+    .filter(([key, value]) => (sensitiveKey.test(key) || selectedNames.includes(key)) && typeof value === 'string' && value.length >= 4)
     .map(([, value]) => value as string)
     .sort((left, right) => right.length - left.length);
   const clean = (value: unknown, key?: string): unknown => {
@@ -447,12 +450,8 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
     attempt.error = { code: 'elapsed_budget_exhausted', message: 'Elapsed budget exhausted' };
     return 'timed_out';
   }
-  const environment = { ...process.env };
-  if (adapter.name === 'codex' && settings.billing && (settings.billing as JsonRecord).mode === 'subscription') {
-    delete environment.OPENAI_API_KEY;
-    delete environment.CODEX_API_KEY;
-  }
-  const clean = redactor(environment);
+  const environment = providerEnvironment(adapter, String((settings.billing as JsonRecord).mode));
+  const clean = redactor(process.env, adapter.environment);
   let child: ChildProcess;
   try {
     child = spawn(command[0] ?? '', command.slice(1), {

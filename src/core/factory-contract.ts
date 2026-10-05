@@ -90,14 +90,21 @@ const roleSelectionsSchema = z.object({
   verify: z.string().min(1).max(128),
   release: z.string().min(1).max(128),
 }).strict();
+const rolePreferenceSchema = z.string().trim().min(1).max(120).refine(
+  (value) => !/[\r\n]/.test(value),
+  'Role preferences must be a single line',
+).nullable();
+export const roleSettingsSchema = z.record(
+  z.string().trim().min(1).max(128),
+  z.object({
+    model: rolePreferenceSchema.optional(),
+    reasoning: rolePreferenceSchema.optional(),
+  }).strict().refine((value) => Object.keys(value).length > 0, 'Role settings need a model or reasoning value'),
+).default({});
 const billingSchema = z.object({
   mode: z.enum(['local', 'subscription']),
   confirmed: z.boolean(),
-}).strict().superRefine((value, context) => {
-  if (value.mode === 'subscription' && !value.confirmed) {
-    context.addIssue({ code: 'custom', message: 'Subscription billing requires explicit confirmation' });
-  }
-});
+}).strict();
 const factoryStatusSchema = z.enum([
   'ready', 'awaiting_approval', 'running', 'interrupted', 'failed',
   'reviewed', 'shipping', 'completed', 'recovery_required',
@@ -118,6 +125,7 @@ const controllerSchema = z.object({
   reasoning: z.string().trim().min(1).max(120).nullable(),
   billing: billingSchema,
   roles: roleSelectionsSchema,
+  role_settings: roleSettingsSchema,
   lifecycle_run_id: z.string().uuid().nullable(),
   provider_task_id: z.string().uuid().nullable(),
   provider_stage: z.enum(FACTORY_STAGES).nullable(),

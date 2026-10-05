@@ -74,14 +74,26 @@ async function removeJournal(root: string): Promise<void> {
 
 async function managedFiles(source: string): Promise<ManagedFile[]> {
   const runtime = path.join(source, 'dist/runtime/project.cjs');
+  const foundryRuntime = path.join(source, 'dist/runtime/foundry.cjs');
+  const workerRuntime = path.join(source, 'dist/runtime/foundry-worker.cjs');
+  const roles = path.join(source, '.foundry/roles.json');
   try {
+    rejectSymlinkComponents(runtime);
+    rejectSymlinkComponents(foundryRuntime);
+    rejectSymlinkComponents(workerRuntime);
+    rejectSymlinkComponents(roles);
     await lstat(runtime);
+    await lstat(foundryRuntime);
+    await lstat(workerRuntime);
   } catch (error) {
-    throw new FoundryError(`Built TypeScript runtime is missing: ${runtime}`, { cause: error });
+    if (error instanceof FoundryError) throw error;
+    throw new FoundryError(`Built TypeScript runtime is missing; run npm ci && npm run build:runtime: ${runtime}`, { cause: error });
   }
   return [
     { source: runtime, target: '.foundry/runtime/project.cjs', mode: 0o700 },
-    { source: path.join(source, '.foundry/roles.json'), target: '.foundry/roles.json', mode: 0o600 },
+    { source: foundryRuntime, target: '.foundry/runtime/foundry.cjs', mode: 0o700 },
+    { source: workerRuntime, target: '.foundry/runtime/foundry-worker.cjs', mode: 0o700 },
+    { source: roles, target: '.foundry/roles.json', mode: 0o600 },
   ];
 }
 

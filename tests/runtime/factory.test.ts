@@ -56,6 +56,9 @@ process.stdin.on('data',chunk=>input+=chunk);
 process.stdin.on('end',()=>{
   const request=JSON.parse(input);
   const prompt=request.prompt;
+  fs.writeFileSync('.foundry/state/factory/last-provider-request.json',JSON.stringify({
+    model:request.model,reasoning:request.reasoning,
+  }));
   const write=(file,text)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);};
   let output={ok:true};
   if(mode==='hang-child'){
@@ -738,6 +741,82 @@ test('factory configuration preserves explicit preferences and clears consent on
   assert.equal(configured.model, 'model-24');
   assert.equal(configured.reasoning, 'balanced');
   assert.deepEqual(configured.billing, { mode: 'local', confirmed: false });
+});
+
+test('Factory permits subscription setup without consent but requires consent before a run', async () => {
+  const root = await project();
+  await assert.rejects(initFactory(root, {
+    name: 'Unsupported adapter',
+    idea: 'Do not launch this adapter.',
+    adapter: 'chatgpt',
+  }), /ChatGPT execution is unsupported/);
+  const state = await initFactory(root, {
+    name: 'Unconfirmed subscription',
+    idea: 'Set up without starting provider work.',
+    adapter: 'codex',
+    billing: 'subscription',
+  });
+  assert.deepEqual(state.billing, { mode: 'subscription', confirmed: false });
+  await assert.rejects(runFactory(root), /Subscription billing requires explicit confirmation/);
+  const unchanged = await readFactoryState(root);
+  assert.equal(unchanged?.status, 'ready');
+  assert.equal(unchanged?.provider_task_id, null);
+});
+
+test('role preferences apply only to the role assigned to the current stage', async () => {
+  const root = await project();
+  await initFactory(root, {
+    name: 'Role settings',
+    idea: 'Apply explicit role preferences only to assigned stages.',
+    adapter: 'fixture',
+    model: 'global-model',
+    reasoning: 'medium',
+    roles: ['research=backend'],
+    roleSettings: { backend: { model: 'backend-model', reasoning: 'high' } },
+  });
+  await runFactory(root);
+  let request = JSON.parse(await readFile(path.join(root, '.foundry/state/factory/last-provider-request.json'), 'utf8')) as JsonRecord;
+  assert.equal(request.model, 'backend-model');
+  assert.equal(request.reasoning, 'high');
+  await runFactory(root);
+  request = JSON.parse(await readFile(path.join(root, '.foundry/state/factory/last-provider-request.json'), 'utf8')) as JsonRecord;
+  assert.equal(request.model, 'global-model');
+  assert.equal(request.reasoning, 'medium');
+});
+
+test('role settings require known roles and adapter selection capabilities', async () => {
+  const root = await project();
+  await initFactory(root, {
+    name: 'Role validation',
+    idea: 'Reject unavailable role preferences.',
+    adapter: 'fixture',
+  });
+  await assert.rejects(configureFactory(root, {
+    roleSettings: { missing: { model: 'model-1' } },
+  }), /Unknown role in role settings/);
+  const providerConfigPath = path.join(root, '.foundry/providers.json');
+  const providerConfig = JSON.parse(await readFile(providerConfigPath, 'utf8')) as { adapters: Array<JsonRecord> };
+  for (const adapter of providerConfig.adapters) {
+    adapter.capabilities = (adapter.capabilities as string[]).filter((item) => item !== 'model_selection');
+  }
+  await writeFile(providerConfigPath, JSON.stringify(providerConfig));
+  await assert.rejects(configureFactory(root, {
+    roleSettings: { backend: { model: 'model-1' } },
+  }), /Adapter lacks model_selection capability/);
+});
+
+test('older Factory controller state defaults missing role settings to an empty map', async () => {
+  const root = await project();
+  await initFactory(root, {
+    name: 'Backward-compatible role settings',
+    idea: 'Preserve a controller written before role settings.',
+    adapter: 'fixture',
+  });
+  const statePath = path.join(root, '.foundry/state/factory/controller.json');
+  const stored = JSON.parse(await readFile(statePath, 'utf8')) as JsonRecord;
+  delete stored.role_settings;
+  await writeFile(statePath, JSON.stringify(stored));
+  assert.deepEqual((await readFactoryState(root))?.role_settings, {});
 });
 
 test('factory init preserves a pre-existing owner idea document', async () => {

@@ -16,6 +16,19 @@ async function files(directory) {
   return nested.flat();
 }
 
+function mcpSdkCjsPlugin() {
+  const packagePath = '@modelcontextprotocol/sdk';
+  return {
+    name: 'mcp-sdk-commonjs',
+    setup(buildOptions) {
+      buildOptions.onResolve({ filter: /^@modelcontextprotocol\/sdk(?:\/.*)?$/ }, (args) => {
+        const entry = args.path === packagePath ? 'index.js' : args.path.slice(packagePath.length + 1);
+        return { path: path.join(root, 'node_modules/@modelcontextprotocol/sdk/dist/cjs', entry) };
+      });
+    },
+  };
+}
+
 await mkdir(path.join(runtimeOutput, 'assets'), { recursive: true });
 await mkdir(testsOutput, { recursive: true });
 await build({
@@ -29,6 +42,29 @@ await build({
   banner: { js: '#!/usr/bin/env node' },
 });
 await chmod(path.join(runtimeOutput, 'project.cjs'), 0o755);
+await build({
+  entryPoints: [path.join(root, 'src/cli/foundry.ts')],
+  outfile: path.join(runtimeOutput, 'foundry.cjs'),
+  bundle: true,
+  platform: 'node',
+  target: 'node24',
+  format: 'cjs',
+  external: ['node:*'],
+  plugins: [mcpSdkCjsPlugin()],
+  banner: { js: '#!/usr/bin/env node' },
+});
+await chmod(path.join(runtimeOutput, 'foundry.cjs'), 0o755);
+await build({
+  entryPoints: [path.join(root, 'src/transports/worker.ts')],
+  outfile: path.join(runtimeOutput, 'foundry-worker.cjs'),
+  bundle: true,
+  platform: 'node',
+  target: 'node24',
+  format: 'cjs',
+  external: ['node:*'],
+  banner: { js: '#!/usr/bin/env node' },
+});
+await chmod(path.join(runtimeOutput, 'foundry-worker.cjs'), 0o755);
 await copyFile(path.join(root, '.foundry/roles.json'), path.join(runtimeOutput, 'assets/roles.json'));
 
 const testEntries = (await files(path.join(root, 'tests/runtime')))
@@ -43,6 +79,7 @@ if (testEntries.length) {
     target: 'node24',
     format: 'cjs',
     external: ['node:*'],
+    plugins: [mcpSdkCjsPlugin()],
     outExtension: { '.js': '.cjs' },
   });
 }

@@ -64,6 +64,31 @@ function request(): Record<string, unknown> {
   return { adapter: 'fixture', kind: 'agent-runtime', prompt: 'work', billing: { mode: 'local' }, budget: { max_elapsed_seconds: 2 } };
 }
 
+test('subprocess environment is restricted and explicitly selected values stay out of saved output', async () => {
+  const key = 'FOUNDRY_ENVIRONMENT_TEST_VALUE';
+  const previous = process.env[key];
+  process.env[key] = 'local-fixture-private-value';
+  const root = await project();
+  try {
+    await writeFile(path.join(root, 'fake.mjs'), `process.stdin.on('data',()=>{console.log(JSON.stringify({type:'session.started',session_id:'fixture-session'}));console.log(JSON.stringify({type:'result',status:'completed',output:{present:process.env.${key}!==undefined,value:process.env.${key}??null}}));});`);
+    const first = await execute(root, request());
+    assert.equal(first.status, 'completed');
+    assert.deepEqual((first.attempts as JsonRecord[])[0]?.output, { present: false, value: null });
+    const configPath = path.join(root, '.foundry/providers.json');
+    const config = JSON.parse(await readFile(configPath, 'utf8')) as { adapters: JsonRecord[] };
+    config.adapters[0]!.environment = [key];
+    await writeFile(configPath, JSON.stringify(config));
+    const second = await execute(root, request());
+    assert.equal(second.status, 'completed');
+    assert.deepEqual((second.attempts as JsonRecord[])[0]?.output, { present: true, value: '[redacted]' });
+    assert.equal(JSON.stringify(second).includes(process.env[key]!), false);
+  } finally {
+    if (previous === undefined) delete process.env[key];
+    else process.env[key] = previous;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 async function waitForTask(root: string): Promise<{ taskId: string; pid: number }> {
   const directory = path.join(root, '.foundry/state/providers/tasks');
   for (let attempt = 0; attempt < 100; attempt += 1) {

@@ -15,6 +15,7 @@ import { writeResult } from './output.js';
 import { runTerminal } from './terminal.js';
 
 type JsonRecord = Record<string, unknown>;
+declare const __FOUNDRY_VERSION__: string;
 type Values = Record<string, string | string[] | undefined>;
 
 interface Parsed {
@@ -43,6 +44,7 @@ export function usage(): string {
 
 Usage:
   foundry COMMAND [options]
+  foundry --version
 
 Commands:
   new NAME --idea TEXT [--adapter NAME]
@@ -212,6 +214,11 @@ function reviewKey(service: ProjectService, identifier: string): string {
 
 export async function runCommand(arguments_: string[], terminalMode = false): Promise<number> {
   const [command, ...rest] = arguments_;
+  if (command === '--version' || command === '-v') {
+    if (rest.length) throw new FoundryError('Version does not accept additional arguments.');
+    process.stdout.write(`${__FOUNDRY_VERSION__}\n`);
+    return 0;
+  }
   if (!command || command === '--help' || command === '-h' || command === 'help') {
     process.stdout.write(usage());
     return 0;

@@ -5,6 +5,16 @@ no command opens the interactive terminal; a non-TTY invocation prints help and
 exits. Commands accept `--json` for machine-readable output where documented.
 Unknown or command-inapplicable options are rejected before dispatch.
 
+## Version and help
+
+```text
+foundry --version
+foundry -v
+foundry --help
+```
+
+Both version flags print the installed version and reject additional arguments.
+
 ## Interactive terminal
 
 The terminal accepts slash commands, not shell input:

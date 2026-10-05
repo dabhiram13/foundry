@@ -11,17 +11,21 @@ follow [Install the CLI](docs/GETTING-STARTED.md#install-the-cli).
 
 ```sh
 npm ci --ignore-scripts
-npm run build
+npm run build:runtime
 ./foundry --help
 ```
 
-`npm run build` builds the CLI and static website. Use `npm run build:runtime`
-when working only on the CLI, or `npm run build:site` for the website.
-`./foundry` runs the checkout directly; contributors do not need a global link.
+`npm run build:runtime` builds the CLI only; `npm run build` also builds the
+static website. `./foundry` runs the checkout directly; contributors do not need
+a global link. The source-linked `foundry` command and any future registry
+install are user setup, not contributor requirements.
 
-For an isolated local package, run `npm pack --ignore-scripts` after the runtime
-build. The package remains private and unpublished. A public npm release needs
-separate owner approval; do not publish as part of setup.
+The package is an unpublished public-ready `0.2.0` candidate. To inspect a local
+tarball, use `npm pack`; its `prepack` hook rebuilds the runtime. `npm pack
+--ignore-scripts` skips that hook and is only appropriate when you intentionally
+use an already-built runtime. The owner-controlled release checklist is in the
+[release guide](docs/RELEASING.md). Do not publish as part of setup or
+contribution.
 
 Use test projects in isolated temporary directories. Do not exercise migration,
 failure or cancellation against an owner's real product. Local provider fixtures

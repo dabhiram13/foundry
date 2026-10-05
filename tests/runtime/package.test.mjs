@@ -48,7 +48,7 @@ test('linked CLI runs by name outside the checkout and can be unlinked', async (
   assert.ok(existsSync(path.join(root, 'dist/runtime/foundry.cjs')));
 });
 
-test('npm tarball exposes one private Node bin and runs outside the checkout', async (t) => {
+test('npm tarball exposes one public Node bin and installs globally without Python', async (t) => {
   const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-pack-'));
   t.after(() => rm(base, { recursive: true, force: true }));
   const prefix = path.join(base, 'prefix');
@@ -62,10 +62,12 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
     mkdir(cache),
   ]);
   const git = hostExecutable('git');
+  const shell = hostExecutable('sh');
   await symlink(git, path.join(bin, 'git'));
+  await symlink(shell, path.join(bin, 'sh'));
   const env = {
     HOME: home,
-    PATH: `${path.dirname(process.execPath)}${path.delimiter}${bin}`,
+    PATH: `${path.join(prefix, 'bin')}${path.delimiter}${path.dirname(process.execPath)}${path.delimiter}${bin}`,
     npm_config_cache: cache,
     npm_config_update_notifier: 'false',
     npm_config_audit: 'false',
@@ -82,7 +84,6 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
   const packed = run('npm', [
     'pack',
     '--json',
-    '--ignore-scripts',
     '--pack-destination',
     base,
   ], { cwd: root, env });
@@ -105,6 +106,7 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
   const tarball = path.join(base, packRecord.filename);
   run('npm', [
     'install',
+    '--global',
     '--ignore-scripts',
     '--no-audit',
     '--no-fund',
@@ -112,9 +114,14 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
     prefix,
     tarball,
   ], { cwd: prefix, env });
-  const installedRoot = path.join(prefix, 'node_modules/@dabhiram13/foundry');
+  const installedRoot = path.join(prefix, 'lib/node_modules/@dabhiram13/foundry');
   const metadata = JSON.parse(await readFile(path.join(installedRoot, 'package.json'), 'utf8'));
-  assert.equal(metadata.private, true);
+  assert.notEqual(metadata.private, true);
+  assert.equal(metadata.license, 'MIT');
+  assert.deepEqual(metadata.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/' });
+  assert.equal(metadata.repository.url, 'git+https://github.com/dabhiram13/foundry.git');
+  assert.equal(metadata.scripts.prepack, 'npm run build:runtime');
+  assert.equal(metadata.scripts.prepublishOnly, 'npm test');
   assert.deepEqual(metadata.bin, { foundry: 'dist/runtime/foundry.cjs' });
   assert.deepEqual(Object.keys(metadata.bin), ['foundry']);
   assert.deepEqual(metadata.dependencies ?? {}, {});
@@ -131,7 +138,16 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
   await assert.rejects(readFile(path.join(installedRoot, 'dist/runtime/project.cjs')));
   await assert.rejects(readFile(path.join(installedRoot, 'dist/runtime/assets/roles.json')));
 
-  const executable = path.join(prefix, 'node_modules/.bin/foundry');
+  const executable = 'foundry';
+  assert.equal(run(executable, ['--version'], { cwd: home, env }).stdout.trim(), metadata.version);
+  assert.equal(run(executable, ['-v'], { cwd: home, env }).stdout.trim(), metadata.version);
+  const versionWithExtra = spawnSync(executable, ['--version', 'extra'], {
+    cwd: home,
+    env,
+    encoding: 'utf8',
+  });
+  assert.equal(versionWithExtra.status, 2);
+  assert.match(versionWithExtra.stderr, /Version does not accept additional arguments/);
   const help = run(executable, ['--help'], { cwd: prefix, env });
   assert.match(help.stdout, /Foundry terminal-first runtime/);
   assert.doesNotMatch(help.stdout, /\b(?:typed|mcp|http|python)\b/i);
@@ -162,4 +178,7 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
     .then((content) => content.includes('Create one local workspace')), true);
   assert.equal(await readFile(path.join(project.path, '.foundry/runtime.json'), 'utf8')
     .then((content) => JSON.parse(content).runtime), 'typescript');
+  run('npm', ['uninstall', '--global', '--ignore-scripts', '--prefix', prefix, metadata.name], { cwd: home, env });
+  assert.equal(existsSync(path.join(prefix, 'bin/foundry')), false);
+  assert.ok(existsSync(path.join(project.path, 'docs/product/idea.md')));
 });

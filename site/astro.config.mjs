@@ -37,6 +37,7 @@ export default defineConfig({
       { label: 'Architecture & contribution', items: [
         { label: 'Architecture', slug: 'docs/architecture' },
         { label: 'Contributing', slug: 'docs/contributing' },
+        { label: 'Release process', slug: 'docs/releasing' },
         { label: 'Documentation website', slug: 'docs/documentation' },
         { label: 'Public site sources', slug: 'docs/component-sources' },
       ] },

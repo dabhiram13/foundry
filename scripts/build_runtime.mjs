@@ -1,9 +1,11 @@
-import { chmod, copyFile, mkdir, readdir, rm } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, readFile, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const metadata = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+const define = { __FOUNDRY_VERSION__: JSON.stringify(metadata.version) };
 const runtimeOutput = path.join(root, 'dist/runtime');
 const testsOutput = path.join(root, 'dist/runtime-tests');
 
@@ -22,6 +24,7 @@ await mkdir(path.join(runtimeOutput, 'assets'), { recursive: true });
 await mkdir(testsOutput, { recursive: true });
 await build({
   entryPoints: [path.join(root, 'src/cli/foundry.ts')],
+  define,
   outfile: path.join(runtimeOutput, 'foundry.cjs'),
   bundle: true,
   platform: 'node',
@@ -49,6 +52,7 @@ const testEntries = (await files(path.join(root, 'tests/runtime')))
 if (testEntries.length) {
   await build({
     entryPoints: testEntries,
+    define,
     outdir: testsOutput,
     outbase: path.join(root, 'tests/runtime'),
     bundle: true,

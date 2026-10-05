@@ -81,8 +81,8 @@ terminal/core tests rather than deleting checks to make the build pass.
    npm artifact outside the checkout with no Python, no browser and no paid AI.
 
 Keep the current source in Git history; do not ship it as an alternative runtime.
-Do not touch unrelated untracked owner documents. No npm registry name or published
-installation command is promised until availability and package contents are
+Do not touch unrelated untracked owner documents. No public registry install is
+promised until npm scope ownership, package availability and contents are
 verified; publishing remains a separate action.
 
 ## Documentation order

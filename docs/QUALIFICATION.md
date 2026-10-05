@@ -13,8 +13,10 @@ external runtime works reliably or enforces the requested permissions.
   redaction without credentials. Fixture success is not live-provider evidence.
 - The legacy `chatgpt` registration remains marked unsupported for compatibility;
   it does not fall back to Python or another runtime.
-- The Node 24 development and package checks are the supported validation path.
-  Native Windows behavior is not qualified.
+- Node 24 runtime and package checks provide local Linux evidence, not platform
+  qualification. macOS and native Windows behavior are unqualified.
+- The registry package is still an unpublished candidate. Package checks do not
+  establish npm scope ownership, registry availability or live-provider support.
 - No performance comparison with the removed runtime is claimed.
 - Migration fixtures cover supported workspace shapes. The framework cannot
   discover arbitrary controllers outside its known registries; legacy Factory

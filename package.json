@@ -1,7 +1,17 @@
 {
   "name": "@dabhiram13/foundry",
   "version": "0.2.0",
-  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dabhiram13/foundry.git"
+  },
+  "homepage": "https://github.com/dabhiram13/foundry#readme",
+  "bugs": "https://github.com/dabhiram13/foundry/issues",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "description": "Build software from your terminal. Plan, write code and run checks with Foundry.",
   "bin": {
     "foundry": "dist/runtime/foundry.cjs"
@@ -45,6 +55,8 @@
     "node": ">=24.0.0 <25"
   },
   "scripts": {
+    "prepack": "npm run build:runtime",
+    "prepublishOnly": "npm test",
     "start": "node dist/runtime/foundry.cjs",
     "build": "npm run build:runtime && npm run build:site",
     "typecheck": "npm run typecheck:runtime && npm run typecheck:site",

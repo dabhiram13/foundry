@@ -7,8 +7,9 @@ are separate, and no provider runs during installation or help.
 ## Install the CLI
 
 Foundry is an npm CLI package with one command: `foundry`. It is not published
-to npm yet, so a registry install is not available. On macOS or Linux, build
-from source and register the command once:
+to npm yet, so a registry install is not available. The source commands below
+use a POSIX shell; package checks have local Linux evidence, while macOS and
+native Windows remain unqualified.
 
 ```sh
 git clone https://github.com/dabhiram13/foundry.git
@@ -25,14 +26,41 @@ opens the slash-command interface; without a TTY it prints help and exits.
 
 `npm link` points the command at this checkout, so keep the folder. It does not
 download or publish a registry package. The runtime build does not build the
-website. Native Windows installation is not yet qualified.
+website.
 
 If `foundry` is not found, check that your npm global executable directory
 (`$(npm prefix -g)/bin` on macOS/Linux) is on `PATH`. If linking reports a
 permissions error, use a Node version manager or a user-writable npm prefix;
 do not retry with `sudo`. See npm's [permissions guide](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally).
 
+## After the first npm release (not available yet)
+
+The `@dabhiram13/foundry` package is an unpublished `0.2.0` candidate. Keep using
+the source-linked commands above. After an owner-approved release is verified,
+install the registry package with:
+
+```sh
+npm install --global --ignore-scripts @dabhiram13/foundry
+foundry --version
+foundry --help
+```
+
+To switch from the current source link, unlink it before installing the
+published package:
+
+```sh
+npm unlink --global --ignore-scripts @dabhiram13/foundry
+npm install --global --ignore-scripts @dabhiram13/foundry@latest
+```
+
+The same install command updates to the latest release. To pin a published
+version, replace `@latest` with its exact version, for example `@0.2.0` only
+after that version has actually been released. The release guide describes the
+owner's publication and post-publication checks.
+
 ## Update or uninstall
+
+### Source-linked installation
 
 To update, run these commands **inside the Foundry checkout**, not a product
 repository. Stop active Foundry work first. If Git reports local changes or a
@@ -44,7 +72,7 @@ npm ci --ignore-scripts
 npm run build:runtime
 ```
 
-The existing command link uses the rebuilt files. To remove the global command:
+The existing command link uses the rebuilt files. To remove the source link:
 
 ```sh
 npm unlink --global --ignore-scripts @dabhiram13/foundry
@@ -52,7 +80,25 @@ npm unlink --global --ignore-scripts @dabhiram13/foundry
 
 This does not remove the checkout or your projects in `~/.foundry/products`.
 Building Foundry or its website for development is covered in
-[contributing](../CONTRIBUTING.md#start-locally).
+[contributing](../CONTRIBUTING.md#start-locally). The owner's npm publication
+and post-publication checks are in the [release guide](RELEASING.md).
+
+### Registry installation (after release)
+
+Update a published installation with the same command shown above:
+
+```sh
+npm install --global --ignore-scripts @dabhiram13/foundry@latest
+```
+
+To uninstall it:
+
+```sh
+npm uninstall --global --ignore-scripts @dabhiram13/foundry
+```
+
+Uninstalling the command does not remove the source checkout or projects in
+`~/.foundry/products`.
 
 ## Choose where projects live
 

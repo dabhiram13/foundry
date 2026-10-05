@@ -112,5 +112,9 @@ test('README banner reuses the Foundry wordmark and has a self-contained backgro
   assert.match(banner, /<rect[^>]+fill="#101010"/);
   assert.doesNotMatch(banner, /<script|<image|<foreignObject/);
   const readme = await readFile(path.join(root, 'README.md'), 'utf8');
-  assert.match(readme, /src="site\/assets\/foundry-banner.svg"/);
+  assert.match(readme, /src="https:\/\/raw\.githubusercontent\.com\/dabhiram13\/foundry\/main\/site\/assets\/foundry-banner\.svg"/);
+  assert.match(readme, /\[release-guide\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/docs\/RELEASING\.md/);
+  assert.match(readme, /^\[license\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/LICENSE$/m);
+  assert.doesNotMatch(readme, /^\[[^\]]+\]: (?!https?:\/\/)\S+/m);
+  assert.doesNotMatch(readme, /\]\((?!https?:\/\/|#)[^)]+\)/);
 });

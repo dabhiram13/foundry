@@ -18,13 +18,17 @@ Build from source with Node 24 and npm:
 
 ```sh
 npm ci --ignore-scripts
-npm run build
+npm run build:runtime
 ./foundry --help
 ```
 
-Run `./foundry` in a terminal for slash commands, or use explicit commands such
-as `./foundry new NAME --idea TEXT`, `./foundry run PROJECT`,
-`./foundry review PROJECT`, and `./foundry approve PROJECT --revision HASH`.
+These commands use the checkout directly. `./foundry` does not create an
+installed command; user installation is currently source-linked and registry
+installation is not yet available. Run `./foundry` in a terminal for slash
+commands, or use explicit commands such as `./foundry new NAME --idea TEXT`,
+`./foundry run PROJECT`, `./foundry review PROJECT`, and
+`./foundry approve PROJECT --revision HASH`.
+For website work, `npm run build` also builds the static landing page and docs.
 Each explicit `run` advances one stage; terminal `/run` continues to an approval,
 completion, or failure boundary. See `docs/COMMANDS.md` for supported options.
 

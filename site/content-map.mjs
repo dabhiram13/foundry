@@ -18,6 +18,7 @@ export const pages = new Map(
     ['docs/COMPONENT-SOURCES.md', 'component-sources'],
     ['docs/ARCHITECTURE.md', 'architecture'],
     ['docs/PROVENANCE.md', 'provenance'],
+    ['docs/RELEASING.md', 'releasing'],
   ],
 );
 pages.set('CONTRIBUTING.md', 'contributing');

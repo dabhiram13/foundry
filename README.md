@@ -9,25 +9,8 @@ run checks—with your approval before building a new product.
 
 **Open source · MIT licensed · Node.js 24 + TypeScript**
 
-[Get started][getting-started] · [Documentation][documentation-index] ·
-[Release process][release-guide] · [Contribute][contributing]
-
-## How it works
-
-```text
-Research → Plan → Design → Build → Test → Summary
-             ↑       ↑
-          You approve
-```
-
-- **Plan first.** Review the plan and design before a new product is built.
-- **Build in small steps.** Run checks, repair failures and save completed tasks in Git.
-- **Use focused specialists.** Roles cover research, planning, design, coding and review.
-- **Keep your code and history.** Work stays in your project. Stop and recover when needed.
-
-Small changes to an existing repository use a [shorter workflow][runtime].
-The final stage, called **Ship** in the CLI, writes a local summary—it does not
-publish or deploy.
+[Website][website] · [Docs][documentation-index] · [npm][npm-package] ·
+[Contribute][contributing]
 
 ## Install
 
@@ -38,53 +21,69 @@ npm install -g @dabhiram13/foundry
 foundry
 ```
 
-After setup, run `foundry` from any directory to open the interactive terminal.
-Use `foundry --version` to check the installed version and [commands][commands]
-for scripts. No source checkout, website build or AI work is needed to install.
+Run `foundry` from any directory. Installation does not start AI work.
+Use `foundry --help` for commands and `foundry --version` to check your version.
+
+**Next:** follow the [setup guide][getting-started] to connect a provider and
+start a project. The guide also covers updates and uninstalling.
 
 Tested on Linux. macOS and Windows have not been verified.
 
-Follow the [setup guide][getting-started] to connect a provider and start your
-first project, update or uninstall. Find releases on [npm][npm-package]. To
-change Foundry itself, see [contributor setup][contributing].
+## How it works
+
+For a new product:
+
+```text
+Research → Plan → Design → Build → Test → Ship
+```
+
+- **You approve the plan and design** before building starts.
+- **Specialist roles focus on each step:** research, planning, design, coding and review.
+- **Work happens in small tasks**, with checks, limited repair attempts and Git checkpoints.
+
+Your code and history stay in your project. You can stop and recover work when
+needed. **Ship writes a local summary; it does not publish or deploy.**
+Small changes to an existing repository use a [shorter workflow][runtime].
+See the [command reference][commands] for terminal controls and scripting.
 
 ## AI providers and your data
 
-Codex is built in. Developers can connect other tools through
-[provider adapters][providers]; an API key alone is not enough.
-Other providers still need live testing.
+Codex is the built-in provider. Other tools need a [provider adapter][providers]
+and separate live testing; an API key alone does not connect them.
 
 You confirm subscription use before running AI work. Cloud providers receive the
-prompts and project content sent to them. Local files do not mean local AI
-processing, and Foundry is **not a sandbox**. Read the [security guide][security]
-and [tested behavior and limits][validation].
+prompts and project content sent to them. Foundry is **not a sandbox**. Read the
+[security guide][security] and [tested behavior and limits][validation].
 
 ## Check the framework
+
+For contributors, after [setting up the source checkout][contributing]:
 
 ```sh
 npm test
 ```
 
-Runs runtime, package, static-site, tooling, catalog and secret checks with local
-fixtures—not paid AI. See [contributing][contributing] for development guidance
-and [architecture][architecture] for how the pieces fit together.
+Runs runtime, package, static-site, tooling, catalog and secret checks with
+local test data—not paid AI. See [architecture][architecture] for the code layout
+and the [release guide][release-guide] for publishing.
 
 ## License
 
 [MIT][license]. Adapted material retains its own notices; see
 [third-party licenses][third-party-notices] and [origins][provenance].
 
-[getting-started]: https://github.com/dabhiram13/foundry/blob/main/docs/GETTING-STARTED.md
+[website]: https://foundry-two-tan.vercel.app/
+[getting-started]: https://foundry-two-tan.vercel.app/docs/getting-started/
 [npm-package]: https://www.npmjs.com/package/@dabhiram13/foundry
-[documentation-index]: https://github.com/dabhiram13/foundry/blob/main/docs/README.md
-[release-guide]: https://github.com/dabhiram13/foundry/blob/main/docs/RELEASING.md
-[commands]: https://github.com/dabhiram13/foundry/blob/main/docs/COMMANDS.md
-[contributing]: https://github.com/dabhiram13/foundry/blob/main/CONTRIBUTING.md
-[runtime]: https://github.com/dabhiram13/foundry/blob/main/docs/RUNTIME.md
-[providers]: https://github.com/dabhiram13/foundry/blob/main/docs/PROVIDERS.md
-[security]: https://github.com/dabhiram13/foundry/blob/main/SECURITY.md
-[validation]: https://github.com/dabhiram13/foundry/blob/main/docs/VALIDATION.md
-[architecture]: https://github.com/dabhiram13/foundry/blob/main/docs/ARCHITECTURE.md
+[documentation-index]: https://foundry-two-tan.vercel.app/docs/
+[release-guide]: https://foundry-two-tan.vercel.app/docs/releasing/
+[commands]: https://foundry-two-tan.vercel.app/docs/commands/
+[contributing]: https://foundry-two-tan.vercel.app/docs/contributing/
+[runtime]: https://foundry-two-tan.vercel.app/docs/runtime/
+[providers]: https://foundry-two-tan.vercel.app/docs/providers/
+[security]: https://foundry-two-tan.vercel.app/docs/security/
+[validation]: https://foundry-two-tan.vercel.app/docs/validation/
+[architecture]: https://foundry-two-tan.vercel.app/docs/architecture/
 [license]: https://github.com/dabhiram13/foundry/blob/main/LICENSE
-[third-party-notices]: https://github.com/dabhiram13/foundry/blob/main/THIRD_PARTY_NOTICES.md
-[provenance]: https://github.com/dabhiram13/foundry/blob/main/docs/PROVENANCE.md
+[third-party-notices]: https://foundry-two-tan.vercel.app/docs/notices/
+[provenance]: https://foundry-two-tan.vercel.app/docs/provenance/

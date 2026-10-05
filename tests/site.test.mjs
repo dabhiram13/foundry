@@ -70,6 +70,24 @@ test('every canonical documentation source produces a searchable linked page', a
   }
 });
 
+test('README links readers to built public documentation pages', async () => {
+  const readme = await readFile(path.join(root, 'README.md'), 'utf8');
+  const links = new Map([...readme.matchAll(/^\[([^\]]+)\]: (\S+)$/gm)]
+    .map(([, name, href]) => [name, href]));
+  const website = new URL(links.get('website'));
+  assert.equal(website.protocol, 'https:');
+  for (const name of ['documentation-index', 'getting-started', 'release-guide']) {
+    const link = new URL(links.get(name));
+    assert.equal(link.origin, website.origin, `${name}: use public docs`);
+    assert.ok(link.pathname.startsWith('/docs/'));
+  }
+  for (const href of links.values()) {
+    const url = new URL(href);
+    if (url.origin !== website.origin) continue;
+    await checkLocalLinks(parse(`<a href="${url.pathname}${url.hash}"></a>`), '/');
+  }
+});
+
 test('public landing is pre-rendered and does not load the workspace client', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
   assert.match(html, /Build software<br\/>/);
@@ -137,7 +155,6 @@ test('README banner reuses the Foundry wordmark and has a self-contained backgro
   });
   assert.deepEqual(images, ['./site/assets/foundry-banner.svg']);
   assert.equal(await readFile(path.resolve(root, images[0]), 'utf8'), banner);
-  assert.match(readme, /\[release-guide\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/docs\/RELEASING\.md/);
   assert.match(readme, /^\[license\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/LICENSE$/m);
   assert.doesNotMatch(readme, /^\[[^\]]+\]: (?!https?:\/\/)\S+/m);
   assert.doesNotMatch(readme, /\]\((?!https?:\/\/|#)[^)]+\)/);

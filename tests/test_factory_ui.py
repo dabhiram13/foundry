@@ -1,16 +1,22 @@
 """Real loopback HTTP controls and SDK plugin metadata, without live inference."""
 import asyncio
+from contextlib import redirect_stderr
+from io import StringIO
 import json
+import os
 from pathlib import Path
 import re
 import sys
 import tempfile
 import threading
 import time
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+from scripts import factory_ui
 from scripts.factory_ui import Service, make_server
 from scripts.factory_mcp import build_server
 from mcp import ClientSession, StdioServerParameters, stdio_client
@@ -42,6 +48,38 @@ class FactoryUITests(unittest.TestCase):
             data=None if body is None else json.dumps(body).encode())
         with urlopen(request) as response:
             return json.loads(response.read())
+
+    def test_snapshot_trace_contains_only_phases_and_correlated_timings(self):
+        product_content = 'private product content'
+        account_token = 'private account token'
+        output = StringIO()
+        timestamps = iter((10.0, 10.0, 10.25, 10.25, 10.5, 10.5, 11.0, 11.0))
+        auth = SimpleNamespace(status=lambda _: {'token': account_token})
+        with (
+            patch.dict(os.environ, {'FOUNDRY_TRACE_REQUESTS': '1'}),
+            patch.object(self.service.factory, 'snapshot', return_value={'idea': product_content}),
+            patch.object(self.service, 'auth', return_value=auth),
+            patch.object(factory_ui, 'time', SimpleNamespace(monotonic=lambda: next(timestamps))),
+            redirect_stderr(output),
+        ):
+            snapshot = self.service.snapshot()
+
+        self.assertEqual(snapshot['idea'], product_content)
+        events = [json.loads(line) for line in output.getvalue().splitlines()]
+        phases = [event for event in events if event['event'] == 'snapshot_phase']
+        self.assertEqual([event['phase'] for event in phases],
+                         ['factory_start', 'account_start', 'jobs_start', 'complete'])
+        self.assertEqual({event['request_id'] for event in phases}, {events[0]['request_id']})
+        self.assertTrue(all(set(event) == {'event', 'request_id', 'phase', 'elapsed_ms'}
+                            for event in phases))
+        slow = [event for event in events if event['event'] == 'slow_snapshot']
+        self.assertEqual(len(slow), 1)
+        self.assertEqual(slow[0]['request_id'], phases[0]['request_id'])
+        self.assertEqual(set(slow[0]), {'event', 'request_id', 'factory_ms', 'account_ms', 'jobs_ms'})
+        self.assertEqual((slow[0]['factory_ms'], slow[0]['account_ms'], slow[0]['jobs_ms']),
+                         (250, 250, 500))
+        self.assertNotIn(product_content, output.getvalue())
+        self.assertNotIn(account_token, output.getvalue())
 
     def test_name_idea_workspace_and_artifact_are_reachable_through_http(self):
         project = self.request('/api/create', {'name': 'HTTP product', 'idea': 'Save one useful note locally.'})

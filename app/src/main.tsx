@@ -28,6 +28,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Checkbox, ChoiceGroup, CopyButton, Disclosure, Progress, SplitText } from '@/components/ui/animate-ui';
 import { StudioMotion, MotionToggle } from '@/components/studio-motion';
 import { SpecialistIntro } from '@/components/specialist-intro';
+import { withRequestDeadline } from './request';
 
 type RoleSettings = {model?: string | null; reasoning?: string | null};
 type Artifact = {path: string; stage: string};
@@ -75,21 +76,30 @@ const emptyDraft: Draft = {adapter:'codex', model:'', reasoning:'', subscription
 function remembered() { try { return localStorage.getItem('foundry-product'); } catch { return null; } }
 function remember(id: string) { try { localStorage.setItem('foundry-product', id); } catch { /* The panel still works when host storage is unavailable. */ } }
 async function api(action: string, data?: Record<string, unknown>): Promise<any> {
-  if (window.foundryBridgePromise) {
-    const bridge = await window.foundryBridgePromise;
-    const [name, query] = action.split('?');
-    const names: Record<string,string> = {snapshot:'foundry_snapshot', create:'foundry_create', configure:'foundry_configure', run:'foundry_run', approve:'foundry_approve', cancel:'foundry_cancel', 'sign-in':'foundry_sign_in', 'sign-out':'foundry_sign_out', models:'foundry_models', artifact:'foundry_artifact'};
-    const result = await bridge.callServerTool({name:names[name], arguments:data || Object.fromEntries(new URLSearchParams(query || ''))});
-    const text = result.content?.find(item => item.type === 'text')?.text;
-    if (result.isError) throw new Error(text || 'Foundry could not finish this action.');
-    const value = result.structuredContent || (text ? JSON.parse(text) : {});
-    return name === 'models' ? value.models : value;
-  }
-  const token = document.querySelector<HTMLMetaElement>('meta[name="foundry-token"]')?.content || '';
-  const response = await fetch('/api/' + action, {method:data === undefined ? 'GET' : 'POST', headers:{'X-Foundry-Token':token, 'Content-Type':'application/json'}, ...(data === undefined ? {} : {body:JSON.stringify(data)})});
-  const value = await response.json();
-  if (!response.ok) throw new Error(value.error || 'Foundry could not finish this action.');
-  return value;
+  const operation = action.split('?')[0] || action;
+  const readOnly = ['snapshot', 'artifact', 'models'].includes(operation);
+  const message = readOnly
+    ? operation === 'snapshot'
+      ? 'Foundry took too long to respond. Your work has not been stopped; progress will refresh automatically.'
+      : 'Foundry took too long to load this information. Try again when ready.'
+    : 'Foundry took too long to respond. This request may already have taken effect. Check current status before retrying; the timeout does not stop work.';
+  return withRequestDeadline(async signal => {
+    if (window.foundryBridgePromise) {
+      const bridge = await window.foundryBridgePromise;
+      const [name, query] = action.split('?');
+      const names: Record<string,string> = {snapshot:'foundry_snapshot', create:'foundry_create', configure:'foundry_configure', run:'foundry_run', approve:'foundry_approve', cancel:'foundry_cancel', 'sign-in':'foundry_sign_in', 'sign-out':'foundry_sign_out', models:'foundry_models', artifact:'foundry_artifact'};
+      const result = await bridge.callServerTool({name:names[name], arguments:data || Object.fromEntries(new URLSearchParams(query || ''))});
+      const text = result.content?.find(item => item.type === 'text')?.text;
+      if (result.isError) throw new Error(text || 'Foundry could not finish this action.');
+      const value = result.structuredContent || (text ? JSON.parse(text) : {});
+      return name === 'models' ? value.models : value;
+    }
+    const token = document.querySelector<HTMLMetaElement>('meta[name="foundry-token"]')?.content || '';
+    const response = await fetch('/api/' + action, {signal, method:data === undefined ? 'GET' : 'POST', headers:{'X-Foundry-Token':token, 'Content-Type':'application/json'}, ...(data === undefined ? {} : {body:JSON.stringify(data)})});
+    const value = await response.json();
+    if (!response.ok) throw new Error(value.error || 'Foundry could not finish this action.');
+    return value;
+  }, message);
 }
 function markdown(content: string) {
   const html = DOMPurify.sanitize(marked.parse(content, {async:false}), {FORBID_TAGS:['style','form','input','button','textarea','select','img','video','audio','iframe','object','embed'], FORBID_ATTR:['style']});

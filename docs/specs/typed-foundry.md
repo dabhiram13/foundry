@@ -147,6 +147,32 @@ evidence. Public pages must not create projects or initialize credentials.
 
 ## Verification and exclusions
 
+### Shared-runtime delivery and release readiness
+
+The owner authorized the remaining architecture work after the read-only review.
+Keep the approved neutral design. Continue this implementation run, preserving
+historical Python workspaces and all provenance. New work should use one typed
+application service through the terminal, HTTP and MCP; compatibility remains
+explicit until migration preserves old settings, approvals and recovery.
+
+- F-15: Browser and MCP requests stop waiting after a bounded deadline. A timed-out
+  write reports its uncertain outcome and is never automatically retried. HTTP
+  cancellation does not imply cancellation of product work. Snapshot traces contain
+  phase timings, not tokens, prompts or product contents.
+- F-16: New project creation, listing, settings, review, approval, run, stop and
+  recovery use the same TypeScript application service. HTTP keeps loopback,
+  origin/token, bounded-body, finite-asset and document-path protections. MCP
+  keeps approval/configuration app-only and never lets model-facing tools approve.
+- F-17: Adapter subprocesses receive an explicit environment allowlist. User-selected
+  credentials are forwarded only by name; values are never written to receipts.
+  Provider registration remains distinct from protocol testing and live qualification.
+- F-18: Small existing-repository changes have a documented, tested path that uses
+  the existing lifecycle without pretending the six-stage product journey ran.
+  Test protection and isolation claims must name the enforcement boundary and limits.
+- F-19: README/help/docs and contributor/release procedures agree with the delivered
+  commands. Clean install/update/recovery tests preserve user edits. Required checks
+  remain in force. Platform and live-provider gaps are reported, never relabelled pass.
+
 ### Owner-requested visual refinement before the next runtime slice
 
 Keep the current composition but align landing/docs with the restrained parts of

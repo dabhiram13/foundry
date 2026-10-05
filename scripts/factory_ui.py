@@ -7,10 +7,13 @@ import base64
 import hashlib
 import json
 import mimetypes
+import os
 from pathlib import Path
 import re
 import secrets
+import sys
 import threading
+import time
 from urllib.parse import parse_qs, urlsplit
 import webbrowser
 
@@ -92,13 +95,36 @@ class Service:
         return chatgpt_auth
 
     def snapshot(self):
+        started = time.monotonic()
+        request_id = secrets.token_hex(8)
+
+        def trace(phase):
+            if os.environ.get('FOUNDRY_TRACE_REQUESTS') == '1':
+                print(json.dumps({'event': 'snapshot_phase', 'request_id': request_id,
+                                  'phase': phase,
+                                  'elapsed_ms': round((time.monotonic() - started) * 1000)}),
+                      file=sys.stderr, flush=True)
+        trace('factory_start')
         result = self.factory.snapshot()
+        factory_finished = time.monotonic()
+        trace('account_start')
         try:
             result['account'] = self.auth().status(self.auth_dir)
         except (ImportError, ValueError, OSError, RuntimeError) as exc:
             result['account'] = {'connected': False, 'sharing': False, 'error': str(exc)}
+        account_finished = time.monotonic()
+        trace('jobs_start')
         with self.lock:
             result['jobs'] = {key: dict(value) for key, value in self.jobs.items()}
+        finished = time.monotonic()
+        trace('complete')
+        if finished - started >= 1:
+            print(json.dumps({'event': 'slow_snapshot',
+                              'request_id': request_id,
+                              'factory_ms': round((factory_finished - started) * 1000),
+                              'account_ms': round((account_finished - factory_finished) * 1000),
+                              'jobs_ms': round((finished - account_finished) * 1000)}),
+                  file=sys.stderr, flush=True)
         return result
 
     def background(self, key, operation):

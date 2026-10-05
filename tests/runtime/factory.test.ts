@@ -17,7 +17,12 @@ import { digest, withProcessLock } from '../../src/core/fs.js';
 type JsonRecord = Record<string, unknown>;
 const delay = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-async function project(providerMode = 'success', checkPass = true, hangingCheck = false): Promise<string> {
+async function project(
+  providerMode = 'success',
+  checkPass = true,
+  hangingCheck = false,
+  ignorePaths: string[] = [],
+): Promise<string> {
   const root = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-factory-'));
   await mkdir(path.join(root, '.foundry'), { recursive: true });
   await mkdir(path.join(root, 'docs/product'), { recursive: true });
@@ -215,6 +220,7 @@ process.stdin.on('end',()=>{
       billing_modes: ['local', 'subscription'],
     })),
   }));
+  if (ignorePaths.length) await writeFile(path.join(root, '.gitignore'), `${ignorePaths.join('\n')}\n`);
   const git = (args: string[]) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
   assert.equal(git(['init', '-q']).status, 0);
   assert.equal(git(['config', 'user.name', 'Factory Test']).status, 0);
@@ -295,6 +301,46 @@ test('factory completes Research through Ship with approvals, a real check and c
   assert.equal(completed?.status, 'completed');
   assert.deepEqual(completed?.completed_stages, ['research', 'scope', 'design', 'build', 'verify', 'release']);
   assert.equal((await readFile(path.join(root, '.foundry/state/factory/ship.json'), 'utf8')).includes('not_authorized'), true);
+});
+
+test('build checkpoints succeed with ignored state and exclude private files', async () => {
+  const root = await project('success', true, false, [
+    '/.foundry/state/',
+    '!/.foundry/state/',
+    '/.foundry/state/**',
+    '!/.foundry/state/factory/',
+    '/.foundry/state/factory/**',
+    '!/.foundry/state/factory/unignored-owner-state.json',
+    '/.foundry/providers.json',
+    '/.env',
+  ]);
+  const initialTree = spawnSync('git', ['ls-tree', '-r', '--name-only', 'HEAD'], {
+    cwd: root, encoding: 'utf8',
+  });
+  assert.equal(initialTree.status, 0);
+  assert.doesNotMatch(initialTree.stdout, /(?:^|\n)(?:\.foundry\/providers\.json|\.env(?:\n|$))/);
+  await writeFile(path.join(root, '.env'), 'LOCAL_TEST_VALUE=fixture-only\n');
+  await advanceToBuild(root, 'Ignored state checkpoint');
+  const ignoredState = spawnSync('git', ['check-ignore', '-q', '.foundry/state/factory/controller.json'], {
+    cwd: root, encoding: 'utf8',
+  });
+  const unignoredState = spawnSync('git', ['check-ignore', '-q', '.foundry/state/factory/unignored-owner-state.json'], {
+    cwd: root, encoding: 'utf8',
+  });
+  assert.equal(ignoredState.status, 0);
+  assert.equal(unignoredState.status, 1);
+  await writeFile(path.join(root, '.foundry/state/factory/unignored-owner-state.json'), 'OWNER_PRIVATE_STATE=fixture-only\n');
+  await runFactory(root);
+  const state = await readFactoryState(root);
+  assert.equal(state?.stage, 'verify');
+  assert.equal(state?.build_tasks[0]?.status, 'done');
+  assert.match(String(state?.build_tasks[0]?.checkpoint), /^[a-f0-9]{40,64}$/);
+  const tracked = spawnSync('git', ['ls-tree', '-r', '--name-only', 'HEAD'], {
+    cwd: root, encoding: 'utf8',
+  });
+  assert.equal(tracked.status, 0);
+  assert.match(tracked.stdout, /src\/product\.js/);
+  assert.doesNotMatch(tracked.stdout, /(?:^|\n)(?:\.foundry\/state\/|\.foundry\/providers\.json|\.env(?:\n|$))/);
 });
 
 test('status offers recovery only for dead controller ownership and never an approval during active work', async () => {
@@ -601,6 +647,10 @@ test('checkpoint failure restores only the unchanged tick and preserves owner ed
     await assert.rejects(runFactory(root), /Build checkpoint could not commit/);
     assert.equal(await readFile(path.join(root, 'docs/product/tasks.md'), 'utf8'), '- [ ] Implement the local feature\n');
     assert.equal((await readFactoryState(root))?.build_tasks[0]?.status, 'working');
+    const failed = await readFactoryState(root);
+    assert.ok(failed?.verification_receipt);
+    assert.equal(failed?.failure?.code, 'artifact');
+    assert.match(failed?.failure?.message ?? '', /checks passed, but the Git checkpoint could not be saved/);
   });
   await t.test('owner edits are preserved', async () => {
     const root = await project();

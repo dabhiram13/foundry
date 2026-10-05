@@ -769,7 +769,7 @@ function checkpoint(root: string, message: string): string | null {
     environment.GIT_COMMITTER_NAME = 'Foundry';
     environment.GIT_COMMITTER_EMAIL = 'foundry@localhost';
   }
-  const added = git('add', '-A', '--', '.', ':(exclude).foundry/state/**');
+  const added = git('add', '-A', '--', '.', ':(exclude,glob)**/.foundry/state/**');
   if (added.status !== 0) throw new FoundryError('Build checkpoint could not stage product changes');
   const diff = git('diff', '--cached', '--quiet');
   if (diff.status === 0) return null;
@@ -918,6 +918,7 @@ async function executeBuild(root: string, state: FactoryState): Promise<void> {
       await save(root, state);
       throw new FoundryError('Required checks still fail after three bounded repairs');
     }
+    await save(root, state);
     const taskBeforeCheckpoint = (await readBoundedText(root, TASKS)).text;
     await tickTask(root, task.title);
     try {
@@ -1495,6 +1496,10 @@ export async function runFactory(rootInput: string): Promise<FactoryState> {
       if (current.status !== 'completed' && current.status !== 'awaiting_approval' && current.status !== 'shipping') {
         current.status = current.status === 'recovery_required' ? 'recovery_required' : canceled ? 'interrupted' : 'failed';
         current.failure = safeFailure(current.stage, canceled ? 'canceled' : current.stage === 'verify' ? 'review' : current.stage === 'build' ? 'check' : 'artifact');
+        if (!canceled && error instanceof FoundryError && error.message.startsWith('Build checkpoint ')) {
+          current.failure = safeFailure(current.stage, 'artifact');
+          current.failure.message = 'Product checks passed, but the Git checkpoint could not be saved. Check Git access and commit hooks before retrying.';
+        }
         await save(root, current);
       }
       throw error;

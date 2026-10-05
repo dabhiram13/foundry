@@ -32,6 +32,37 @@ creating a workspace does not. The controller owns stage selection, result
 integration and real checks. Authentication and product verification remain
 separate from a provider's successful turn.
 
+### TypeScript per-workspace Factory preview
+
+After installing the TypeScript runtime into a fresh TypeScript-owned workspace,
+the installed project CLI offers `factory init`, `configure`, `status`, `run`,
+`review`, `approve`, `cancel`, and `recover`. This opt-in controller reuses the
+runtime lifecycle, workflow and provider contracts; it is not a replacement for
+the Python launcher, server, browser UI or MCP. Each stage adapter must advertise
+tools, JSONL, cancellation and permissions. Factory requests explicitly select
+`workspace-write` for writers and `read-only` for review, and accept local billing
+or explicitly confirmed subscription billing only. Registry metadata and local
+fake-provider tests do not qualify a live provider or prove its sandbox works.
+
+Plan and Design require exact revision approval. Ship is a controller-generated
+local summary after configured checks, final verification and validated read-only
+review; publication remains unauthorized. See the
+[TypeScript preview boundary](specs/typed-runtime-preview.md).
+
+The installed workspace may start with no required checks. Before the first Build
+check, its first implementation task must add product source and real required
+checks, then map every approved Plan ID exactly once in
+`docs/product/checks.json`:
+
+```json
+{"schema_version":1,"criteria":[{"id":"AC-001","check_name":"behavior"}]}
+```
+
+Each mapped check declares `docs/specs/product.md` among its inputs. The controller
+freezes check name, command and inputs independently from the Plan-pinned workflow
+criterion. This mapping is explicit local configuration, not proof of semantic
+coverage or live provider qualification.
+
 ## Two different contracts
 
 | Kind | Responsibility | Not established by a successful result |

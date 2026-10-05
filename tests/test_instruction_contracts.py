@@ -33,6 +33,15 @@ def review_policy_violations(instructions):
 
 
 class InstructionContractTests(unittest.TestCase):
+    def test_public_entry_instructions_do_not_assume_a_named_owner(self):
+        paths = [ROOT / 'AGENTS.md', ROOT / 'README.md'] + [
+            ROOT / 'skills' / name / 'SKILL.md'
+            for name in ('foundry', 'marketcraft', 'product-foundry')
+        ]
+        for path in paths:
+            with self.subTest(path=path.relative_to(ROOT)):
+                self.assertNotRegex(path.read_text(), r'\b(?:Sri|Abhiram)\b')
+
     def test_native_roles_inherit_model_and_reasoning(self):
         for path in sorted((ROOT / ".codex/agents").glob("*.toml")):
             with self.subTest(role=path.stem):

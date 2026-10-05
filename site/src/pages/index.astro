@@ -1,0 +1,17 @@
+---
+import landing from '../../.generated/landing.html?raw';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101010" />
+    <meta name="description" content="Plan, build and test from your terminal. You approve the plan and design. You keep the code." />
+    <title>Foundry — turn an idea into working software</title>
+    <link rel="icon" href="/assets/foundry-mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+    <script is:inline src="/public.js" defer></script>
+  </head>
+  <body><div id="foundry-public" set:html={landing} /></body>
+</html>

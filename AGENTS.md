@@ -1,6 +1,6 @@
 # Foundry
 
-Foundry helps the owner turn an idea into a working product. The owner (Sri) makes
+Foundry helps the owner turn an idea into a working product. The project owner makes
 the product decisions. You do the work and keep the next step clear.
 
 ## Before you start

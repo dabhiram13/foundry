@@ -270,7 +270,7 @@ async function assertNoOverflow(page, label) {
       const style=getComputedStyle(el);
       return {height:el.offsetHeight, background:style.backgroundColor, border:style.borderLeftWidth, borderColor:style.borderLeftColor, shadow:style.boxShadow, focus:el.matches(':focus-visible'), before:getComputedStyle(el,'::before').content, after:getComputedStyle(el,'::after').content};
     });
-    assert.deepEqual(selection, {height:56, background:'rgb(41, 41, 41)', border:'2px', borderColor:'rgb(255, 133, 77)', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the dark vertical rail contract');
+    assert.deepEqual(selection, {height:56, background:'rgb(41, 41, 41)', border:'2px', borderColor:'rgb(212, 212, 212)', shadow:'none', focus:false, before:'none', after:'none'}, 'Stage selection differs from the neutral dark vertical rail contract');
     assert.equal(await page.locator('#stage-work-panel .surface').count(), 0, 'Work panel contains nested cards');
     assert.equal(await page.locator('.page-tabs').evaluate(el => el.scrollHeight <= el.clientHeight), true, 'Product tabs have an unnecessary vertical scrollbar');
 

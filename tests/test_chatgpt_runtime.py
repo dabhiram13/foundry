@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -10,13 +9,8 @@ import sys
 import tempfile
 import unittest
 
-
-ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location("marketcraft_providers", ROOT / "scripts/providers.py")
-providers = importlib.util.module_from_spec(SPEC)
-assert SPEC and SPEC.loader
-SPEC.loader.exec_module(providers)
 from scripts import chatgpt_runtime as runtime
+from scripts import providers
 
 
 FAKE_CODEX = r'''#!/usr/bin/env python3

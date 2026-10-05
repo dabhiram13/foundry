@@ -49,29 +49,29 @@
   --foundry-surface: #171717;
   --foundry-muted: #1d1d1d;
   --foundry-selected: #292929;
-  --foundry-text: #f5f4f2;
-  --foundry-secondary: #a8a6a3;
-  --foundry-icon: #b8b5b1;
-  --foundry-subtle-icon: #96938f;
-  --foundry-disabled: #85817c;
-  --foundry-primary: #f5f4f2;
-  --foundry-primary-hover: #dad8d4;
-  --foundry-primary-pressed: #c5c2bc;
+  --foundry-text: #f5f5f5;
+  --foundry-secondary: #a3a3a3;
+  --foundry-icon: #b8b8b8;
+  --foundry-subtle-icon: #969696;
+  --foundry-disabled: #858585;
+  --foundry-primary: #e5e5e5;
+  --foundry-primary-hover: #d4d4d4;
+  --foundry-primary-pressed: #bfbfbf;
   --foundry-line: #303030;
-  --foundry-control-border: #77736c;
-  --foundry-focus: #d1ceca;
+  --foundry-control-border: #737373;
+  --foundry-focus: #d4d4d4;
   --foundry-success: #9acda8;
   --foundry-success-bg: #1b2a20;
   --foundry-warning: #e8c27d;
   --foundry-warning-bg: #2b251b;
   --foundry-error: #ffaaa0;
   --foundry-error-bg: #321e1c;
-  --foundry-accent: #ff854d;
-  --foundry-accent-bg: #2b211b;
-  --foundry-accent-line: #795039;
-  --foundry-review: #ffb383;
-  --foundry-review-bg: #2b211b;
-  --foundry-review-line: #795039;
+  --foundry-accent: #d4d4d4;
+  --foundry-accent-bg: #262626;
+  --foundry-accent-line: #525252;
+  --foundry-review: #e5e5e5;
+  --foundry-review-bg: #262626;
+  --foundry-review-line: #525252;
   --radius-inner: 2px;
   --radius-control: 3px;
   --radius-container: 6px;
@@ -100,7 +100,7 @@
   --ease-feedback: cubic-bezier(0.2, 0, 0, 1);
   --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-default: none;
-  --shadow-overlay: 0 20px 70px rgb(0 0 0 / 50%);
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 24%);
   --texture: none;
   --radius: 6px;
   --background: var(--foundry-surface);
@@ -122,7 +122,7 @@
 }
 @layer base {
   * { @apply border-border; }
-  html { color-scheme: dark; scroll-padding-top: 88px; scrollbar-color: #77736c #171717; }
+  html { color-scheme: dark; scroll-padding-top: 88px; scrollbar-color: #737373 #171717; }
   body { margin: 0; background: var(--foundry-canvas); color: var(--foreground); font-family: var(--font-sans); font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
   button, input, textarea, select { font: inherit; }
   button, a, summary { -webkit-tap-highlight-color: transparent; }

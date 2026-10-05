@@ -80,7 +80,7 @@ Button/Copy Button, Radio Group, Checkbox, Switch, Tabs, Dialog, Sheet, Accordio
 ## Required implementation discipline
 
 1. Read the actual pinned source before adapting; preserve semantics, keyboard behavior and attribution. Every adaptation is explicitly an adaptation, not claimed verbatim source.
-2. Remove conflicting global/page-level field and focus rules. One neutral visible focus treatment; orange reserved for small brand/progress details. Do not just reinstall the same Input/textarea styles.
+2. Remove conflicting global/page-level field and focus rules. One neutral visible focus treatment; neutral selection/progress accents. Do not just reinstall the same Input/textarea styles.
 3. Preserve lifecycle, provider settings, custom model values, approval flow, form validation and server contracts.
 4. For Base UI popups inside existing Radix dialogs, verify portal placement, pointer interaction, Escape, focus restoration and scroll behavior. Compatibility is still untested, not promised from peer metadata.
 5. Test model typing/selection/clear/save/reopen and default reasoning round trips. Prevent Enter in a suggestions popup from accidentally saving/submitting the form.
@@ -88,3 +88,18 @@ Button/Copy Button, Radio Group, Checkbox, Switch, Tabs, Dialog, Sheet, Accordio
 7. Run TypeScript, generated panel build and existing configured browser/framework checks. Review rendered desktop, 360px/390px, 200% zoom, keyboard and reduced-motion states. This research does not establish a rendered or tested result.
 
 Implementation adapts the pinned source, not documentation demos. Base UI Autocomplete is a local composition of its published primitives. Quiet motion uses the existing Radix switch behavior with a finite CSS thumb transition; no second motion engine. Native scrolling is retained rather than adding a nested Scroll Area. Skeleton is reserved for real asynchronous document loading. No paid runs, merge or deployment are part of this change.
+
+## Neutral landing and docs refinement
+
+References checked for the owner's later refinement:
+
+- [Cult UI theming](https://www.cult-ui.com/docs/theming): shared shadcn tokens,
+  consistent surfaces, borders and focus. Adopt the token discipline, not a kit.
+- [Cult UI Halo Tabs](https://www.cult-ui.com/docs/components/halo-tabs): reviewed
+  but not copied; gradient indicators conflict with the request to remove shine.
+- [shadcn Button](https://ui.shadcn.com/docs/components/radix/button): retain the
+  existing source adaptation and accessible variants; neutral flat treatments.
+
+This pass copies no Cult UI source and adds no dependencies. Starlight retains
+its static navigation/search instead of importing React controls. Orange brand
+accents and decorative headline brackets are removed, not recolored as gradients.

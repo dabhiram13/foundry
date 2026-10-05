@@ -17,3 +17,7 @@ dist/
 build/
 output/playwright/
 docs/project/.marketcraft.lock
+site/.astro/
+site/.generated/
+site/src/content/docs/
+site/public/

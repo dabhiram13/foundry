@@ -5,10 +5,10 @@ import { MotionToggle, useStudioMotion } from './studio-motion';
 import { CopyButton, Disclosure } from './ui/animate-ui';
 import { ProductWalkthrough } from './product-walkthrough';
 
-type LandingProps = { onEnter: () => void };
+type LandingProps = { onEnter?: () => void };
 
 const repository = 'https://github.com/dabhiram13/foundry';
-const docs = `${repository}/blob/main/docs`;
+const docs = '/docs';
 const install = `git clone ${repository}.git\ncd foundry\n./foundry --help`;
 
 export function Landing({ onEnter }: LandingProps) {
@@ -24,10 +24,10 @@ export function Landing({ onEnter }: LandingProps) {
     <a className="landing-skip" href="#landing-main" onClick={event => { event.preventDefault(); goTo('landing-main'); }}>Skip to content</a>
     <header className="landing-header">
       <div className="landing-shell landing-header-inner">
-        <a className="landing-brand" href="#welcome" aria-label="Foundry home"><img src="/assets/foundry-wordmark.svg" width="123" height="21" alt="Foundry" /></a>
+        <a className="landing-brand" href="#landing-main" aria-label="Foundry home"><img src="/assets/foundry-wordmark.svg" width="123" height="21" alt="Foundry" /></a>
         <nav className="landing-nav" aria-label="Introduction">
           <button onClick={() => goTo('landing-workflow')}>How it works</button>
-          <a href={`${docs}/README.md`}>Docs <ArrowUpRight aria-hidden="true" /></a>
+          <a href={`${docs}/`}>Docs <ArrowUpRight aria-hidden="true" /></a>
           <a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a>
         </nav>
         <Button className="landing-open" size="sm" onClick={() => goTo('landing-install')}>Install Foundry <ArrowDown aria-hidden="true" /></Button>
@@ -36,12 +36,12 @@ export function Landing({ onEnter }: LandingProps) {
 
     <main id="landing-main" tabIndex={-1}>
       <section className="landing-shell landing-hero" aria-labelledby="landing-title">
-        <a className="hero-note" href={`${docs}/GETTING-STARTED.md`}><Terminal aria-hidden="true" /> Local by design. Yours to build. <ArrowRight aria-hidden="true" /></a>
-        <h1 id="landing-title" tabIndex={-1}>Start with an idea.<br /><span className="bracketed">Make it real.</span></h1>
+        <a className="hero-note" href={`${docs}/getting-started/`}><Terminal aria-hidden="true" /> Local by design. Yours to build. <ArrowRight aria-hidden="true" /></a>
+        <h1 id="landing-title" tabIndex={-1}>Start with an idea.<br /><span className="landing-title-secondary">Make it real.</span></h1>
         <p className="landing-intro">Plan, build and test from your terminal.<br className="desktop-break" /> You approve the plan and design. You keep the code.</p>
         <div className="landing-hero-actions">
           <Button size="lg" onClick={() => goTo('landing-install')}>Install Foundry <ArrowDown aria-hidden="true" /></Button>
-          <a className="landing-secondary" href={`${docs}/GETTING-STARTED.md`}>Read the guide <ArrowUpRight aria-hidden="true" /></a>
+          <a className="landing-secondary" href={`${docs}/getting-started/`}>Read the guide <ArrowUpRight aria-hidden="true" /></a>
         </div>
         <p className="landing-local-note">macOS &amp; Linux <span aria-hidden="true">·</span> Uses your Codex login</p>
       </section>
@@ -62,21 +62,21 @@ export function Landing({ onEnter }: LandingProps) {
       </section>
 
       <section className="landing-shell landing-setup" id="landing-start" tabIndex={-1} aria-labelledby="start-title">
-        <div className="landing-section-heading"><h2 id="start-title">Your next idea<br />starts here.</h2><p>Install from your terminal.<br />Start with something small.</p><a href={`${docs}/GETTING-STARTED.md`}>Read the start guide <ArrowUpRight aria-hidden="true" /></a></div>
+        <div className="landing-section-heading"><h2 id="start-title">Your next idea<br />starts here.</h2><p>Install from your terminal.<br />Start with something small.</p><a href={`${docs}/getting-started/`}>Read the start guide <ArrowUpRight aria-hidden="true" /></a></div>
         <div className="landing-install" id="landing-install" tabIndex={-1} aria-labelledby="install-title">
           <div className="install-heading"><h3 id="install-title"><Terminal aria-hidden="true" /> Install from source</h3><span>macOS / Linux</span></div>
           <pre aria-label="Installation commands"><code>{install}</code></pre>
           <div className="install-copy"><CopyButton content={install} label="Copy commands" /><span>No Foundry account needed.</span></div>
-          <div className="install-note"><p>Requires <strong>Python 3.11+</strong> and <strong>Git</strong>. The first run installs Python dependencies. These commands do not start AI work.</p><p>Next, install Codex and run <code>codex login</code>. The guide walks through creating a project, confirming your login and running the first step.</p><a href={`${docs}/GETTING-STARTED.md#1-check-your-computer`}>Check your setup <ArrowUpRight aria-hidden="true" /></a></div>
+          <div className="install-note"><p>Requires <strong>Python 3.11+</strong> and <strong>Git</strong>. The first run installs Python dependencies. These commands do not start AI work.</p><p>Next, install Codex and run <code>codex login</code>. The guide walks through creating a project, confirming your login and running the first step.</p><a href={`${docs}/getting-started/#1-check-your-computer`}>Check your setup <ArrowUpRight aria-hidden="true" /></a></div>
         </div>
-        <div className="landing-already"><p>Prefer a browser for reviewing your work? Run <code>./foundry ui</code> locally.</p><Button variant="ghost" onClick={onEnter}>Open local browser view <ArrowRight aria-hidden="true" /></Button></div>
+        <div className="landing-already"><p>Prefer a browser for reviewing your work? Run <code>./foundry ui</code> locally.</p>{onEnter ? <Button variant="ghost" onClick={onEnter}>Open local browser view <ArrowRight aria-hidden="true" /></Button> : <a href={`${docs}/getting-started/#2-install-and-inspect-the-terminal-commands`}>Read the setup guide <ArrowRight aria-hidden="true" /></a>}</div>
       </section>
 
       <section className="landing-shell landing-faq" aria-labelledby="questions-title">
         <h2 id="questions-title">A few good<br />questions.</h2>
         <div>
           <Disclosure title="Do I need to use a browser?"><p>No. Create projects, run steps and approve plans from your terminal. The optional local browser view reads the same saved projects. This website is an introduction, not a hosted place to run your work.</p></Disclosure>
-          <Disclosure title="Which AI can I use?"><p>Codex works through your existing login. Other AI tools need a tested connection that can edit files, run checks and stop when asked. Adding an API key or model URL alone is not enough.</p><a href={`${docs}/PROVIDERS.md`}>Supported options and setup <ArrowUpRight aria-hidden="true" /></a></Disclosure>
+          <Disclosure title="Which AI can I use?"><p>Codex works through your existing login. Other AI tools need a tested connection that can edit files, run checks and stop when asked. Adding an API key or model URL alone is not enough.</p><a href={`${docs}/providers/`}>Supported options and setup <ArrowUpRight aria-hidden="true" /></a></Disclosure>
           <Disclosure title="Does my code stay on my computer?"><p>Your files and Git history stay in your product folder. Cloud AI providers receive prompts and selected project content. Local storage does not mean local AI processing. Never include secrets in your prompts.</p></Disclosure>
           <Disclosure title="Do I need an AI subscription?"><p>The built-in Codex route uses your subscription login, with your explicit confirmation. Your provider’s limits still apply. Foundry does not inspect billing or silently switch to metered API usage.</p></Disclosure>
           <Disclosure title="Will Foundry publish the product for me?"><p>No. The final step summarizes the work, test results and anything still missing. Hosting, paid services and publishing need separate decisions.</p></Disclosure>
@@ -85,6 +85,6 @@ export function Landing({ onEnter }: LandingProps) {
       <section className="landing-shell landing-closing"><h2>Make room for your next idea.</h2><button className="landing-secondary" onClick={() => goTo('landing-install')}>Get started <ArrowUpRight aria-hidden="true" /></button></section>
     </main>
 
-    <footer className="landing-footer"><div className="landing-shell"><div className="landing-footer-top"><p>Built on your computer.<br /><span>On your terms.</span></p><nav aria-label="Resources"><a href={`${docs}/GETTING-STARTED.md`}>Get started</a><a href={`${docs}/README.md`}>Documentation</a><a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a></nav><MotionToggle /></div><img className="landing-wordmark" src="/assets/foundry-wordmark.svg" alt="Foundry" width="164" height="28" /><div className="landing-footer-bottom"><span>Your idea. Your code.</span><span>Made to run locally.</span></div></div></footer>
+    <footer className="landing-footer"><div className="landing-shell"><div className="landing-footer-top"><p>Built on your computer.<br /><span>On your terms.</span></p><nav aria-label="Resources"><a href={`${docs}/getting-started/`}>Get started</a><a href={`${docs}/`}>Documentation</a><a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a></nav><MotionToggle /></div><img className="landing-wordmark" src="/assets/foundry-wordmark.svg" alt="Foundry" width="164" height="28" /><div className="landing-footer-bottom"><span>Your idea. Your code.</span><span>Made to run locally.</span></div></div></footer>
   </div>;
 }

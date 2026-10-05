@@ -2,15 +2,17 @@
 
 ## Direction
 
-The owner selected [Superset](https://superset.sh/) as the reference for a
-complete redesign of the actual app. The previous powder-blue Soft studio
-palette, rounded paper cards and wispy sky are retired, not layered underneath.
+Keep the approved dark composition and Foundry identity, with the owner's later
+[Cult UI](https://www.cult-ui.com/) and [shadcn/ui](https://ui.shadcn.com/) refinement:
+neutral grays, restrained borders, compact controls and clear typography. This
+supersedes the earlier Superset-inspired orange accents and headline brackets.
+The powder-blue Soft studio palette and wispy sky remain retired.
 
-The inspected public reference uses a near-black canvas, Inter, large centered
-type, white rectangular actions, orange selection marks and a prominent product
-view. Foundry adapts that language with its own composition, vector identity,
-copy and original specialist portraits. No Superset assets, code, customer logos
-or unsupported product claims are used.
+Cult UI shares shadcn theme tokens; it is a component reference, not a mandatory
+kit. Its Halo gradients, animated rims, glass and decorative shaders are not used.
+Reuse the installed shadcn/Radix controls and existing motion support. Add no UI
+dependency for this refinement. Preserve Foundry's vector identity, copy and
+original specialist portraits; do not copy reference branding or product claims.
 
 ## Product truth
 
@@ -33,22 +35,22 @@ The semantic source is `app/src/globals.css`.
 | Canvas | `#101010` |
 | Work surface | `#171717` |
 | Raised/quiet surface | `#1d1d1d` |
-| Text / primary fill | `#f5f4f2` |
-| Secondary text | `#a8a6a3` |
+| Text / primary fill | `#f5f5f5` / `#e5e5e5` |
+| Secondary text | `#a3a3a3` |
 | Structural divider | `#303030` |
-| Control boundary | `#77736c` |
-| Accent | `#ff854d` |
-| Selection | `#292929`; orange detail only for progress/attention |
-| Focus | `#d1ceca`, 2px with an offset |
+| Control boundary | `#737373` |
+| Accent | `#d4d4d4` |
+| Selection | `#292929`; neutral border and explicit label/icon |
+| Focus | `#d4d4d4`, 2px with an offset |
 | Success | `#9acda8` on `#1b2a20` |
 | Warning | `#e8c27d` on `#2b251b` |
 | Error | `#ffaaa0` on `#321e1c` |
 | Shape | 0–3px controls; 6px work frames and dialogs |
 | Spacing | 4, 8, 12, 16, 20, 24, 32, 48, 64, 80, 96px |
 
-Orange identifies selection, progress and attention; it is not the fill for
-every action. Primary buttons are off-white with near-black text. Secondary
-actions are outlined or text-only. Destructive controls use a separate dark-red
+Selection, progress and approval use neutral gray with labels and icons, not
+orange. Primary buttons are soft gray with near-black text. Secondary actions
+are outlined or text-only. Destructive controls use a separate dark-red
 fill with white text, not the error-text token. Status always includes words or
 an icon; color alone is insufficient.
 
@@ -76,8 +78,18 @@ failure. Installation scrolls to and focuses the command section. Open local
 browser view enters the actual app; terminal `new` creates the real product.
 No invented package installer or waitlist.
 
-The walkthrough uses Radix tabs with arrow-key navigation. It has a finite
-entrance, not an autoplay carousel. The heading and reading content stay still.
+The walkthrough uses Radix tabs with arrow-key navigation. No decorative entrance
+or autoplay carousel: the heading and reading content stay still. Landing actions
+use 6px corners and the example frame uses 8px, without glow or gradients.
+
+## Documentation
+
+Starlight stays static and keeps its own accessible navigation/search controls;
+do not hydrate React components into docs merely to share a kit. Its dark and
+light palettes use neutral accents, underlined content links, selected background
+and font weight, and visible focus. Reading width, sidebar, search and code blocks
+remain functional at narrow widths. Semantic success/warning/error colors are
+reserved for actual status, not decoration.
 
 ## Workspace
 
@@ -120,7 +132,7 @@ Quiet motion is a labeled Radix switch; device reduced motion remains authoritat
 - Primary actions are 40px on desktop, hero installation 48px. Mobile controls
   are at least 44px. Icon-only controls always have accessible names.
 - Finite press feedback ~160ms; selection/reveal ~240ms; portrait entrance
-  under 1.4s; landing entrance 600ms. No perpetual decorative animation.
+  under 1.4s; no landing entrance. No perpetual decorative animation.
 - Quiet motion persists locally. The system reduced-motion preference wins.
   Disabling motion never disables selection, focus or dialog closing.
 - The server's style nonce remains intact. No CSP relaxation.

@@ -34,7 +34,8 @@ codex login
 
 `./foundry` and `./foundry --help` only print terminal help. Use
 `./foundry ui` for the optional local browser view at `http://127.0.0.1:8765`.
-You need Python 3.11+, Git, and the Codex CLI. Rebuilding the app needs Node 22+.
+You need Python 3.11+, Git, and the Codex CLI for AI work. Use Node.js 24 LTS
+to rebuild the app, documentation site and TypeScript preview.
 It runs on macOS and Linux. Signing in with ChatGPT currently needs the macOS
 Keychain; the Codex login works wherever Codex does.
 
@@ -112,6 +113,26 @@ approval, something fails, you stop it, or the ship summary is ready. An AI sayi
 More detail: [architecture](docs/ARCHITECTURE.md),
 [platform notes and plans](docs/FACTORY-PLAN.md).
 
+### TypeScript migration
+
+The default launcher, Python server and MCP still use the existing Python
+controller. A strictly typed, per-workspace `factory` controller preview is
+available through the installed Node project CLI; it does **not** replace the
+public launcher, browser UI or MCP service, and it refuses to mutate Python-owned
+workspaces. Plan and Design require exact-revision owner approvals; Test requires
+a validated read-only review and Ship remains local with publication unauthorized.
+The first Build task bootstraps required checks and an explicit approved-criterion
+mapping; the installed journey is covered with a local fake provider, not a live
+provider qualification.
+See the [preview boundaries](docs/specs/typed-runtime-preview.md) and
+[migration plan](docs/specs/typed-foundry.md). No migration or faster-performance
+claim is implied by the language change. Products built with Foundry can use any
+suitable language.
+
+The [static documentation site](docs/DOCUMENTATION.md) adds searchable `/docs/`
+pages without a project service or account. It is built from this repository's
+Markdown; no public hosting is configured by these build commands.
+
 ## AI engines and roles
 
 Codex is the built-in engine. Your Codex login runs through `codex exec`; Foundry
@@ -142,7 +163,8 @@ Each step uses a few of them:
 | Ship | `complete` |
 
 Leave models blank to use your defaults, or pick a model per role under
-**Settings → Roles**. Review roles only read and report; they never change code.
+**Settings → Roles**. Review roles are assigned read-only work; the chosen runtime
+is responsible for enforcing those permissions. Instructions alone are not a sandbox.
 The ChatGPT plan option currently runs roles as instructions in one session; use
 the Codex login if you want them to run as separate helpers. Each request lists
 the relevant saved inputs, approved document revisions and installed role files.
@@ -154,8 +176,10 @@ the product. The [catalog](docs/CATALOG.md) lists them all.
 
 ## Use it as a Codex plugin
 
-This repository is also a private local plugin (`plugin.json`, `mcp.json`, an MCP
-server, and a panel).
+The optional Codex integration includes a local plugin manifest, MCP server and
+panel. Its compatibility marketplace label is **Foundry private**; that label
+does not make the open-source framework account-gated. Terminal use needs no
+plugin installation.
 
 1. Open this folder as a trusted project in the Codex desktop app and restart it.
 2. Open **Plugins**, pick the **Foundry private** source, and install **Foundry**.
@@ -207,9 +231,15 @@ are not a security boundary. A secret scanner for commits is available with
 
 ## Check the framework
 
+See [Contributing](CONTRIBUTING.md) for setup and pull requests, and
+[Security and trust](SECURITY.md) for execution boundaries and reporting guidance.
+
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
+npm run typecheck:runtime && npm run build:runtime && npm run test:runtime
 npx tsc --noEmit && npm run build:panel
+npm run build:site && npm run test:site
+FOUNDRY_PYTHON=.venv/bin/python npm run test:docs-browser
 FOUNDRY_PYTHON=.venv/bin/python node tests/factory_browser.cjs
 FOUNDRY_PYTHON=.venv/bin/python node tests/studio_browser.cjs
 python3 -m unittest discover -s tests/fixtures/web_app -v
@@ -225,7 +255,7 @@ controller and UI work, not that a real AI run will succeed. See
 [evaluation](docs/EVALUATION.md) and [what is and is not proven](docs/VALIDATION.md).
 
 The app uses a dark [design system](docs/DESIGN-SYSTEM.md): near-black surfaces,
-Inter type, white primary controls, orange selection details and an original
+Inter type, soft-gray primary controls, neutral selection details and an original
 Foundry wordmark. Lucide icons and the original specialist portraits remain.
 The top bar keeps products, creation and account controls in reach. A stage
 sidebar puts current work beside its documents; narrow screens stack the panes.

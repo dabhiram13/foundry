@@ -1,4 +1,10 @@
-# Product Foundry: research and next build plan
+# Foundry research notes — September 2026
+
+**Historical review, not the current runtime plan.** The Codex-only/Python
+recommendation below predates the approved provider-neutral TypeScript migration.
+See [the migration specification](specs/typed-foundry.md) for that decision and
+[architecture](ARCHITECTURE.md) for implemented behavior. Source findings remain
+references, not promises of performance or provider support.
 
 Reviewed 2026-09-30. This is a selected primary-source review, not an exhaustive
 survey of every skill, paper, or repository. The recommendations below are our
@@ -26,7 +32,7 @@ local guardrails. The catalog contains 37 workflow skills, 28 native roles, and
 
 This update improves eight existing lifecycle skills and their shared workflow,
 rewrites the planner and quality reviewer for the actual project's stack, and
-repairs browser/testing guidance. The parent Codex session now has explicit
+repairs browser/testing guidance. The coordinating session received explicit
 coordination instructions; it remains responsible for applying them.
 
 This does not add a machine-enforced eight-stage pipeline, an SDK runner, a

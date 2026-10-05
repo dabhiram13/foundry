@@ -4,6 +4,32 @@ Foundry's product direction is a **provider-independent software factory**: give
 
 This document maps the current local factory and the reusable materials inherited from the `32d5a87` baseline. A separately installed global Foundry skill is optional convenience packaging. It is not the factory and is not required to use the repository.
 
+## TypeScript migration status
+
+The diagrams below describe the active Python controller. The parallel TypeScript
+runtime in `src/core/`, `src/runtime/` and `src/cli/` now includes an opt-in
+per-workspace Factory controller preview through the installed project CLI. Its
+strict controller state, revision-bound Plan/Design approvals, bounded build
+loop and validated read-only Test review reuse the TypeScript lifecycle,
+workflow, provider and role contracts. It is not a replacement for the Python
+launcher, server, browser UI or MCP, and Python and TypeScript workspaces must not
+be written by both runtimes; there is no automatic state migration.
+
+Build can begin from the installer's empty required-check list: task planning is
+separate from the first implementation task, which must add product source, real
+required checks, and an explicit `docs/product/checks.json` mapping for every
+approved Plan criterion. Mapped checks must declare `docs/specs/product.md` as
+an input. Frozen check settings remain distinct from the Plan-pinned workflow
+criterion contract. Completion and recovery preserve the same Test review gate;
+Ship creates only a local summary.
+
+The preview does not qualify live providers or prove their advertised
+capabilities are enforced, port the public Python surfaces, or authorize
+publication. Those migrations and qualifications remain outstanding before
+any launcher change.
+See the [preview](specs/typed-runtime-preview.md) and
+[full migration scope](specs/typed-foundry.md).
+
 ## 1. Materials already inside this repository
 
 ```mermaid

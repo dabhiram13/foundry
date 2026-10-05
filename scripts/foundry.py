@@ -37,6 +37,110 @@ class Error(Exception):
     pass
 
 
+def valid_legacy_install_journal(journal):
+    if (
+        not isinstance(journal, dict)
+        or set(journal) != {"version", "started_at", "source_pin", "previous"}
+        or type(journal.get("version")) is not int
+        or journal["version"] != 1
+        or not isinstance(journal.get("started_at"), str)
+        or not journal["started_at"]
+        or not isinstance(journal.get("source_pin"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", journal["source_pin"]) is None
+    ):
+        return False
+    try:
+        dt.datetime.fromisoformat(journal["started_at"])
+    except ValueError:
+        return False
+    previous = journal.get("previous")
+    if previous == {}:
+        return True
+    if (
+        not isinstance(previous, dict)
+        or set(previous) != {"version", "installed_at", "source_pin", "files", "modes"}
+        or not isinstance(previous.get("version"), str)
+        or not previous["version"]
+        or not isinstance(previous.get("installed_at"), str)
+        or not previous["installed_at"]
+        or not isinstance(previous.get("source_pin"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", previous["source_pin"]) is None
+        or not isinstance(previous.get("files"), dict)
+        or not isinstance(previous.get("modes"), dict)
+        or set(previous["files"]) != set(previous["modes"])
+    ):
+        return False
+    if any(
+        not isinstance(relative, str)
+        or not isinstance(value, str)
+        or re.fullmatch(r"[0-9a-f]{64}", value) is None
+        for relative, value in previous["files"].items()
+    ):
+        return False
+    modes_valid = all(
+        isinstance(relative, str)
+        and type(mode) is int
+        and 0 <= mode <= 0o777
+        for relative, mode in previous["modes"].items()
+    )
+    if not modes_valid:
+        return False
+    previous_pin = digest(json.dumps({
+        "files": previous["files"],
+        "modes": previous["modes"],
+        "version": previous["version"],
+    }, sort_keys=True).encode())
+    if previous_pin != previous["source_pin"]:
+        return False
+    try:
+        dt.datetime.fromisoformat(previous["installed_at"])
+    except ValueError:
+        return False
+    return True
+
+
+def reject_typescript_workspace(root, operation="mutate", allow_legacy_install_journal=False):
+    """Keep the legacy coordinator from mutating a TypeScript-owned workspace."""
+    root = Path(root).resolve()
+    pending = within(root, ".foundry/install-pending.json")
+    if pending.exists():
+        try:
+            journal = read_json(pending)
+        except (Error, OSError, ValueError, TypeError) as exc:
+            raise Error("Invalid install journal; refusing legacy mutation.") from exc
+        if not allow_legacy_install_journal or not valid_legacy_install_journal(journal):
+            if isinstance(journal, dict) and journal.get("runtime") == "typescript":
+                raise Error("An interrupted TypeScript installation blocks legacy mutation; recover the pinned install first.")
+            raise Error("An interrupted or invalid install journal blocks legacy mutation; recover its validated installer journal first.")
+    marker = within(root, ".foundry/runtime.json")
+    if not marker.exists():
+        return
+    try:
+        data = read_json(marker)
+    except (Error, OSError, ValueError, TypeError) as exc:
+        raise Error("Invalid TypeScript runtime marker; refusing legacy mutation.") from exc
+    expected = {"schema_version", "runtime", "runtime_version", "installed_at", "source_pin"}
+    valid = (
+        isinstance(data, dict)
+        and set(data) == expected
+        and type(data.get("schema_version")) is int
+        and data.get("schema_version") == 1
+        and data.get("runtime") == "typescript"
+        and isinstance(data.get("runtime_version"), str)
+        and bool(data.get("runtime_version"))
+        and isinstance(data.get("installed_at"), str)
+        and bool(data.get("installed_at"))
+        and isinstance(data.get("source_pin"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", data["source_pin"]) is not None
+    )
+    if not valid:
+        raise Error("Unexpected, incomplete, or malformed runtime marker; refusing legacy mutation.")
+    raise Error(
+        f"Cannot {operation} a TypeScript-owned workspace with the legacy Python runtime. "
+        "Use the compiled TypeScript project runtime."
+    )
+
+
 def now():
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
@@ -155,10 +259,123 @@ def lock(root, allow_install=False):
             fcntl.flock(handle, fcntl.LOCK_UN)
 
 
+def install_guard_path(target):
+    normalized = Path(os.path.abspath(Path(target).expanduser()))
+    key = digest(os.fsencode(str(normalized)))[:24]
+    return Path(tempfile.gettempdir()) / f"product-foundry-install-{key}.guard"
+
+
+def _pid_is_alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except (OSError, OverflowError, ValueError):
+        return True
+    return True
+
+
+def _read_install_guard_owner(directory):
+    if directory.is_symlink() or not directory.is_dir():
+        raise Error("Invalid shared install guard; refusing to reclaim it.")
+    owner_path = directory / "owner.json"
+    if owner_path.is_symlink() or not owner_path.is_file() or {item.name for item in directory.iterdir()} != {"owner.json"}:
+        raise Error("Malformed shared install guard; refusing to reclaim it.")
+    owner = read_json(owner_path)
+    if (
+        not isinstance(owner, dict)
+        or set(owner) != {"pid", "token", "started_at"}
+        or type(owner.get("pid")) is not int
+        or owner["pid"] <= 0
+        or not isinstance(owner.get("token"), str)
+        or re.fullmatch(r"[A-Za-z0-9-]{16,64}", owner["token"]) is None
+        or not isinstance(owner.get("started_at"), str)
+        or not owner["started_at"]
+    ):
+        raise Error("Malformed shared install guard; refusing to reclaim it.")
+    return owner
+
+
+def _write_install_guard_owner(directory, token):
+    atomic_json(directory / "owner.json", {
+        "pid": os.getpid(),
+        "token": token,
+        "started_at": now(),
+    })
+
+
+def _release_install_guard(directory, token):
+    try:
+        owner = _read_install_guard_owner(directory)
+        if owner["pid"] != os.getpid() or owner["token"] != token:
+            return False
+        (directory / "owner.json").unlink()
+        directory.rmdir()
+        return True
+    except (Error, OSError, ValueError, TypeError):
+        return False
+
+
+def _release_install_reclaim_guard(directory, token):
+    try:
+        owner = _read_install_guard_owner(directory)
+        if owner["pid"] != os.getpid() or owner["token"] != token:
+            return False
+        (directory / "owner.json").unlink()
+        directory.rmdir()
+        return True
+    except (Error, OSError, ValueError, TypeError):
+        return False
+
+
+@contextlib.contextmanager
+def shared_install_guard(target):
+    """Serialize Python and TypeScript installers with a fail-closed mkdir token."""
+    guard = install_guard_path(target)
+    reclaim = Path(f"{guard}.reclaim")
+    token = uuid.uuid4().hex
+    reclaim_token = str(uuid.uuid4())
+    owns_guard = False
+    owns_reclaim = False
+    try:
+        try:
+            reclaim.mkdir(mode=0o700)
+            owns_reclaim = True
+            _write_install_guard_owner(reclaim, reclaim_token)
+        except FileExistsError as exc:
+            raise Error("Another install owns the shared reclamation guard; retry after it finishes.") from exc
+        try:
+            try:
+                guard.mkdir(mode=0o700)
+            except FileExistsError:
+                first = _read_install_guard_owner(guard)
+                if _pid_is_alive(first["pid"]):
+                    raise Error("Another Foundry install is updating this target.")
+                second = _read_install_guard_owner(guard)
+                if first != second or _pid_is_alive(second["pid"]):
+                    raise Error("Shared install guard ownership changed during reclamation.")
+                (guard / "owner.json").unlink()
+                guard.rmdir()
+                try:
+                    guard.mkdir(mode=0o700)
+                except FileExistsError as exc:
+                    raise Error("Another Foundry install acquired the target during reclamation.") from exc
+            owns_guard = True
+            _write_install_guard_owner(guard, token)
+        finally:
+            if owns_reclaim and not _release_install_reclaim_guard(reclaim, reclaim_token):
+                raise Error("Cannot release the shared install reclamation guard safely.")
+        yield
+    finally:
+        if owns_guard and not _release_install_guard(guard, token):
+            raise Error("Cannot release the shared install guard safely.")
+
+
 @contextlib.contextmanager
 def install_lock(target):
-    """Serialize installs without mutating a target that may fail preflight."""
-    key = digest(os.fsencode(str(target)))[:24]
+    """Retain the legacy fcntl lock and also serialize across runtimes."""
+    normalized = Path(os.path.abspath(Path(target).expanduser()))
+    key = digest(os.fsencode(str(normalized)))[:24]
     path = Path(tempfile.gettempdir()) / f"product-foundry-install-{key}.lock"
     with path.open("a+") as handle:
         try:
@@ -166,7 +383,8 @@ def install_lock(target):
         except BlockingIOError as exc:
             raise Error("Another Foundry install is updating this target.") from exc
         try:
-            yield
+            with shared_install_guard(normalized):
+                yield
         finally:
             fcntl.flock(handle, fcntl.LOCK_UN)
 
@@ -466,6 +684,7 @@ def cancellation_handler():
 
 
 def verify(root):
+    reject_typescript_workspace(root, "verify")
     with lock(root):
         path, state = require_active(root)
         if state.get("status") in {"completing", "completed", "verifying"}:
@@ -600,11 +819,13 @@ def complete_locked(root):
 
 
 def complete(root):
+    reject_typescript_workspace(root, "complete")
     with lock(root):
         return complete_locked(root)
 
 
 def recover(root):
+    reject_typescript_workspace(root, "recover")
     with lock(root):
         path, state = require_active(root)
         if state.get("status") == "completed":
@@ -642,6 +863,7 @@ def recover(root):
 
 
 def start(root, slug, spec):
+    reject_typescript_workspace(root, "start")
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,79}", slug):
         raise Error("Use a lowercase feature slug with letters, numbers and hyphens")
     spec_path = within(root, spec)
@@ -667,6 +889,7 @@ def start(root, slug, spec):
 
 
 def resume_or_pause(root, pause):
+    reject_typescript_workspace(root, "pause/resume")
     with lock(root):
         path, state = require_active(root)
         if state.get("status") in {"completing", "completed", "verifying"}:
@@ -694,16 +917,22 @@ def install(source, target, update):
     if target.exists() and not target.is_dir():
         raise Error("Install target is not a directory")
     with install_lock(target):
+        reject_typescript_workspace(
+            target,
+            "install",
+            allow_legacy_install_journal=update,
+        )
         # Everything through the conflict return is read-only preflight. A bad
         # AGENTS block, config, symlink or update conflict leaves target intact.
         manifest_path = within(target, ".foundry/install.json")
         within(target, ".foundry/state/coordinator.lock")
         pending_path = within(target, ".foundry/install-pending.json")
-        pending = read_json(pending_path) if pending_path.exists() else None
-        if pending and (not isinstance(pending, dict) or not isinstance(pending.get("previous"), dict)):
+        pending_exists = pending_path.exists()
+        pending = read_json(pending_path) if pending_exists else None
+        if pending_exists and not valid_legacy_install_journal(pending):
             raise Error("Invalid interrupted installation journal; preserve it for reconciliation.")
         previous = read_json(manifest_path) if manifest_path.exists() else {}
-        if pending:
+        if pending_exists:
             previous = pending["previous"]
         if not isinstance(previous, dict) or not isinstance(previous.get("files", {}), dict):
             raise Error("Invalid .foundry/install.json manifest")
@@ -713,7 +942,7 @@ def install(source, target, update):
             for rel, mode in old_modes.items()
         ):
             raise Error("Invalid managed file modes in .foundry/install.json")
-        if (previous or pending) and not update:
+        if (previous or pending_exists) and not update:
             raise Error("Already installed. Use --update to preview conflicts and update managed files.")
         incoming = {}
         for rel in MANAGED:
@@ -732,7 +961,7 @@ def install(source, target, update):
         incoming_modes = {rel: file.stat().st_mode & 0o777 for rel, file in incoming.items()}
         source_pin = digest(json.dumps({"files": incoming_hashes, "modes": incoming_modes,
                                       "version": VERSION}, sort_keys=True).encode())
-        if pending and pending.get("source_pin") != source_pin:
+        if pending_exists and pending["source_pin"] != source_pin:
             raise Error("Interrupted update requires exactly the same source contents and modes; restore that source before resuming.")
         agents = within(target, "AGENTS.md")
         gitignore = within(target, ".gitignore")
@@ -761,11 +990,11 @@ def install(source, target, update):
                     or digest(dest.read_bytes()) not in {old.get(rel), digest(src.read_bytes())}
                 )
                 accepted_modes = {old_modes.get(rel)}
-                if pending:
+                if pending_exists:
                     accepted_modes.add(incoming_modes[rel])
-                if pending and rel not in old:
+                if pending_exists and rel not in old:
                     accepted_modes = {incoming_modes[rel]}
-                changed_mode = (rel in old_modes or (pending and rel not in old)) and (dest.stat().st_mode & 0o777) not in accepted_modes
+                changed_mode = (rel in old_modes or (pending_exists and rel not in old)) and (dest.stat().st_mode & 0o777) not in accepted_modes
                 if changed_content or changed_mode:
                     conflicts.append(rel)
         # Removed managed files are deleted only when still byte-identical to our previous installation.
@@ -809,8 +1038,10 @@ def install(source, target, update):
             if result.returncode:
                 raise Error(f"Could not initialize target Git repository: {result.stderr.strip()}")
         with lock(target, allow_install=True):
-            atomic_json(pending_path, pending or {"version": 1, "started_at": now(),
-                                                "source_pin": source_pin, "previous": previous})
+            atomic_json(pending_path, pending if pending_exists else {
+                "version": 1, "started_at": now(),
+                "source_pin": source_pin, "previous": previous,
+            })
             for rel, src in incoming.items():
                 dest = within(target, rel)
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -846,6 +1077,7 @@ def install(source, target, update):
 
 
 def enable_skill(root, name):
+    reject_typescript_workspace(root, "enable a skill")
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", name):
         raise Error("Invalid skill name")
     source = root / "library/skills" / name

@@ -8,7 +8,7 @@ import {
   ProjectService, type ConfigureProjectOptions,
 } from '../core/projects.js';
 import { loadRoles } from '../core/roles.js';
-import { closeProjectRuns, startProjectRun } from '../transports/jobs.js';
+import { closeProjectRuns, isProjectRunActive, startProjectRun } from '../transports/jobs.js';
 import { projectRunExitCode } from './run-exit-code.js';
 import { dispatchProjectCommand } from './project.js';
 import { writeResult } from './output.js';
@@ -433,7 +433,8 @@ export async function main(arguments_ = process.argv.slice(2)): Promise<number> 
       isRunning: async (identifier) => {
         const context = serviceContext({ positionals: [], values: {}, flags: new Set() });
         const status = await context.service.status(identifier);
-        return status.status === 'running' || status.status === 'shipping';
+        return isProjectRunActive(String(status.path))
+          || status.status === 'running' || status.status === 'shipping';
       },
       onExit: async () => {
         let confirmed = true;

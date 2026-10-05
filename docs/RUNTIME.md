@@ -51,10 +51,18 @@ installer journal, `--apply --recover` is the explicit recovery route.
 
 Migration backs up and archives supported legacy project state but does not
 transfer Python Factory approvals or mark work complete. Its old registry
-history is nonresumable; create a fresh plan and approve current Plan and Design
-revisions. Controllers outside the known framework registry cannot be
+history is nonresumable. After import, use `foundry work` for scoped changes in
+the existing repository. Import does not create a new six-stage controller there;
+`foundry new` starts a separate product journey with fresh Plan and Design
+approvals. Controllers outside the known framework registry cannot be
 discovered reliably. Missing schemas are not guessed, and unsupported projects
 remain unchanged.
+
+When an import matches a legacy Factory registry record, it also needs the
+`flock` utility plus `sh` and `cat` to coordinate with that old controller's
+locks. Linux checks exercise this path. Do not assume these utilities are
+available on macOS or Windows; migration refuses to proceed if it cannot check
+the shared locks. Ordinary new projects do not need this legacy lock utility.
 
 ## Stop, status and recovery
 

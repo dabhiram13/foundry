@@ -20,6 +20,11 @@ npm start -- --help
 same Node launcher. In an interactive terminal, bare `foundry` opens the
 readline-based terminal. Without a TTY it prints help and exits.
 
+Examples elsewhere abbreviate the executable as `foundry`; use `./foundry`
+from this checkout. To make that command available from other directories,
+run `npm link --ignore-scripts` after building. This links the local checkout;
+it does not download or publish a registry package.
+
 To create a local package tarball for private testing, use `npm pack` after the
 build. The package is marked private; do not publish it to a registry.
 

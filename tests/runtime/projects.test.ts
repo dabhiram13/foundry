@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { readFactoryState } from '../../src/core/factory-contract.js';
 import { ProjectService, runProjectUntilBoundary } from '../../src/core/projects.js';
 import { projectRunExitCode } from '../../src/cli/run-exit-code.js';
-import { closeProjectRuns, startProjectRun } from '../../src/transports/jobs.js';
+import { closeProjectRuns, isProjectRunActive, startProjectRun } from '../../src/transports/jobs.js';
 
 const sourceRoot = path.resolve('.');
 const nodeBin = path.dirname(process.execPath);
@@ -517,7 +517,9 @@ test('terminal worker cancellation requires recovery after restart before a retr
   const root = path.join(products, 'background-run');
 
   const runStartedAt = Date.now();
+  assert.equal(isProjectRunActive(root), false);
   await startProjectRun(service, projectId);
+  assert.equal(isProjectRunActive(root), true);
   assert.ok(Date.now() - runStartedAt < 1_000);
   await assert.rejects(startProjectRun(service, 'background-run'), /already has a run in progress/);
 
@@ -539,6 +541,7 @@ test('terminal worker cancellation requires recovery after restart before a retr
 
   await closeProjectRuns(service);
   const restarted = new ProjectService(framework, products);
+  assert.equal(isProjectRunActive(root), false);
   assert.equal(restarted.jobSnapshot()[projectId], undefined);
   assert.equal((await restarted.status(projectId)).status, active?.status);
   const recoveredProject = await restarted.recover(projectId);

@@ -155,6 +155,24 @@ test('terminal validates selection and refreshes active progress without consumi
   assert.match(rendered, /freeform input is not executed/);
 });
 
+test('terminal does not dispatch queued commands after a shutdown signal', async () => {
+  const commands: string[][] = [];
+  let closed = 0;
+  await runTerminal({
+    input: Readable.from(['/projects\n/projects\n']),
+    output: new Writable({ write(_chunk, _encoding, callback) { callback(); } }),
+    terminal: false,
+    execute: async (arguments_) => {
+      commands.push(arguments_);
+      process.emit('SIGTERM');
+      return 0;
+    },
+    onExit: async () => { closed += 1; },
+  });
+  assert.deepEqual(commands, [['list']]);
+  assert.equal(closed, 1);
+});
+
 test('terminal reports invalid project selections without changing the selection', async () => {
   const errors: string[] = [];
   const commands: string[][] = [];

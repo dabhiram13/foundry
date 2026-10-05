@@ -136,6 +136,7 @@ export async function runTerminal(options: TerminalOptions): Promise<number> {
     const initialPrompt = prompt();
     for await (const line of terminal) {
       await initialPrompt;
+      if (exiting) break;
       const input = line.trim();
       if (!input) {
         await prompt();

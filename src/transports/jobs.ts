@@ -23,6 +23,10 @@ const workers = new Map<string, JobEntry>();
 const runEpochs = new WeakMap<ProjectService, number>();
 const closingServices = new WeakMap<ProjectService, number>();
 
+export function isProjectRunActive(root: string): boolean {
+  return workers.has(path.resolve(root));
+}
+
 function runEpoch(service: ProjectService): number {
   return runEpochs.get(service) ?? 0;
 }

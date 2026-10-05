@@ -1,51 +1,33 @@
 # The documentation website
 
-The public site combines Foundry's existing landing design with searchable static
-documentation at `/docs/`. Reading it does not require a Foundry account, an AI
-connection or the local project service. Search runs in the browser over a built
-index; it does not send queries to an AI provider.
+The public site is a static Astro/Starlight landing page and searchable
+documentation. It does not include the former workspace app, project state,
+provider accounts, or a local HTTP service.
 
-## Build and preview
+## Sources and build
 
-From a contributor checkout with Node.js 24 LTS:
+Repository Markdown is canonical. `site/content-map.mjs` selects active
+Markdown sources; `scripts/prepare_site.mjs` generates Starlight pages, copies
+public assets, builds Tailwind CSS and the standalone landing bundle. Edit the
+source Markdown and components under `site/src/landing`, not generated pages in
+`site/src/content/docs/docs` or assets in `site/public`.
+
+Run the site checks from the repository root:
 
 ```sh
-npm ci
-npm run build:panel
+npm run typecheck:site
 npm run build:site
 npm run test:site
-npm run preview:site
 ```
 
-Open the local address printed by the preview command. This serves static files
-only; it does not start the local workspace API, initialize products, connect an
-account or start AI work. No production deployment is configured or implied.
+The tests validate generated pages, links, anchors, landing markup and asset
+budgets without a browser. The prescribed framework verification does not run
+browser automation.
 
-The legacy local browser service can serve the built docs too. When the static
-site has not been built, its docs link falls back to the repository's docs index.
+## Navigation and links
 
-## One source, two reading experiences
-
-Repository Markdown remains the source. The build copies public pages from
-`docs/`, `CONTRIBUTING.md`, `SECURITY.md` and `THIRD_PARTY_NOTICES.md`, adds page
-metadata and renders them through Astro Starlight. Edit links point back to the
-original file. Links between included pages become local docs URLs; code and
-reference-library links stay in the repository.
-
-Do not edit generated files under `site/src/content/docs/`, `site/public/`,
-`site/.generated/` or `site/dist/`. The generated public page reuses the existing
-landing component, but never imports the workspace client or polls its API.
-
-## Before publishing a change
-
-Check the generated pages, code examples, navigation, search, keyboard focus and
-mobile layout. `test:site` checks internal page links and anchors plus the public
-landing's separation from the workspace client. With the contributor Python
-environment and Playwright browser installed, run `npm run test:docs-browser` to
-check search, result navigation and mobile menus against both the static site and
-the local browser service's content security policy. These checks cannot determine
-whether an installation recipe works on every platform or whether an AI provider
-is qualified.
-
-Keep support claims aligned with actual tests. Document preview runtimes as
-previews, failed checks as failures and untested live integrations as untested.
+The sidebar follows Start, Daily use, Providers, Reference, Architecture and
+Security. Keep links directed at canonical repository sources. `docs/history/`
+contains clearly labeled historical implementation and verification records,
+not current documentation pages. Do not promote old UI evidence to a present
+runtime claim.

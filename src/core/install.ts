@@ -7,6 +7,7 @@ import {
   expandUserPath, within, withProcessLock,
 } from './fs.js';
 import { readRuntimeMarker, type RuntimeMarker } from './lifecycle.js';
+import { loadRoles } from './roles.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -38,6 +39,13 @@ const journalSchema = z.object({
 type InstallManifest = z.infer<typeof manifestSchema>;
 type InstallJournal = z.infer<typeof journalSchema>;
 
+export interface PreservedManagedFile {
+  bytes: Buffer;
+  mode: number;
+}
+
+export type PreservedManagedFiles = ReadonlyMap<string, PreservedManagedFile>;
+
 export function validCurrentInstallManifest(value: unknown): boolean {
   return manifestSchema.safeParse(value).success;
 }
@@ -50,7 +58,12 @@ interface ManagedFile {
 
 async function fileDigest(root: string, relative: string): Promise<string | null> {
   try {
-    return digest(await readFile(within(root, relative)));
+    const target = within(root, relative);
+    const metadata = await lstat(target);
+    if (!metadata.isFile() || metadata.isSymbolicLink()) {
+      throw new FoundryError(`Managed target must be a regular file: ${relative}`);
+    }
+    return digest(await readFile(target));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw error;
@@ -113,6 +126,55 @@ async function preflight(files: ManagedFile[]): Promise<{ incoming: Record<strin
   return { incoming, sourceBytes };
 }
 
+async function prepareLegacyManagedFiles(
+  target: string,
+  files: ManagedFile[],
+  incoming: Record<string, string>,
+  sourceBytes: Map<string, Buffer>,
+): Promise<void> {
+  for (const file of files) {
+    const current = await fileDigest(target, file.target);
+    if (file.target === '.foundry/roles.json' && current !== null) {
+      const ownerPath = targetPath(target, file.target);
+      const metadata = await lstat(ownerPath);
+      await loadRoles(target);
+      const bytes = await readFile(ownerPath);
+      incoming[file.target] = digest(bytes);
+      sourceBytes.set(file.target, bytes);
+      file.mode = metadata.mode & 0o777;
+    } else if (current !== null && current !== incoming[file.target]) {
+      throw new FoundryError(`Legacy migration refuses modified managed bytes at ${file.target}.`);
+    }
+  }
+}
+
+export async function preflightLegacyInstallWorkspace(sourceInput: string, targetInput: string): Promise<JsonRecord> {
+  const sourceCandidate = path.resolve(sourceInput);
+  rejectSymlinkComponents(sourceCandidate);
+  const source = await findProjectRoot(sourceCandidate).catch(() => sourceCandidate);
+  if (targetInput.split(/[\\/]+/).includes('..')) {
+    throw new FoundryError('Install target must not contain parent traversal');
+  }
+  const target = path.resolve(expandUserPath(targetInput));
+  if (source === target || target.startsWith(`${source}${path.sep}`) || source.startsWith(`${target}${path.sep}`)) {
+    throw new FoundryError('Install into a separate product folder, outside the framework checkout.');
+  }
+  rejectSymlinkComponents(target);
+  if (await exists(target, '.foundry/runtime.json')) {
+    throw new FoundryError('Target already has a TypeScript runtime; migration is not required.');
+  }
+  if (await exists(target, '.foundry/install-pending.json')) {
+    throw new FoundryError('Interrupted installation must be explicitly recovered before migration.');
+  }
+  const files = await managedFiles(source);
+  const { incoming, sourceBytes } = await preflight(files);
+  await prepareLegacyManagedFiles(target, files, incoming, sourceBytes);
+  return {
+    source_pin: digest(JSON.stringify({ files: incoming, runtime: 1 })),
+    incoming,
+  };
+}
+
 export async function install(sourceInput: string, targetInput: string, update = false): Promise<JsonRecord> {
   return installWorkspace(sourceInput, targetInput, update, false);
 }
@@ -129,6 +191,7 @@ async function installWorkspaceCore(
   recoverPending = false,
   allowLegacy = false,
   installGuardHeld = false,
+  preservedFiles?: PreservedManagedFiles,
 ): Promise<JsonRecord> {
   const sourceCandidate = path.resolve(sourceInput);
   rejectSymlinkComponents(sourceCandidate);
@@ -172,17 +235,35 @@ async function installWorkspaceCore(
   const files = await managedFiles(source);
   const { incoming, sourceBytes } = await preflight(files);
   if (allowLegacy && !journal) {
-    for (const file of files) {
-      const current = await fileDigest(target, file.target);
-      if (current !== null && current !== incoming[file.target]) {
-        if (file.target !== '.foundry/roles.json') {
-          throw new FoundryError(`Legacy migration refuses modified managed bytes at ${file.target}.`);
-        }
-        incoming[file.target] = current;
-        sourceBytes.set(file.target, await readFile(targetPath(target, file.target)));
-        file.mode = (await lstat(targetPath(target, file.target))).mode & 0o777;
-      }
+    await prepareLegacyManagedFiles(target, files, incoming, sourceBytes);
+  }
+  for (const [relative, preserved] of preservedFiles ?? []) {
+    if (!allowLegacy || relative !== '.foundry/roles.json'
+      || !Number.isInteger(preserved.mode) || preserved.mode < 0 || preserved.mode > 0o777) {
+      throw new FoundryError('Interrupted migration supplied unsupported preserved managed data.');
     }
+    const hash = digest(preserved.bytes);
+    if (journal) {
+      if (journal.incoming[relative] !== hash || journal.previous[relative] !== hash) {
+        throw new FoundryError('Recovery owner roles do not match the pinned installation journal.');
+      }
+    } else {
+      const current = await fileDigest(target, relative);
+      const metadata = await lstat(targetPath(target, relative)).catch((error) => {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+        throw error;
+      });
+      if (current !== hash || !metadata?.isFile() || metadata.isSymbolicLink()
+        || (metadata.mode & 0o777) !== preserved.mode) {
+        throw new FoundryError('Owner roles changed after migration backup; refusing to install.');
+      }
+      await loadRoles(target);
+    }
+    incoming[relative] = hash;
+    sourceBytes.set(relative, preserved.bytes);
+    const roleFile = files.find((file) => file.target === relative);
+    if (!roleFile) throw new FoundryError('Recovery owner roles are not part of the managed file set.');
+    roleFile.mode = preserved.mode;
   }
   const sourcePin = digest(JSON.stringify({ files: incoming, runtime: 1 }));
   if (journal && journal.source_pin !== sourcePin) {
@@ -321,8 +402,9 @@ export function installWorkspace(
   update = false,
   recoverPending = false,
   allowLegacy = false,
+  preservedFiles?: PreservedManagedFiles,
 ): Promise<JsonRecord> {
-  return installWorkspaceCore(sourceInput, targetInput, update, recoverPending, allowLegacy, false);
+  return installWorkspaceCore(sourceInput, targetInput, update, recoverPending, allowLegacy, false, preservedFiles);
 }
 
 export function installWorkspaceWithSharedGuard(
@@ -331,6 +413,7 @@ export function installWorkspaceWithSharedGuard(
   update = false,
   recoverPending = false,
   allowLegacy = false,
+  preservedFiles?: PreservedManagedFiles,
 ): Promise<JsonRecord> {
-  return installWorkspaceCore(sourceInput, targetInput, update, recoverPending, allowLegacy, true);
+  return installWorkspaceCore(sourceInput, targetInput, update, recoverPending, allowLegacy, true, preservedFiles);
 }

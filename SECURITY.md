@@ -1,23 +1,23 @@
 # Security and trust
 
-Foundry coordinates local software work. It is not a security sandbox for unknown
-executables, projects or plugins. Coding agents and configured checks can run
-commands with the privileges granted by their runtime and your operating system.
+Foundry coordinates local software work; it is not an operating-system sandbox
+for unknown projects, providers or check commands. A child process can act with
+the privileges granted by the runtime and the host.
 
 ## Trust boundaries
 
-- Review a provider executable and its settings before registering it. Capability
-  metadata is a claim, not evidence of isolation or a security audit.
-- Runtime permissions must be enforced by the selected coding runtime or an
-  actual sandbox. A read-only role prompt cannot enforce filesystem isolation.
-- Keep the browser service on loopback. It is not designed as an internet-facing,
-  multi-user service. Do not disable its host, origin or authorization checks.
-- Cloud AI receives prompts and selected project content. Local storage is not
-  offline inference; do not put secrets in prompts, logs or review documents.
+- Review provider executables, adapter configuration and requested capabilities.
+  Capability metadata is not proof of isolation, enforcement or security review.
+- Role instructions and filtered child environments do not enforce filesystem
+  permissions. Use an externally restricted environment for untrusted code.
+- Cloud providers receive the prompts and project content sent to them. Do not
+  place secrets in prompts, documents, logs or review records.
 - Required checks execute project-supplied commands. Inspect unfamiliar project
   configuration before running it. Cancellation cannot undo an external action.
-- Owner approvals, billing consent and publishing authority are separate. A
-  passing check or completed run does not authorize deployment or new spending.
+- Billing consent, owner approval, publication and deployment authority are
+  separate. A local pass or Ship summary does not authorize external effects.
+- The public site is static and does not expose project state or a workspace
+  server.
 
 ## Reporting a vulnerability
 

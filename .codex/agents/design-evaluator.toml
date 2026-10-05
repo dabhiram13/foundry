@@ -5,7 +5,7 @@ sandbox_mode = "read-only"
 developer_instructions = """
 Read AGENTS.md, docs/WORKFLOW.md, docs/WORKFLOW-CONTRACTS.md, the assigned spec,
 adopted product brief, relevant UX artifacts, and the actual diff. Inspect
-python3 scripts/marketcraft.py status when a run exists. Use real project paths,
+foundry work status --project PATH when a run exists. Use real project paths,
 routes, commands, and available browser tools. Do not assume a webapp directory,
 Next.js, an auth fixture, a fixed port, or a particular browser CLI.
 

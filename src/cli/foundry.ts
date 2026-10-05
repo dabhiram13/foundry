@@ -23,6 +23,13 @@ interface Parsed {
   flags: Set<string>;
 }
 
+interface CommandOptions {
+  values?: readonly string[];
+  flags?: readonly string[];
+  minPositionals: number;
+  maxPositionals: number;
+}
+
 const VALUE_OPTIONS = new Set([
   'adapter', 'billing', 'idea', 'model', 'products-dir', 'project', 'reasoning', 'revision',
   'role', 'spec', 'source', 'target', 'request', 'task-id', 'stage', 'name',
@@ -108,8 +115,27 @@ function required(parsed: Parsed, name: string): string {
   return item;
 }
 
-function requireCount(parsed: Parsed, count: number, command: string): void {
-  if (parsed.positionals.length < count) throw new FoundryError(`${command} requires ${count} positional argument${count === 1 ? '' : 's'}`);
+function validateCommandOptions(parsed: Parsed, command: string, spec: CommandOptions): void {
+  const allowedValues = new Set(spec.values ?? []);
+  for (const name of Object.keys(parsed.values)) {
+    if (!allowedValues.has(name)) throw new FoundryError(`Option --${name} is not valid for ${command}. Use --help.`);
+  }
+  const allowedFlags = new Set(['json', ...(spec.flags ?? [])]);
+  for (const name of parsed.flags) {
+    if (!allowedFlags.has(name)) throw new FoundryError(`Option --${name} is not valid for ${command}. Use --help.`);
+  }
+  if (parsed.positionals.length < spec.minPositionals) {
+    throw new FoundryError(`${command} requires at least ${spec.minPositionals} positional argument${spec.minPositionals === 1 ? '' : 's'}`);
+  }
+  if (parsed.positionals.length > spec.maxPositionals) {
+    throw new FoundryError(`${command} accepts at most ${spec.maxPositionals} positional argument${spec.maxPositionals === 1 ? '' : 's'}`);
+  }
+  if (value(parsed, 'project') && value(parsed, 'products-dir')) {
+    throw new FoundryError('--project and --products-dir cannot be combined');
+  }
+  if (value(parsed, 'project') && parsed.positionals.length) {
+    throw new FoundryError(`${command} does not accept a positional project when --project is provided`);
+  }
 }
 
 function sourceRoot(): string {
@@ -204,6 +230,12 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
   if (command === 'provider') return dispatchProjectCommand(['providers', ...rest]);
   if (command === 'init') {
     const parsed = parse(rest);
+    validateCommandOptions(parsed, command, {
+      values: ['project'],
+      flags: ['recover', 'update'],
+      minPositionals: 0,
+      maxPositionals: 0,
+    });
     const project = projectPath(parsed);
     if (!project) throw new FoundryError('init requires --project PATH');
     const stats = await lstat(project).catch((error: NodeJS.ErrnoException) => {
@@ -211,15 +243,34 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
       throw error;
     });
     if (!stats.isDirectory() || stats.isSymbolicLink()) throw new FoundryError('init requires a regular repository directory');
-    if (existsSync(path.join(project, '.foundry/project.json')) && !existsSync(path.join(project, '.foundry/runtime.json'))) {
-      throw new FoundryError('Target is an unmarked or legacy workspace; use migrate explicitly.');
+    const foundryDirectory = path.join(project, '.foundry');
+    const foundryInfo = await lstat(foundryDirectory).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    });
+    if (foundryInfo?.isSymbolicLink()) throw new FoundryError('init refuses a symlinked .foundry directory');
+    if (!parsed.flags.has('recover')) {
+      if (foundryInfo && !existsSync(path.join(foundryDirectory, 'runtime.json'))) {
+        throw new FoundryError('Target contains an unmarked Foundry workspace; use migrate explicitly.');
+      }
     }
-    const result = await installWorkspace(sourceRoot(), project, Boolean(parsed.flags.has('update')), false, true);
+    const result = await installWorkspace(
+      sourceRoot(),
+      project,
+      Boolean(parsed.flags.has('update')),
+      Boolean(parsed.flags.has('recover')),
+    );
     writeResult(result, parsed.flags.has('json'));
     return 0;
   }
   if (command === 'migrate') {
     const parsed = parse(rest);
+    validateCommandOptions(parsed, command, {
+      values: ['project'],
+      flags: ['apply', 'dry-run', 'recover'],
+      minPositionals: 0,
+      maxPositionals: 0,
+    });
     const dryRun = parsed.flags.has('dry-run');
     const apply = parsed.flags.has('apply');
     const recover = parsed.flags.has('recover');
@@ -240,13 +291,37 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
 
   const parsed = parse(rest);
   const json = parsed.flags.has('json');
+  const commandSpecs: Record<string, CommandOptions> = {
+    new: {
+      values: ['idea', 'adapter', 'model', 'reasoning', 'products-dir'],
+      minPositionals: 1,
+      maxPositionals: 1,
+    },
+    list: { values: ['products-dir'], minPositionals: 0, maxPositionals: 0 },
+    status: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
+    configure: {
+      values: ['project', 'products-dir', 'adapter', 'model', 'reasoning', 'billing', 'role'],
+      flags: ['confirmed', 'revoke-consent'],
+      minPositionals: 0,
+      maxPositionals: 1,
+    },
+    run: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
+    review: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
+    approve: { values: ['project', 'products-dir', 'revision'], minPositionals: 0, maxPositionals: 1 },
+    stop: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
+    recover: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
+    roles: { minPositionals: 0, maxPositionals: 0 },
+    providers: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
+  };
+  const commandSpec = commandSpecs[command];
+  if (!commandSpec) throw new FoundryError(`Unknown command ${command}. Use --help.`);
+  validateCommandOptions(parsed, command, commandSpec);
   const context = serviceContext(parsed);
   const { service } = context;
   let result: unknown;
   let reviewText: string | undefined;
   let exitCode = 0;
   if (command === 'new') {
-    requireCount(parsed, 1, command);
     result = await service.create({
       name: parsed.positionals[0]!,
       idea: required(parsed, 'idea'),
@@ -255,7 +330,6 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
       reasoning: value(parsed, 'reasoning') ?? null,
     });
   } else if (command === 'list') {
-    if (parsed.positionals.length) throw new FoundryError('list does not accept a project positional');
     result = await service.list();
   } else if (command === 'status') {
     result = await service.status(selectedIdentifier(parsed, context));
@@ -308,12 +382,10 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
   } else if (command === 'recover') {
     result = await service.recover(selectedIdentifier(parsed, context));
   } else if (command === 'roles') {
-    if (parsed.positionals.length) throw new FoundryError('roles does not accept a project positional');
     result = (await loadRoles(sourceRoot())).map((role) => ({
       name: role.name, description: role.description, sandbox: role.sandbox,
     }));
   } else if (command === 'providers') {
-    if (parsed.positionals.length > 1) throw new FoundryError('providers accepts at most one project');
     result = await service.providers(parsed.positionals[0] ?? context.identifier);
   } else {
     throw new FoundryError(`Unknown command ${command}. Use --help.`);
@@ -354,13 +426,20 @@ export async function main(arguments_ = process.argv.slice(2)): Promise<number> 
           return `foundry[${selected}]> `;
         }
       },
+      validateSelection: async (identifier) => {
+        const context = serviceContext({ positionals: [], values: {}, flags: new Set() });
+        await context.service.status(identifier);
+      },
+      isRunning: async (identifier) => {
+        const context = serviceContext({ positionals: [], values: {}, flags: new Set() });
+        const status = await context.service.status(identifier);
+        return status.status === 'running' || status.status === 'shipping';
+      },
       onExit: async () => {
         let confirmed = true;
         for (const service of terminalServices) confirmed = (await closeProjectRuns(service)) && confirmed;
         terminalServices.clear();
-        if (!confirmed) {
-          process.stderr.write('Foundry: worker shutdown was not confirmed; recovery_required state was preserved.\n');
-        }
+        return confirmed;
       },
     });
   }

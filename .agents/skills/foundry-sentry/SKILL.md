@@ -5,4 +5,4 @@ description: Run the Foundry sentry workflow explicitly in Codex.
 
 # Sentry
 
-Read `docs/WORKFLOW.md` first. Use the configured Sentry connector or CLI only when authorized. Correlate events with release and code evidence, reproduce where possible, fix the root cause, and verify with local checks before marking an issue resolved. Use `scripts/marketcraft.py` for lifecycle state; do not handcraft state or receipts.
+Read `docs/WORKFLOW.md` first. Use the configured Sentry connector or CLI only when authorized. Correlate events with release and code evidence, reproduce where possible, fix the root cause, and verify with local checks before marking an issue resolved. Use `foundry work status --project PATH`, `foundry work start SLUG --spec PATH --project PATH`, and explicit `foundry work verify`/`complete` commands for scoped work. Never hand-edit `.foundry/state`.

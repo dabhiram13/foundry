@@ -6,26 +6,43 @@ function scalar(value: unknown): string {
   return JSON.stringify(value);
 }
 
-export function render(value: unknown, json: boolean): string {
-  if (json) return `${JSON.stringify(value)}\n`;
+function human(value: unknown, indent = ''): string {
   if (Array.isArray(value)) {
-    if (!value.length) return 'No results.\n';
-    return `${value.map((item) => {
-      if (typeof item !== 'object' || item === null) return `- ${scalar(item)}`;
+    if (!value.length) return `${indent}(none)`;
+    return value.map((item) => {
+      if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+        return `${indent}- ${scalar(item)}`;
+      }
       const record = item as JsonRecord;
-      const label = record.name ?? record.id ?? record.slug ?? 'item';
+      const labelKey = ['name', 'id', 'slug', 'title'].find((key) => record[key] !== undefined);
+      const label = labelKey ? record[labelKey] : 'item';
       const status = record.status ? ` (${String(record.status)})` : '';
-      return `- ${String(label)}${status}`;
-    }).join('\n')}\n`;
+      const details = Object.entries(record)
+        .filter(([key]) => !['name', 'id', 'slug', 'status'].includes(key) && !(key === 'title' && labelKey === 'title'))
+        .map(([key, child]) => {
+          if (child !== null && typeof child === 'object') {
+            return `${indent}  ${key}:\n${human(child, `${indent}    `)}`;
+          }
+          return `${indent}  ${key}: ${scalar(child)}`;
+        });
+      return [`${indent}- ${String(label)}${status}`, ...details].join('\n');
+    }).join('\n');
   }
   if (typeof value === 'object' && value !== null) {
-    const record = value as JsonRecord;
-    const summary = Object.entries(record)
-      .filter(([, child]) => child === null || ['string', 'number', 'boolean'].includes(typeof child))
-      .map(([key, child]) => `${key}: ${scalar(child)}`);
-    if (summary.length) return `${summary.join('\n')}\n`;
+    return Object.entries(value as JsonRecord).map(([key, child]) => {
+      if (child !== null && typeof child === 'object') {
+        return `${indent}${key}:\n${human(child, `${indent}  `)}`;
+      }
+      return `${indent}${key}: ${scalar(child)}`;
+    }).join('\n');
   }
-  return `${JSON.stringify(value, null, 2)}\n`;
+  return `${indent}${scalar(value)}`;
+}
+
+export function render(value: unknown, json: boolean): string {
+  if (json) return `${JSON.stringify(value)}\n`;
+  if (Array.isArray(value) && !value.length) return 'No results.\n';
+  return `${human(value)}\n`;
 }
 
 export function writeResult(value: unknown, json: boolean): void {

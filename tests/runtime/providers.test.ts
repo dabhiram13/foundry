@@ -233,7 +233,7 @@ test('provider runner redacts child output in task receipts and event logs', asy
 
 test('provider runner rejects ChatGPT and records unavailable local executables without fallback', async () => {
   const root = await project();
-  await assert.rejects(execute(root, { ...request(), adapter: 'chatgpt' }), /unsupported in the TypeScript preview/);
+  await assert.rejects(execute(root, { ...request(), adapter: 'chatgpt' }), /unsupported by this runtime; configure a supported provider adapter/);
   const registryPath = path.join(root, '.foundry/providers.json');
   const config = JSON.parse(await readFile(registryPath, 'utf8')) as { adapters: Array<{ command: string[] }> };
   config.adapters[0]!.command = [path.join(root, 'missing-adapter')];

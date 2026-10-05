@@ -96,16 +96,14 @@ Repository Markdown is the source of those docs, not a second manual.
 ## Check the framework
 
 ```sh
-npm run typecheck
-npm run build
 npm test
-node scripts/check_catalog.mjs
-node scripts/security_scan.mjs --whole-tracked
 ```
 
-Checks use local fixtures, not paid AI. Cutover checks cover terminal/core, import,
-packed installation and static-site links/content. Browser automation is excluded
-from this rewrite's verification. Products still need their own behavior checks.
+`npm test` runs the runtime/package and static-site gates, then tooling, catalog,
+and exact-index security checks once each. They use local fixtures, not paid AI.
+The packed-install test runs outside the checkout without Python. Framework
+browser automation is not part of these checks; products still need their own
+behavior checks when required.
 
 ## Origins and licenses
 

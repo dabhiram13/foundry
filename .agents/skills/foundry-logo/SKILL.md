@@ -5,4 +5,4 @@ description: Run the Foundry logo workflow explicitly in Codex.
 
 # Logo
 
-Read `docs/WORKFLOW.md` first. Establish name, context, reproduction constraints, and existing brand language. Produce editable vector options with accessible contrast and simple-size checks; do not overwrite approved assets without authorization. Use `scripts/marketcraft.py` for lifecycle state; do not handcraft state or receipts.
+Read `docs/WORKFLOW.md` first. Establish name, context, reproduction constraints, and existing brand language. Produce editable vector options with accessible contrast and simple-size checks; do not overwrite approved assets without authorization. Use `foundry work status --project PATH`, `foundry work start SLUG --spec PATH --project PATH`, and explicit `foundry work verify`/`complete` commands for scoped work. Never hand-edit `.foundry/state`.

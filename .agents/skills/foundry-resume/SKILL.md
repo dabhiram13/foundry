@@ -5,7 +5,7 @@ description: Run the Foundry resume workflow explicitly in Codex.
 
 # Resume
 
-Read `docs/WORKFLOW.md` first, then inspect `python3 scripts/marketcraft.py status` and the active spec it reports. Run `python3 scripts/marketcraft.py resume` to continue the same run, reconcile partial edits, and keep working within the existing authorization. If no active run exists, use `foundry-start` or `foundry-spec` for the request.
+Read `docs/WORKFLOW.md` first. For a scoped run, inspect `foundry work status --project PATH`, then use `foundry work recover --project PATH` when the saved state is interrupted. For a product run, inspect `foundry status PROJECT` and use `foundry recover PROJECT` before continuing with an explicitly authorized `foundry run PROJECT`. Do not claim that recovery resumed work automatically. If no active run exists, use `foundry-start` or `foundry-spec` for the request.
 
 ## Authority
 

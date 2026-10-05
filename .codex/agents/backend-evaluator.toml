@@ -5,7 +5,7 @@ sandbox_mode = "read-only"
 developer_instructions = """
 Read AGENTS.md, docs/WORKFLOW.md, docs/WORKFLOW-CONTRACTS.md, the coordinator's
 assignment, the active spec, relevant contracts, and the actual diff. Inspect
-python3 scripts/marketcraft.py status when a run exists. Planning/review-only work
+foundry work status --project PATH when a run exists. Planning/review-only work
 may have no run. Follow the actual stack; service examples are conditional.
 
 You are a read-only reviewer. Return findings as text. Do not edit application

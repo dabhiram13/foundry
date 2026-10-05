@@ -13,6 +13,11 @@ const legacyPath = /(?:^|[\s`'"])(?:\.claude\/|~\/.claude(?:\/|\b)|\.foundry\/ho
 const legacyCommand = /\bclaude\s+-p\b/;
 const legacyNamedPath = /dev\/active\/[^\s`]*\$[a-z][a-z0-9-]*/;
 const executable = /(?<![\w/])((?:scripts|\.foundry)\/[A-Za-z0-9_./-]+\.(?:py|sh|mjs|cjs|js))(?![A-Za-z0-9])/g;
+const foundryCommand = /`(?:\.\/)?foundry\s+([a-z][a-z-]*)`|^\s*(?:\.\/)?foundry\s+([a-z][a-z-]*)/gm;
+const foundryCommands = new Set([
+  'help', 'new', 'list', 'status', 'configure', 'run', 'review', 'approve', 'stop', 'recover',
+  'roles', 'providers', 'init', 'migrate', 'work', 'provider',
+]);
 const obsoleteDocs = /(?<![\w./-])docs\/(?:patterns|supabase|tools\/catalog)\//;
 const owned = /`((?:\.foundry\/(?:references|philosophy)|\.agents\/skills|\.codex\/agents|library\/skills)\/[^`\n ]+)`/g;
 const policy = /^\s*allow_implicit_invocation:\s*false\s*(?:#.*)?$/m;
@@ -69,6 +74,10 @@ export function validate(root) {
     if (referenceRoots.some(prefix => relative.startsWith(`${prefix}/`))) {
       if (legacyPath.test(content) || legacyNamedPath.test(content) || legacyCommand.test(content)) errors.push(`obsolete harness reference in ${relative}`);
       if (obsoleteDocs.test(content)) errors.push(`obsolete uninstalled docs path in ${relative}`);
+      for (const match of content.matchAll(foundryCommand)) {
+        const command = match[1] ?? match[2];
+        if (!foundryCommands.has(command)) errors.push(`unsupported Foundry CLI command ${command} in ${relative}`);
+      }
       for (const match of content.matchAll(owned)) {
         const reference = match[1].replace(/[.,;:]+$/, '');
         if (/[{}*<>]/.test(reference) || reference.includes('...')) continue;

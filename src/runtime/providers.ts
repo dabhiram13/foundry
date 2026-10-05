@@ -175,7 +175,7 @@ function builtinRegistry(): Record<string, ProviderAdapter> {
       name: 'chatgpt', kind: 'agent-runtime', command: [],
       protocol: 'marketcraft-jsonl-v1', billing_modes: ['subscription'],
       capabilities: capabilities.filter((value) => value !== 'structured_output'),
-      unsupported: 'ChatGPT execution is unsupported in the TypeScript preview; use the legacy Python runtime.',
+      unsupported: 'ChatGPT execution is unsupported by this runtime; configure a supported provider adapter instead.',
     },
   };
 }

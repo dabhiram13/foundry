@@ -4,7 +4,7 @@ description = "Prepare a concise completion handoff for the coordinator using cu
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Read AGENTS.md, docs/WORKFLOW.md, the authoritative spec, and current evidence.
-Inspect python3 scripts/marketcraft.py status. Work only on the assigned run and
+Inspect foundry work status --project PATH. Work only on the assigned run and
 file boundary. Do not perform lifecycle transitions or edit .foundry/state/.
 The coordinator owns final verification and completion after all writes settle.
 

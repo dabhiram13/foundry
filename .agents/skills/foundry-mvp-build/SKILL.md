@@ -11,7 +11,7 @@ Follow the workflow's coordination rules. Plan shared interfaces before parallel
 
 Build the smallest complete user journey first. Configure real project checks, exercise changed behavior, and preserve existing tests and owner changes. Investigate failed checks; do not weaken them to obtain a pass.
 
-Before completion, compare each accepted criterion with implemented behavior and evidence. Seek independent review for substantial changes when available. Update relevant work notes before final verification, then run the runtime's verify and complete commands. Report unverified integrations and remaining product decisions explicitly.
+Before completion, compare each accepted criterion with implemented behavior and evidence. Seek independent review for substantial changes when available. For a scoped run, use `foundry work verify --project PATH` and `foundry work complete --project PATH`; for a product journey, run only the next authorized stage and approve the exact reviewed Plan or Design revision. Report unverified integrations and remaining product decisions explicitly.
 
 Use docs/WORKFLOW-CONTRACTS.md for current records and applicable artifact gates.
 Choose small/feature/product depth, reuse current handoffs, and keep accepted

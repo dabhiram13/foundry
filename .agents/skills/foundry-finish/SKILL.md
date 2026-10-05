@@ -7,7 +7,7 @@ description: Finish an implemented Foundry feature using current checks and an e
 
 Read `docs/WORKFLOW.md`, status, the active spec, and review findings. Confirm accepted criteria are addressed and evidence exists; passing configured commands cannot compensate for an unimplemented requirement.
 
-Resolve blocking findings within existing authority. Record relevant decisions and evidence notes before final verification. Run `python3 scripts/marketcraft.py verify`, inspect required failures, and complete only with `python3 scripts/marketcraft.py complete` after required checks pass.
+Resolve blocking findings within existing authority. Record relevant decisions and evidence notes before final verification. For scoped work, run `foundry work verify --project PATH`, inspect required failures and nested evidence, then use `foundry work complete --project PATH` only after required checks pass. For a product journey, advance one stage at a time with `foundry run PROJECT`, review pending Plan or Design, and approve only its displayed revision.
 
 Report implemented behavior, actual checks, unverified or optional items, and the completed record. Keep local completion, release, and owner acceptance distinct. Do not handcraft runtime state or receipts.
 

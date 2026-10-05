@@ -1,6 +1,0 @@
-# Optional factory UI sign-in and MCP; the existing lifecycle CLI remains stdlib-only.
-PyJWT[crypto]==2.10.1
-cryptography==50.0.2
-mcp==2.2.0
-mcp-types==2.2.0
-openai-mcp-extensions==0.1.0

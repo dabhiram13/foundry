@@ -376,7 +376,7 @@ export class ProjectService {
               idea: '',
               artifacts: [],
               history: [],
-              error: 'Legacy or unmarked workspace; use the existing Python runtime.',
+              error: 'Legacy or unmarked workspace; inspect it with foundry migrate --project PATH --dry-run before applying an explicit migration.',
             },
           });
           continue;
@@ -429,10 +429,10 @@ export class ProjectService {
     if (match) return match;
     const unavailable = projects.find((project) => project.summary.slug === identifier);
     if (unavailable?.summary.runtime === 'legacy') {
-      throw new FoundryError('Legacy or unmarked workspace; use the existing Python runtime.');
+      throw new FoundryError('Legacy or unmarked workspace; inspect it with foundry migrate --project PATH --dry-run before applying an explicit migration.');
     }
     if (unavailable) throw new FoundryError(safeError());
-    throw new FoundryError(`Unknown typed project: ${identifier}`);
+    throw new FoundryError(`Unknown Foundry project: ${identifier}`);
   }
 
   private async view(project: LocatedProject): Promise<JsonRecord> {

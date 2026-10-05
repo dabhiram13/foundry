@@ -18,23 +18,29 @@ export default defineConfig({
       { label: 'Start here', items: [
         { label: 'Overview', link: '/docs/' },
         { label: 'Install & first project', slug: 'docs/getting-started' },
-        { label: 'Providers & setup', slug: 'docs/providers' },
-        { label: 'Terminal commands', slug: 'docs/commands' },
         { label: 'Existing repos & recovery', slug: 'docs/runtime' },
-        { label: 'Project settings', slug: 'docs/customization' },
       ] },
-      { label: 'Working with Foundry', items: [
+      { label: 'Daily use', items: [
+        { label: 'Terminal & commands', slug: 'docs/commands' },
         { label: 'The workflow', slug: 'docs/workflow' },
         { label: 'Approvals & evidence', slug: 'docs/workflow-contracts' },
         { label: 'Roles & guides', slug: 'docs/catalog' },
-        { label: 'What is tested', slug: 'docs/validation' },
-        { label: 'Experimental ChatGPT setup', slug: 'docs/chatgpt' },
       ] },
-      { label: 'Build on Foundry', items: [
+      { label: 'Providers', items: [
+        { label: 'Setup, support & adapters', slug: 'docs/providers' },
+        { label: 'Qualification limits', slug: 'docs/qualification' },
+      ] },
+      { label: 'Reference', items: [
+        { label: 'Project settings', slug: 'docs/customization' },
+        { label: 'What is tested', slug: 'docs/validation' },
+      ] },
+      { label: 'Architecture & contribution', items: [
         { label: 'Architecture', slug: 'docs/architecture' },
         { label: 'Contributing', slug: 'docs/contributing' },
         { label: 'Documentation website', slug: 'docs/documentation' },
-        { label: 'Design system', slug: 'docs/design-system' },
+        { label: 'Public site sources', slug: 'docs/component-sources' },
+      ] },
+      { label: 'Security & licenses', items: [
         { label: 'Security & trust', slug: 'docs/security' },
         { label: 'Origins & licenses', slug: 'docs/provenance' },
         { label: 'Third-party notices', slug: 'docs/notices' },

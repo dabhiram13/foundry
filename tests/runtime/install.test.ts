@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { install, installWorkspace, sharedInstallGuardPath } from '../../src/core/install.js';
-import { withProcessLock } from '../../src/core/fs.js';
+import { install, installWorkspace } from '../../src/core/install.js';
 import { readRuntimeMarker } from '../../src/core/lifecycle.js';
 
 test('installed runtime is copied and usable without Python', async () => {
@@ -105,62 +104,6 @@ test('installer rejects symlinked managed source ancestors during preflight', as
     }
     await assert.rejects(install(source, target), /symlink/i);
     assert.deepEqual(await readdir(target), []);
-  }
-});
-
-test('Python and TypeScript installers refuse targets guarded by the other runtime', async () => {
-  const source = path.resolve('.');
-  const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-shared-guard-'));
-  const python = process.env.FOUNDRY_PYTHON ?? 'python3';
-  const importPath = JSON.stringify(path.join(source, 'scripts'));
-  try {
-    const tsHeldTarget = path.join(base, 'typescript-held');
-    await mkdir(tsHeldTarget);
-    const pythonInstall = [
-      `import sys; sys.path.insert(0, ${importPath})`,
-      'import foundry',
-      'from pathlib import Path',
-      `foundry.install(Path(${JSON.stringify(source)}), Path(${JSON.stringify(tsHeldTarget)}), False)`,
-    ].join('\n');
-    await withProcessLock(sharedInstallGuardPath(tsHeldTarget), async () => {
-      const result = spawnSync(python, ['-c', pythonInstall], { cwd: source, encoding: 'utf8' });
-      assert.notEqual(result.status, 0);
-      assert.match(`${result.stdout}${result.stderr}`, /Another Foundry install|reclamation guard/);
-      assert.deepEqual(await readdir(tsHeldTarget), []);
-    });
-
-    const pythonHeldTarget = path.join(base, 'python-held');
-    await mkdir(pythonHeldTarget);
-    const holdGuard = [
-      `import sys; sys.path.insert(0, ${importPath})`,
-      'import foundry, time',
-      'from pathlib import Path',
-      `with foundry.install_lock(Path(${JSON.stringify(pythonHeldTarget)})):`,
-      ' print("python-guard-ready", flush=True)',
-      ' time.sleep(30)',
-    ].join('\n');
-    const holder = spawn(python, ['-c', holdGuard], { cwd: source, stdio: ['ignore', 'pipe', 'pipe'] });
-    try {
-      await new Promise<void>((resolve, reject) => {
-        let received = '';
-        holder.stdout?.on('data', (chunk: Buffer) => {
-          received += chunk.toString();
-          if (received.includes('python-guard-ready')) resolve();
-        });
-        holder.once('error', reject);
-        holder.once('exit', (code) => reject(new Error(`Python guard holder exited early with ${code}`)));
-      });
-      await assert.rejects(install(source, pythonHeldTarget), /Another process owns this lock/);
-      assert.deepEqual(await readdir(pythonHeldTarget), []);
-    } finally {
-      holder.kill('SIGTERM');
-      await new Promise<void>((resolve) => {
-        if (holder.exitCode !== null) resolve();
-        else holder.once('close', () => resolve());
-      });
-    }
-  } finally {
-    await rm(base, { recursive: true, force: true });
   }
 });
 

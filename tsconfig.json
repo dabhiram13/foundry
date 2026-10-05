@@ -16,8 +16,8 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["./app/src/*"]
+      "@/*": ["./site/src/landing/*"]
     }
   },
-  "include": ["app/src"]
+  "include": ["site/src/landing"]
 }

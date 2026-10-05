@@ -1,51 +1,36 @@
 # Foundry documentation
 
-Start with installation and your first project. Use the terminal, or open the
-optional browser view. You do not need to read the internals first.
+Foundry is a single TypeScript runtime on Node 24. Use its interactive terminal
+or explicit commands backed by the same core. The landing page and searchable
+documentation are static; there is no browser workspace.
 
-## Get started
+## Start here
 
-- [Install and connect Codex](GETTING-STARTED.md)
-- [Create and configure a product](GETTING-STARTED.md#4-create-and-configure-a-product)
-- [Use the optional browser view](GETTING-STARTED.md#2-install-and-inspect-the-terminal-commands)
+- [Install from source and create your first project](GETTING-STARTED.md)
+- [Use the terminal and commands](COMMANDS.md)
+- [Add Foundry to a repository, migrate or recover](RUNTIME.md)
 
-## Get unstuck
+## Daily use
 
-- [Troubleshoot installation, sign-in and product steps](GETTING-STARTED.md#troubleshooting)
-- [Update Foundry and switch the products folder](GETTING-STARTED.md#6-stop-retry-and-update)
+- [Plan, build, check and approve](WORKFLOW.md)
+- [Saved records and evidence rules](WORKFLOW-CONTRACTS.md)
+- [Roles, packs and reference library](CATALOG.md)
+- [Project settings](CUSTOMIZATION.md)
 
-## Run and review
+## Providers and boundaries
 
-- [Terminal command reference](COMMANDS.md)
-- [Run one stage](GETTING-STARTED.md#5-run-review-and-approve)
-- [Review documents and approve the version you read](GETTING-STARTED.md#5-run-review-and-approve)
-- [Stop, retry and recover](RUNTIME.md)
-- [AI setup and supported connections](PROVIDERS.md)
-- [Project customization and checks](CUSTOMIZATION.md)
+- [Provider setup, adapter capabilities and consent](PROVIDERS.md)
+- [Qualification status and unverified limits](QUALIFICATION.md)
+- [Security and trust boundaries](../SECURITY.md)
 
-## Choose a provider
+## Architecture and contribution
 
-- [Provider support matrix and boundaries](PROVIDERS.md)
-- [Experimental ChatGPT browser-only connection](CHATGPT.md)
-- [Try the adapter example without an AI account](../examples/README.md)
+- [Architecture](ARCHITECTURE.md)
+- [Validation gates](VALIDATION.md)
+- [Documentation website](DOCUMENTATION.md)
+- [Contributing](../CONTRIBUTING.md)
+- [Provenance and licenses](PROVENANCE.md)
 
-## Understand the system
-
-- [Architecture and trust boundaries](ARCHITECTURE.md)
-- [Runs, checks and recovery](RUNTIME.md)
-- [Approvals and saved results](WORKFLOW-CONTRACTS.md)
-- [Roles and workflow catalog](CATALOG.md)
-- [What has and has not been tested](VALIDATION.md)
-- [Licenses and attribution](../THIRD_PARTY_NOTICES.md)
-
-## Contribute to Foundry
-
-- [Contributor setup and pull requests](../CONTRIBUTING.md)
-- [Security and trust](../SECURITY.md)
-- [Build and maintain this documentation website](DOCUMENTATION.md)
-- [Development checks](../README.md#check-the-framework)
-- [Design system](DESIGN-SYSTEM.md)
-- [Working agreements](WORKFLOW.md)
-- [Factory planning notes](FACTORY-PLAN.md)
-
-[Back to Foundry](../README.md)
+Repository Markdown is the source for the static documentation site. Start with
+the root [README](../README.md) for the concise project overview and development
+checks.

@@ -16,20 +16,8 @@ async function files(directory) {
   return nested.flat();
 }
 
-function mcpSdkCjsPlugin() {
-  const packagePath = '@modelcontextprotocol/sdk';
-  return {
-    name: 'mcp-sdk-commonjs',
-    setup(buildOptions) {
-      buildOptions.onResolve({ filter: /^@modelcontextprotocol\/sdk(?:\/.*)?$/ }, (args) => {
-        const entry = args.path === packagePath ? 'index.js' : args.path.slice(packagePath.length + 1);
-        return { path: path.join(root, 'node_modules/@modelcontextprotocol/sdk/dist/cjs', entry) };
-      });
-    },
-  };
-}
-
-await rm(path.join(runtimeOutput, 'project.cjs'), { force: true });
+await rm(runtimeOutput, { recursive: true, force: true });
+await rm(testsOutput, { recursive: true, force: true });
 await mkdir(path.join(runtimeOutput, 'assets'), { recursive: true });
 await mkdir(testsOutput, { recursive: true });
 await build({
@@ -68,7 +56,6 @@ if (testEntries.length) {
     target: 'node24',
     format: 'cjs',
     external: ['node:*'],
-    plugins: [mcpSdkCjsPlugin()],
     outExtension: { '.js': '.cjs' },
   });
 }

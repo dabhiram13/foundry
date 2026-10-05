@@ -99,7 +99,7 @@ export async function requireRuntimeWorkspace(root: string, operation: string): 
   const marker = await readRuntimeMarker(project);
   if (!marker) {
     throw new FoundryError(
-      `Cannot ${operation} an unmarked or legacy workspace. Use the existing Python runtime until an explicit migration command is available.`,
+      `Cannot ${operation} an unmarked or legacy workspace. Inspect it with foundry migrate --project PATH --dry-run before applying an explicit migration.`,
     );
   }
   return project;

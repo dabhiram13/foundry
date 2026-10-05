@@ -17,18 +17,12 @@ jobs:
           cache: npm
       - name: Install pinned Node dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: TypeScript runtime contracts
-        run: |
-          npm run typecheck:runtime
-          npm run build:runtime
-          npm run test:runtime
-          npm run test:pack
+      - name: Runtime checks
+        run: npm run check:runtime
+      - name: Static site checks
+        run: npm run check:site
       - name: Node tooling contracts
         run: node --test tests/tooling.test.mjs
-      - name: Build and test public documentation
-        run: |
-          npm run build:site
-          npm run test:site
       - name: Native catalog integrity
         run: node scripts/check_catalog.mjs
       - name: Exact index secret scan

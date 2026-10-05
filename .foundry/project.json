@@ -2,114 +2,44 @@
   "name": "Foundry",
   "checks": [
     {
-      "name": "behavior",
-      "command": [
-        "python3",
-        "scripts/test_runner.py",
-        "--start",
-        "tests"
-      ],
-      "test_report": ".foundry/state/test-reports/framework.json",
+      "name": "runtime",
+      "command": ["npm", "run", "check:runtime"],
       "cwd": ".",
-      "timeout": 180,
-      "required": true
-    },
-    {
-      "name": "factory-ui",
-      "command": [
-        "node",
-        "tests/factory_browser.cjs"
-      ],
-      "cwd": ".",
-      "timeout": 120,
+      "timeout": 420,
       "required": true,
-      "inputs": [
-        "app",
-        "scripts/factory.py",
-        "scripts/factory_ui.py",
-        "scripts/providers.py",
-        "tests/factory_browser.cjs",
-        "tests/test_factory.py",
-        "package-lock.json"
-      ],
-      "environment": [
-        "FOUNDRY_PYTHON",
-        "MARKETCRAFT_BROWSER_EXECUTABLE",
-        "MARKETCRAFT_PLAYWRIGHT_MODULE"
-      ]
+      "inputs": ["src", "tests/runtime", "scripts/build_runtime.mjs", "tsconfig.runtime.json", ".foundry/roles.json", "package.json", "package-lock.json"]
     },
     {
-      "name": "catalog",
-      "command": [
-        "python3",
-        "scripts/check_catalog.py"
-      ],
-      "cwd": ".",
-      "timeout": 120,
-      "required": true
-    },
-    {
-      "name": "web-app",
-      "command": [
-        "python3",
-        "-m",
-        "unittest",
-        "test_app",
-        "-v"
-      ],
-      "cwd": "tests/fixtures/web_app",
-      "timeout": 60,
-      "required": true
-    },
-    {
-      "name": "evaluation-contract",
-      "command": [
-        "python3",
-        "-m",
-        "unittest",
-        "discover",
-        "-s",
-        "tests/fixtures/saas_app",
-        "-p",
-        "test_evaluator.py",
-        "-v"
-      ],
-      "cwd": ".",
-      "timeout": 60,
-      "required": true
-    },
-    {
-      "name": "saas-journey",
-      "command": [
-        "python3",
-        "scripts/evaluate_journey.py",
-        "--output-dir",
-        ".foundry/state/evaluations"
-      ],
+      "name": "static-site",
+      "command": ["npm", "run", "check:site"],
       "cwd": ".",
       "timeout": 240,
       "required": true,
-      "inputs": [
-        "tests/fixtures/saas_app",
-        "scripts/evaluate_journey.py",
-        "package-lock.json"
-      ],
-      "environment": [
-        "MARKETCRAFT_NODE",
-        "MARKETCRAFT_PLAYWRIGHT_MODULE",
-        "MARKETCRAFT_BROWSER_EXECUTABLE"
-      ]
+      "inputs": ["site/src", "site/assets", "site/astro.config.mjs", "site/content-map.mjs", "site/remark-links.mjs", "docs", "scripts/prepare_site.mjs", "tests/site.test.mjs", "tsconfig.json", "README.md", "CONTRIBUTING.md", "SECURITY.md", "THIRD_PARTY_NOTICES.md", "package.json", "package-lock.json"]
+    },
+    {
+      "name": "tooling",
+      "command": ["node", "--test", "tests/tooling.test.mjs"],
+      "cwd": ".",
+      "timeout": 120,
+      "required": true,
+      "inputs": ["scripts/check_catalog.mjs", "scripts/security_scan.mjs", "tests/tooling.test.mjs", "package.json", "package-lock.json"]
+    },
+    {
+      "name": "catalog",
+      "command": ["node", "scripts/check_catalog.mjs"],
+      "cwd": ".",
+      "timeout": 120,
+      "required": true,
+      "inputs": [".agents", ".codex", ".foundry/roles.json", ".foundry/workflows", ".foundry/references", "library", "skills", "scripts/check_catalog.mjs"]
     },
     {
       "name": "secrets",
-      "command": [
-        "python3",
-        "scripts/security_scan.py",
-        "--whole-tracked"
-      ],
+      "command": ["node", "scripts/security_scan.mjs", "--whole-tracked"],
       "cwd": ".",
       "timeout": 120,
-      "required": true
+      "required": true,
+      "inputs": ["scripts/security_scan.mjs", ".githooks/pre-commit"]
     }
   ]
 }

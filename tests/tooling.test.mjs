@@ -35,11 +35,13 @@ test('catalog preserves policy, native-role parsing, path and provenance checks'
   await mkdir(path.join(root, '.codex/agents'), { recursive: true });
   await mkdir(path.join(root, '.agents/skills/foundry-start'), { recursive: true });
   await writeFile(path.join(root, '.codex/agents/broken.toml'), '[broken');
-  await writeFile(path.join(root, '.agents/skills/foundry-start/SKILL.md'), '# Start\nRun scripts/missing.mjs\n');
+  await writeFile(path.join(root, '.agents/skills/foundry-start/SKILL.md'),
+    '# Start\nRun scripts/missing.mjs and `foundry work status --project PATH`. Do not use `foundry ui`.\n');
   const errors = validate(root).errors;
   assert.ok(errors.some(error => error.includes('invalid role TOML')));
   assert.ok(errors.some(error => error.includes('explicit-invocation policy')));
   assert.ok(errors.some(error => error.includes('missing referenced executable')));
+  assert.ok(errors.some(error => error.includes('unsupported Foundry CLI command ui')));
   assert.ok(errors.some(error => error.includes('missing required workflow skills')));
   await writeFile(path.join(root, '.codex/agents/broken.toml'), 'model = "do-not-pin"\n');
   assert.ok(validate(root).errors.some(error => error.includes('hardcoded model')));

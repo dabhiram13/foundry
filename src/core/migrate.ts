@@ -1,15 +1,19 @@
-import { cp, lstat, mkdir, readFile, readdir, rm } from 'node:fs/promises';
+import { chmod, lstat, mkdir, open, readdir, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
+import { constants as fsConstants } from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { z } from 'zod';
 import {
-  installWorkspaceWithSharedGuard, sharedInstallGuardPath, validCurrentInstallManifest,
+  installWorkspaceWithSharedGuard, preflightLegacyInstallWorkspace, sharedInstallGuardPath,
+  validCurrentInstallManifest, type PreservedManagedFiles,
 } from './install.js';
 import {
-  atomicJson, canonicalJson, digest, exists, FoundryError, rejectSymlinkComponents, withProcessLock,
+  atomicJson, atomicWrite, canonicalJson, digest, exists, FoundryError, rejectSymlinkComponents, withProcessLock,
 } from './fs.js';
 import { activeRun, projectConfig, readRuntimeMarker, validateCompatibleRunState } from './lifecycle.js';
 import { FACTORY_CANCEL_LOCK, FACTORY_LOCK, readFactoryState } from './factory-contract.js';
+import { loadRoles } from './roles.js';
 import { savedTaskStatus } from '../runtime/providers.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -19,6 +23,7 @@ const migrationJournalSchema = z.object({
   runtime: z.literal('typescript'),
   source_root: z.string().min(1),
   source_pin: z.string().regex(/^[a-f0-9]{64}$/),
+  legacy_factory_pin: z.string().regex(/^[a-f0-9]{64}$/).nullable().optional(),
   backup: z.string().min(1),
   backup_pin: z.string().regex(/^[a-f0-9]{64}$/),
   started_at: z.string().min(1),
@@ -32,12 +37,66 @@ interface MigrationInspection {
   backup: string | null;
   preserved: string[];
   archivedFactoryRegistry: boolean;
+  legacyFactoryRecords: JsonRecord[];
+  matchingFactoryRecord: z.infer<typeof legacyFactoryProjectSchema> | null;
+  legacyFactoryRegistryBytes: Buffer | null;
 }
 
 const JOURNAL = '.foundry/migration-pending.json';
 const BACKUP_PREFIX = '.foundry-migration-backup-';
 const FACTORY_REGISTRY = '.foundry/state/factory/projects.json';
+const FACTORY_REGISTRY_LOCK = '.foundry/state/factory/projects.lock';
+const FACTORY_LEASES = '.foundry/state/factory/leases';
 const SHA256 = /^[a-f0-9]{64}$/;
+const FACTORY_STAGES = ['research', 'scope', 'design', 'build', 'verify', 'release'] as const;
+
+const legacyFactoryProjectSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  slug: z.string().min(1).max(64),
+  idea: z.string().min(1),
+  path: z.string().min(1),
+  products_root: z.string().min(1),
+  adapter: z.string().min(1),
+  model: z.string().nullable(),
+  reasoning: z.string().nullable(),
+  roles: z.array(z.string().min(1)),
+  role_settings: z.record(z.string(), z.record(z.string(), z.string())),
+  stage: z.enum(FACTORY_STAGES),
+  status: z.enum(['completed', 'awaiting_approval', 'running', 'failed', 'interrupted']),
+  approved_stages: z.array(z.enum(['scope', 'design'])),
+  task_id: z.string().nullable(),
+  session_id: z.string().nullable(),
+  events: z.array(z.unknown()),
+  artifacts: z.array(z.unknown()),
+  stage_verification: z.record(z.string(), z.unknown()),
+  history: z.array(z.unknown()),
+  approved_revisions: z.record(z.string(), z.string().regex(SHA256)),
+  created_at: z.string().min(1),
+  updated_at: z.string().min(1),
+  publication: z.literal('not_authorized'),
+  subscription_confirmed: z.boolean().default(false),
+  lifecycle_run_id: z.string().uuid().nullable().default(null),
+}).strict().superRefine((project, context) => {
+  if (new Set(project.roles).size !== project.roles.length
+    || new Set(project.approved_stages).size !== project.approved_stages.length
+    || Object.keys(project.approved_revisions).sort().join(',') !== [...project.approved_stages].sort().join(',')) {
+    context.addIssue({ code: 'custom', message: 'Legacy Factory project has ambiguous role or approval records' });
+  }
+  for (const [role, settings] of Object.entries(project.role_settings)) {
+    if (!role || !Object.keys(settings).length || Object.keys(settings).some((key) => !['model', 'reasoning'].includes(key))) {
+      context.addIssue({ code: 'custom', message: 'Legacy Factory project has malformed role settings' });
+    }
+  }
+  if (Object.keys(project.stage_verification).some((stage) => !FACTORY_STAGES.includes(stage as typeof FACTORY_STAGES[number]))) {
+    context.addIssue({ code: 'custom', message: 'Legacy Factory project has an unknown stage record' });
+  }
+});
+
+const legacyFactoryRegistrySchema = z.object({
+  schema_version: z.literal(1),
+  projects: z.array(legacyFactoryProjectSchema),
+}).strict();
 
 function validLegacyInstallManifest(value: JsonRecord): boolean {
   const files = value.files;
@@ -100,7 +159,7 @@ async function sourcePin(sourceRoot: string): Promise<string> {
     if (!stats.isFile() || stats.isSymbolicLink()) {
       throw new FoundryError('Migration source runtime files must be regular files.');
     }
-    const bytes = await readFile(file);
+    const bytes = await readRegularFile(file, 'Migration source runtime files must be regular files.');
     entries[relative] = digest(bytes);
   }
   return digest(JSON.stringify(entries));
@@ -116,10 +175,203 @@ async function walkNoSymlinks(root: string, relative = ''): Promise<void> {
     throw error;
   }
   if (stats.isSymbolicLink()) throw new FoundryError(`Migration refuses symlinked owner data: ${path.join(relative)}`);
-  if (!stats.isDirectory()) return;
-  for (const entry of await readdir(current, { withFileTypes: true })) {
-    await walkNoSymlinks(root, path.join(relative, entry.name));
+  if (stats.isDirectory()) {
+    for (const entry of await readdir(current, { withFileTypes: true })) {
+      await walkNoSymlinks(root, path.join(relative, entry.name));
+    }
+    return;
   }
+  if (!stats.isFile()) throw new FoundryError(`Migration refuses a special file in owner data: ${path.join(relative)}`);
+}
+
+async function readRegularFile(target: string, message: string): Promise<Buffer> {
+  const flags = fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0) | (fsConstants.O_NONBLOCK ?? 0);
+  const handle = await open(target, flags);
+  try {
+    const metadata = await handle.stat();
+    if (!metadata.isFile()) throw new FoundryError(message);
+    return await handle.readFile();
+  } finally {
+    await handle.close();
+  }
+}
+
+interface LegacyFactoryInspection {
+  bytes: Buffer | null;
+  records: JsonRecord[];
+  matching: z.infer<typeof legacyFactoryProjectSchema> | null;
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function legacySlug(name: string): string {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+async function validateLegacyFactoryRegistry(root: string, sourceRoot: string): Promise<LegacyFactoryInspection> {
+  const registryPath = path.join(sourceRoot, FACTORY_REGISTRY);
+  rejectSymlinkComponents(registryPath);
+  let registryStat;
+  try {
+    registryStat = await lstat(registryPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { bytes: null, records: [], matching: null };
+    throw error;
+  }
+  if (registryStat.isSymbolicLink() || !registryStat.isFile()) {
+    throw new FoundryError('Migration refuses an unsafe legacy Factory registry.');
+  }
+  const bytes = await readRegularFile(registryPath, 'Migration refuses an unsafe legacy Factory registry.');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(bytes.toString('utf8')) as unknown;
+  } catch (error) {
+    throw new FoundryError('Migration refuses a malformed legacy Factory registry.', { cause: error });
+  }
+  const result = legacyFactoryRegistrySchema.safeParse(parsed);
+  if (!result.success) {
+    throw new FoundryError('Migration refuses an unsupported or malformed legacy Factory registry.', { cause: result.error });
+  }
+  const identifiers = new Set<string>();
+  for (const project of result.data.projects) {
+    if (identifiers.has(project.id) || project.id !== project.id.toLowerCase()
+      || project.slug !== legacySlug(project.name)
+      || !path.isAbsolute(project.products_root)
+      || !path.isAbsolute(project.path)
+      || path.resolve(project.products_root) !== project.products_root
+      || path.resolve(project.path) !== project.path
+      || path.resolve(project.products_root, project.slug) !== project.path
+      || path.dirname(project.path) !== project.products_root) {
+      throw new FoundryError('Migration refuses an ambiguous legacy Factory project record.');
+    }
+    identifiers.add(project.id);
+    const buildValue = project.stage_verification.build;
+    if (buildValue !== undefined) {
+      if (!isRecord(buildValue) || typeof buildValue.status !== 'string'
+        || !['configured', 'building', 'fixing', 'needs_fix', 'checkpoint_failed'].includes(buildValue.status)
+        || (buildValue.tasks !== undefined && !Array.isArray(buildValue.tasks))) {
+        throw new FoundryError('Migration refuses malformed legacy Factory build state.');
+      }
+      for (const task of Array.isArray(buildValue.tasks) ? buildValue.tasks : []) {
+        if (!isRecord(task) || typeof task.title !== 'string'
+          || !['pending', 'working', 'done', 'failed'].includes(String(task.status))) {
+          throw new FoundryError('Migration refuses malformed legacy Factory task state.');
+        }
+      }
+    }
+  }
+  const matching = result.data.projects.filter((project) => project.path === root);
+  if (matching.length > 1) throw new FoundryError('Migration refuses multiple legacy Factory records for this workspace.');
+  const target = matching[0] ?? null;
+  if (target) {
+    if (target.status === 'running') throw new FoundryError('Migration refuses a matching running legacy Factory record.');
+    if (target.status === 'interrupted' || target.task_id !== null || target.session_id !== null) {
+      throw new FoundryError('Migration refuses ambiguous legacy Factory task state.');
+    }
+    const build = target.stage_verification.build;
+    if (isRecord(build)) {
+      const tasks = (Array.isArray(build.tasks) ? build.tasks : []) as JsonRecord[];
+      if (['fixing', 'needs_fix', 'checkpoint_failed'].includes(String(build.status))
+        || tasks.some((task) => task.status === 'working')
+        || (build.status === 'building' && (!tasks.length || tasks.some((task) => task.status !== 'done')))) {
+        throw new FoundryError('Migration refuses in-flight or ambiguous legacy Factory build state.');
+      }
+    }
+  }
+  const records: JsonRecord[] = result.data.projects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    slug: project.slug,
+    path: project.path,
+    status: project.status,
+    stage: project.stage,
+    task_id: project.task_id,
+    session_id: project.session_id,
+    build: project.stage_verification.build ?? null,
+  }));
+  return { bytes, records, matching: target };
+}
+
+async function acquireFactoryLock(lockPath: string, createMissing: boolean): Promise<(() => Promise<void>) | null> {
+  rejectSymlinkComponents(lockPath);
+  let metadata;
+  try {
+    metadata = await lstat(lockPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    if (!createMissing) return null;
+    await mkdir(path.dirname(lockPath), { recursive: true, mode: 0o700 });
+    try {
+      const handle = await open(lockPath, 'wx', 0o600);
+      await handle.close();
+    } catch (createError) {
+      if ((createError as NodeJS.ErrnoException).code !== 'EEXIST') throw createError;
+    }
+    metadata = await lstat(lockPath);
+  }
+  if (metadata.isSymbolicLink() || !metadata.isFile()) {
+    throw new FoundryError('Migration refuses an unsafe shared Factory lock file.');
+  }
+  return new Promise((resolve, reject) => {
+    const child = spawn('flock', ['-n', lockPath, 'sh', '-c', 'printf "foundry-lock-acquired\\n"; cat'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    let acquired = false;
+    let settled = false;
+    let output = '';
+    let errorOutput = '';
+    child.stdout.on('data', (chunk: Buffer) => {
+      output += chunk.toString();
+      if (!acquired && output.includes('foundry-lock-acquired')) {
+        acquired = true;
+        settled = true;
+        resolve(async () => {
+          child.stdin.end();
+          if (child.exitCode === null) await new Promise<void>((done) => child.once('close', () => done()));
+        });
+      }
+    });
+    child.stderr.on('data', (chunk: Buffer) => { errorOutput += chunk.toString(); });
+    child.once('error', (error) => {
+      if (settled) return;
+      settled = true;
+      reject(new FoundryError('Cannot safely inspect the shared Factory lock; migration requires a usable flock utility.', { cause: error }));
+    });
+    child.once('close', (code) => {
+      if (settled) return;
+      settled = true;
+      reject(new FoundryError(code === 1
+        ? 'Migration refuses an active shared Factory lock.'
+        : `Cannot inspect the shared Factory lock${errorOutput ? `: ${errorOutput.trim()}` : ''}.`));
+    });
+  });
+}
+
+async function acquireFactoryLocks(
+  sourceRoot: string,
+  project: z.infer<typeof legacyFactoryProjectSchema> | null,
+  createMissing: boolean,
+): Promise<() => Promise<void>> {
+  if (!project) return async () => {};
+  const lockPaths = [
+    path.join(sourceRoot, FACTORY_REGISTRY_LOCK),
+    path.join(sourceRoot, FACTORY_LEASES, `${project.id}.lock`),
+  ];
+  const releases: Array<() => Promise<void>> = [];
+  try {
+    for (const lockPath of lockPaths) {
+      const release = await acquireFactoryLock(lockPath, createMissing);
+      if (release) releases.push(release);
+    }
+  } catch (error) {
+    for (const release of releases.reverse()) await release();
+    throw error;
+  }
+  return async () => {
+    for (const release of releases.reverse()) await release();
+  };
 }
 
 async function backupPin(root: string): Promise<string> {
@@ -135,7 +387,11 @@ async function backupPin(root: string): Promise<string> {
         entries.push({ path: child, mode: stats.mode & 0o777 });
         await visit(child);
       } else if (stats.isFile()) {
-        entries.push({ path: child, mode: stats.mode & 0o777, sha256: digest(await readFile(target)) });
+        entries.push({
+          path: child,
+          mode: stats.mode & 0o777,
+          sha256: digest(await readRegularFile(target, 'Migration backup contains an unsupported file type.')),
+        });
       } else {
         throw new FoundryError('Migration backup contains an unsupported file type.');
       }
@@ -147,7 +403,10 @@ async function backupPin(root: string): Promise<string> {
 
 async function readObject(root: string, relative: string): Promise<JsonRecord | null> {
   try {
-    const parsed: unknown = JSON.parse(await readFile(path.join(root, relative), 'utf8'));
+    const parsed: unknown = JSON.parse((await readRegularFile(
+      path.join(root, relative),
+      `Migration refuses unsafe ${relative}`,
+    )).toString('utf8'));
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new FoundryError(`Migration refuses malformed ${relative}`);
     }
@@ -254,14 +513,22 @@ async function rejectUnsupportedState(root: string, allowPending = false): Promi
   }
 }
 
-async function inspect(rootInput: string, sourceRootInput: string, allowPending = false): Promise<MigrationInspection> {
+async function inspect(
+  rootInput: string,
+  sourceRootInput: string,
+  allowPending = false,
+  checkInstallPlan = true,
+): Promise<MigrationInspection> {
   const root = path.resolve(rootInput);
   const sourceRoot = path.resolve(sourceRootInput);
   rejectSymlinkComponents(root);
   rejectSymlinkComponents(sourceRoot);
   await walkNoSymlinks(root, '.foundry');
   await walkNoSymlinks(root, 'docs');
+  await walkNoSymlinks(sourceRoot, '.foundry/state/factory');
   await rejectUnsupportedState(root, allowPending);
+  const factory = await validateLegacyFactoryRegistry(root, sourceRoot);
+  if (checkInstallPlan) await preflightLegacyInstallWorkspace(sourceRoot, root);
   const preserved: string[] = [];
   for (const relative of ['.foundry', 'docs']) {
     try {
@@ -271,17 +538,6 @@ async function inspect(rootInput: string, sourceRootInput: string, allowPending 
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
   }
-  const registryPath = path.join(sourceRoot, FACTORY_REGISTRY);
-  let archivedFactoryRegistry = false;
-  try {
-    const registryStat = await lstat(registryPath);
-    if (registryStat.isSymbolicLink() || !registryStat.isFile()) {
-      throw new FoundryError('Migration refuses an unsafe legacy Factory registry.');
-    }
-    archivedFactoryRegistry = true;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-  }
   return {
     root,
     sourceRoot,
@@ -289,40 +545,104 @@ async function inspect(rootInput: string, sourceRootInput: string, allowPending 
     legacy: true,
     backup: null,
     preserved,
-    archivedFactoryRegistry,
+    archivedFactoryRegistry: factory.bytes !== null,
+    legacyFactoryRecords: factory.records,
+    matchingFactoryRecord: factory.matching,
+    legacyFactoryRegistryBytes: factory.bytes,
   };
 }
 
-async function backupOwnerData(root: string, sourceRoot: string): Promise<{ path: string; archivedFactoryRegistry: boolean }> {
+async function backupOwnerData(
+  root: string,
+  sourceRoot: string,
+  inspection: MigrationInspection,
+): Promise<{ path: string; archivedFactoryRegistry: boolean }> {
   const backup = path.join(path.dirname(root), `${path.basename(root)}${BACKUP_PREFIX}${Date.now()}-${randomUUID().slice(0, 8)}`);
-  await mkdir(backup, { recursive: true, mode: 0o700 });
-  for (const relative of ['.foundry', 'docs']) {
-    try {
-      await lstat(path.join(root, relative));
-      await cp(path.join(root, relative), path.join(backup, relative), { recursive: true, errorOnExist: true });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-    }
-  }
-  const registrySource = path.join(sourceRoot, FACTORY_REGISTRY);
-  let archivedFactoryRegistry = false;
   try {
-    const registryStat = await lstat(registrySource);
-    if (registryStat.isSymbolicLink() || !registryStat.isFile()) {
-      throw new FoundryError('Migration refuses an unsafe legacy Factory registry.');
+    await mkdir(backup, { recursive: true, mode: 0o700 });
+    for (const relative of ['.foundry', 'docs']) {
+      try {
+        await lstat(path.join(root, relative));
+        await copyOwnerTree(root, backup, relative);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
     }
-    await cp(registrySource, path.join(backup, 'legacy-factory-projects.json'), { errorOnExist: true });
-    await atomicJson(backup, 'legacy-factory-archive.json', {
-      schema_version: 1,
-      resumable: false,
-      source: FACTORY_REGISTRY,
-      sha256: digest(await readFile(registrySource)),
-    });
-    archivedFactoryRegistry = true;
+    if (inspection.legacyFactoryRegistryBytes) {
+      const registrySource = path.join(sourceRoot, FACTORY_REGISTRY);
+      const currentBytes = await readRegularFile(registrySource, 'Migration refuses an unsafe legacy Factory registry.');
+      if (digest(currentBytes) !== digest(inspection.legacyFactoryRegistryBytes)) {
+        throw new FoundryError('Legacy Factory registry changed during migration preflight.');
+      }
+      await atomicWrite(backup, 'legacy-factory-projects.json', inspection.legacyFactoryRegistryBytes);
+      await atomicJson(backup, 'legacy-factory-archive.json', {
+        schema_version: 1,
+        resumable: false,
+        source: FACTORY_REGISTRY,
+        sha256: digest(inspection.legacyFactoryRegistryBytes),
+        controller_discovery: 'Only records in this framework registry are discoverable; controllers in arbitrary directories cannot be enumerated.',
+      });
+      await atomicJson(backup, 'legacy-factory-records.json', {
+        schema_version: 1,
+        resumable: false,
+        projects: inspection.legacyFactoryRecords,
+      });
+    }
+    return { path: backup, archivedFactoryRegistry: inspection.archivedFactoryRegistry };
+  } catch (error) {
+    await rm(backup, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+async function copyOwnerTree(sourceRoot: string, backupRoot: string, relative: string): Promise<void> {
+  const source = path.join(sourceRoot, relative);
+  const metadata = await lstat(source);
+  if (metadata.isSymbolicLink()) throw new FoundryError('Migration refuses symlinked owner data.');
+  const target = path.join(backupRoot, relative);
+  if (metadata.isDirectory()) {
+    await mkdir(target, { recursive: true, mode: 0o700 });
+    const entries = (await readdir(source, { withFileTypes: true }))
+      .sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+    for (const entry of entries) await copyOwnerTree(sourceRoot, backupRoot, path.join(relative, entry.name));
+    await chmod(target, metadata.mode & 0o777);
+    return;
+  }
+  if (!metadata.isFile()) throw new FoundryError('Migration refuses a special file in owner data.');
+  const bytes = await readRegularFile(source, 'Migration refuses a special file in owner data.');
+  await atomicWrite(backupRoot, relative, bytes);
+  await chmod(target, metadata.mode & 0o777);
+}
+
+async function preservedRolesFromBackup(root: string, backup: string): Promise<PreservedManagedFiles> {
+  const preserved = new Map<string, { bytes: Buffer; mode: number }>();
+  const backupRoles = path.join(backup, '.foundry/roles.json');
+  let backupStat;
+  try {
+    backupStat = await lstat(backupRoles);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
-  return { path: backup, archivedFactoryRegistry };
+  if (!backupStat) return preserved;
+  if (backupStat.isSymbolicLink() || !backupStat.isFile()) {
+    throw new FoundryError('Migration backup contains unsafe preserved owner roles.');
+  }
+  await loadRoles(backup);
+  const bytes = await readRegularFile(backupRoles, 'Migration backup contains an unsupported file type.');
+  const ownerRoles = path.join(root, '.foundry/roles.json');
+  let ownerStat;
+  try {
+    ownerStat = await lstat(ownerRoles);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  if (!ownerStat?.isFile() || ownerStat.isSymbolicLink()
+    || (ownerStat.mode & 0o777) !== (backupStat.mode & 0o777)
+    || !Buffer.from(await readRegularFile(ownerRoles, 'Migration refuses unsafe owner roles.')).equals(bytes)) {
+    throw new FoundryError('Migration recovery refuses changed owner roles bytes or mode.');
+  }
+  preserved.set('.foundry/roles.json', { bytes, mode: backupStat.mode & 0o777 });
+  return preserved;
 }
 
 export async function migrateWorkspace(
@@ -349,58 +669,114 @@ export async function migrateWorkspace(
       if (await backupPin(parsed.data.backup) !== parsed.data.backup_pin) {
         throw new FoundryError('Migration recovery backup changed after it was journaled.');
       }
-      const inspection = await inspect(root, sourceRoot, true);
-      if (inspection.sourcePin !== parsed.data.source_pin) {
-        throw new FoundryError('Migration recovery requires exactly the pinned source runtime.');
+      const inspection = await inspect(root, sourceRoot, true, false);
+      const archive = await readObject(parsed.data.backup, 'legacy-factory-archive.json');
+      const expectedFactoryPin = parsed.data.legacy_factory_pin !== undefined
+        ? parsed.data.legacy_factory_pin
+        : (typeof archive?.sha256 === 'string' && SHA256.test(archive.sha256) ? archive.sha256 : null);
+      const actualFactoryPin = inspection.legacyFactoryRegistryBytes
+        ? digest(inspection.legacyFactoryRegistryBytes)
+        : null;
+      if (actualFactoryPin !== expectedFactoryPin) {
+        throw new FoundryError('Migration recovery requires the exact legacy Factory registry archived with the backup.');
       }
-      const result = await installWorkspaceWithSharedGuard(
-        sourceRoot,
-        root,
-        true,
-        await exists(root, '.foundry/install-pending.json'),
-        true,
-      );
-      await rm(path.join(root, JOURNAL), { force: true });
-      return {
-        ...result,
-        migrated: true,
-        recovered: true,
-        backup: parsed.data.backup,
-        archived_factory_registry: await exists(parsed.data.backup, 'legacy-factory-archive.json'),
-      };
+      const releaseFactoryLocks = await acquireFactoryLocks(sourceRoot, inspection.matchingFactoryRecord, true);
+      try {
+        const lockedInspection = await inspect(root, sourceRoot, true, false);
+        if (lockedInspection.sourcePin !== parsed.data.source_pin
+          || (lockedInspection.legacyFactoryRegistryBytes
+            ? digest(lockedInspection.legacyFactoryRegistryBytes)
+            : null) !== expectedFactoryPin) {
+          throw new FoundryError('Migration recovery requires exactly the pinned source runtime and Factory registry.');
+        }
+        const preservedRoles = await preservedRolesFromBackup(root, parsed.data.backup);
+        const installPending = await exists(root, '.foundry/install-pending.json');
+        const result = await installWorkspaceWithSharedGuard(
+          sourceRoot,
+          root,
+          true,
+          installPending,
+          true,
+          installPending ? preservedRoles : undefined,
+        );
+        await rm(path.join(root, JOURNAL), { force: true });
+        return {
+          ...result,
+          migrated: true,
+          recovered: true,
+          backup: parsed.data.backup,
+          archived_factory_registry: await exists(parsed.data.backup, 'legacy-factory-archive.json'),
+        };
+      } finally {
+        await releaseFactoryLocks();
+      }
     }
     const inspection = await inspect(root, sourceRoot);
     if (mode === 'dry-run') {
-      return { ...inspection, would_write: false };
+      const releaseFactoryLocks = await acquireFactoryLocks(sourceRoot, inspection.matchingFactoryRecord, false);
+      try {
+        return {
+          root: inspection.root,
+          sourceRoot: inspection.sourceRoot,
+          sourcePin: inspection.sourcePin,
+          legacy: inspection.legacy,
+          preserved: inspection.preserved,
+          archivedFactoryRegistry: inspection.archivedFactoryRegistry,
+          matchingFactoryRecord: Boolean(inspection.matchingFactoryRecord),
+          controllerDiscoveryLimitations: 'Controllers in arbitrary directories outside this framework registry cannot be enumerated automatically.',
+          would_write: false,
+        };
+      } finally {
+        await releaseFactoryLocks();
+      }
     }
-    const backupResult = await backupOwnerData(root, sourceRoot);
-    const backup = backupResult.path;
-    if (await sourcePin(sourceRoot) !== inspection.sourcePin) {
-      await rm(backup, { recursive: true, force: true });
-      throw new FoundryError('Migration source changed during preflight; no project changes were made.');
-    }
-    const backupDigest = await backupPin(backup);
-    await atomicJson(root, JOURNAL, {
-      schema_version: 1,
-      runtime: 'typescript',
-      source_root: sourceRoot,
-      source_pin: inspection.sourcePin,
-      backup,
-      backup_pin: backupDigest,
-      started_at: new Date().toISOString(),
-    } satisfies z.infer<typeof migrationJournalSchema>);
+    const releaseFactoryLocks = await acquireFactoryLocks(sourceRoot, inspection.matchingFactoryRecord, true);
     try {
-      const result = await installWorkspaceWithSharedGuard(sourceRoot, root, true, false, true);
-      await rm(path.join(root, JOURNAL), { force: true });
-      return {
-        ...result,
-        migrated: true,
-        backup,
-        archived_factory_registry: backupResult.archivedFactoryRegistry,
-        fresh_typed_reviews_required: true,
-      };
-    } catch (error) {
-      throw new FoundryError(`Migration was interrupted or refused; recover explicitly with --recover. Backup: ${backup}`, { cause: error });
+      const guardedInspection = await inspect(root, sourceRoot);
+      const backupResult = await backupOwnerData(root, sourceRoot, guardedInspection);
+      const backup = backupResult.path;
+      let journalWritten = false;
+      try {
+        const currentFactoryPin = guardedInspection.legacyFactoryRegistryBytes
+          ? digest(guardedInspection.legacyFactoryRegistryBytes)
+          : null;
+        const freshFactory = await validateLegacyFactoryRegistry(root, sourceRoot);
+        const freshFactoryPin = freshFactory.bytes ? digest(freshFactory.bytes) : null;
+        if (await sourcePin(sourceRoot) !== guardedInspection.sourcePin || freshFactoryPin !== currentFactoryPin) {
+          throw new FoundryError('Migration source changed during preflight; no project changes were made.');
+        }
+        const backupDigest = await backupPin(backup);
+        const preservedRoles = await preservedRolesFromBackup(root, backup);
+        await atomicJson(root, JOURNAL, {
+          schema_version: 1,
+          runtime: 'typescript',
+          source_root: sourceRoot,
+          source_pin: guardedInspection.sourcePin,
+          legacy_factory_pin: currentFactoryPin,
+          backup,
+          backup_pin: backupDigest,
+          started_at: new Date().toISOString(),
+        } satisfies z.infer<typeof migrationJournalSchema>);
+        journalWritten = true;
+        const result = await installWorkspaceWithSharedGuard(sourceRoot, root, true, false, true, preservedRoles);
+        await rm(path.join(root, JOURNAL), { force: true });
+        return {
+          ...result,
+          migrated: true,
+          backup,
+          archived_factory_registry: backupResult.archivedFactoryRegistry,
+          fresh_typed_reviews_required: true,
+        };
+      } catch (error) {
+        const recoverable = journalWritten || await exists(root, JOURNAL);
+        if (!recoverable) await rm(backup, { recursive: true, force: true });
+        if (recoverable) {
+          throw new FoundryError(`Migration was interrupted or refused; recover explicitly with --recover. Backup: ${backup}`, { cause: error });
+        }
+        throw error;
+      }
+    } finally {
+      await releaseFactoryLocks();
     }
   });
 }

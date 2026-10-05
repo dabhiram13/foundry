@@ -1,112 +1,93 @@
-# Terminal command reference
+# Terminal and command reference
 
-These are the current stable launcher commands. Run `./foundry --help` or add
-`--help` after a command for the authoritative option list. The browser is optional.
-The TypeScript migration is staged; it does not silently replace existing projects.
+The `foundry` executable is the only runtime entry point. A TTY invocation with
+no command opens the interactive terminal; a non-TTY invocation prints help and
+exits. Commands accept `--json` for machine-readable output where documented.
+Unknown or command-inapplicable options are rejected before dispatch.
 
-## Select your projects folder
+## Interactive terminal
 
-`--products-dir PATH` is a global option, placed before the command. It defaults
-to a sibling `products/` folder rather than putting product code in this checkout.
-Use the same directory for subsequent commands:
+The terminal accepts slash commands, not shell input:
 
-```sh
-./foundry --products-dir "$HOME/foundry-projects" list
+| Command | Action |
+| --- | --- |
+| `/help` | Show available terminal commands |
+| `/projects` | List saved projects |
+| `/new NAME --idea TEXT` | Create a project explicitly |
+| `/use ID_OR_SLUG` | Select a project |
+| `/run` | Continue until an approval, completion or failure boundary |
+| `/review` | Print the pending document and its exact revision |
+| `/approve` | Approve the displayed revision |
+| `/stop` | Stop the selected project run |
+| `/recover` | Inspect and recover an interrupted run |
+| `/configure OPTIONS` | Configure the selected project |
+| `/roles` | List available neutral roles |
+| `/providers` | List available provider adapters |
+| `/exit` | Leave terminal mode |
+
+Freeform input is not evaluated as shell or sent to a model. Use explicit `new`
+options to provide an idea. Input remains responsive while a run is active.
+
+## Product commands
+
+```text
+foundry new NAME --idea TEXT [--adapter NAME] [--products-dir DIR]
+foundry list [--products-dir DIR]
+foundry status PROJECT
+foundry configure PROJECT [--adapter NAME] [--billing local|subscription]
+  [--confirmed|--revoke-consent] [--role STAGE=NAME]
+foundry run PROJECT
+foundry review PROJECT
+foundry approve PROJECT --revision HASH
+foundry stop PROJECT
+foundry recover PROJECT
+foundry roles
+foundry providers [PROJECT]
 ```
 
-`PROJECT` below means the exact project slug or UUID printed by `new` and `list`,
-not an arbitrary filesystem path. Use quotation marks around names and paths
-containing spaces.
+Each explicit `run PROJECT` performs one stage. Approval requires the exact
+revision printed for the pending Plan or Design; do not shorten or substitute it.
+`--confirmed` is explicit billing consent. No command silently enables API
+billing. `--json` produces structured output rather than interactive prompts.
 
-## Create and configure
+## Installation and migration
 
-```sh
-./foundry new "Booking tool" --idea "Let customers book one appointment slot"
-./foundry list
-./foundry status booking-tool
-./foundry configure booking-tool --provider codex
-./foundry configure booking-tool --confirm-subscription
+```text
+foundry init --project PATH [--update] [--recover]
+foundry migrate --project PATH --dry-run
+foundry migrate --project PATH --apply [--recover]
 ```
 
-`new` creates the project without starting AI work. Optional `--provider`, `--model`
-and `--reasoning` preferences can be provided at creation or with `configure`.
-Omitting a configuration option preserves its current value; `--model ""` or
-`--reasoning ""` clears that override. Changing providers clears subscription
-confirmation. Confirm again only after checking the selected provider and account.
-`--revoke-subscription` removes that confirmation.
+Normal `init` refuses an existing unmarked `.foundry` workspace. `--recover`
+recovers an interrupted TypeScript installation; it does not authorize legacy
+import. Use `migrate` explicitly for legacy workspaces. It requires exactly one
+of `--dry-run` or `--apply`; `--recover` is only valid with `--apply`.
 
-The subscription flag is your explicit confirmation, not a billing lookup or an
-instruction to purchase anything. `codex login` is a separate provider command.
-See [provider support](PROVIDERS.md) before selecting a custom adapter.
+## Scoped work
 
-## Run one step
+`work` provides one-stage lifecycle operations for a bounded repository change:
 
-```sh
-./foundry run booking-tool
-./foundry status booking-tool
+```text
+foundry work status [--project PATH]
+foundry work start SLUG --spec PATH [--project PATH]
+foundry work pause|resume|verify|complete|recover [--project PATH]
+foundry work workflow guide|context|gate|record|feedback [OPTIONS]
 ```
 
-Each `run` executes one current step: Research, Plan, Design, Build, Test or Ship.
-The terminal prints what happened and the next command. Do not loop unattended
-through approvals. Build may include several small tasks with checks, bounded
-repairs and Git checkpoints. A failed or interrupted step is not complete.
+`verify` and `complete` return a meaningful result in human or JSON mode and
+preserve nested task, check, review and active-run state. These commands do not
+fabricate product Research, Design, or Ship evidence.
 
-## Read and approve
+## Provider operations
 
-When Plan or Design is awaiting approval:
-
-```sh
-./foundry review booking-tool
+```text
+foundry provider [--project PATH]
+foundry provider run --adapter NAME --prompt TEXT [--project PATH] [--billing MODE]
+foundry provider run --request PATH [--project PATH]
+foundry provider status [TASK_ID] [--project PATH]
+foundry provider cancel|reconcile TASK_ID [--project PATH]
 ```
 
-Read the document and run the exact approval command printed below it, using the
-SHA-256 revision you reviewed. `approve PROJECT --revision REVISION` approves
-only that saved revision. Editing the document invalidates the old revision.
-The next stage requires a separate `run` command.
-
-To read another saved document without approving it:
-
-```sh
-./foundry review booking-tool --path docs/product/research.md
-```
-
-## Stop or retry
-
-From another terminal while a step is running:
-
-```sh
-./foundry stop booking-tool
-./foundry status booking-tool
-```
-
-Stopping an idle or approval-pending project does not create an interrupted run.
-Read any failure before retrying with `run`. A retry does not authorize a different
-provider, a paid fallback, deployment or a new account connection.
-
-## Inspect providers
-
-```sh
-./foundry providers
-./foundry providers booking-tool
-```
-
-The first command shows framework registration; the second reads the project's
-copied registry. Both show metadata, not a live qualification certificate.
-
-## Optional browser
-
-```sh
-./foundry ui
-./foundry --products-dir "$HOME/foundry-projects" ui --no-browser --port 8765
-```
-
-The local browser uses the same stable controller and projects. It is not the
-public documentation website and should not be exposed to the internet.
-Experimental ChatGPT authentication/execution remains on this legacy browser path.
-
-## Existing repositories and advanced records
-
-Use [runtime and recovery](RUNTIME.md) for installation into an existing repository,
-run records, checks, completion and repair. Use [customization](CUSTOMIZATION.md)
-for adding project-specific checks. These lower-level tools are not a second
-automatically running product builder.
+Provider billing, capability and process options are validated for each command.
+See [providers](PROVIDERS.md) before configuring an adapter. For project files,
+settings, recovery and the default products directory, see [runtime](RUNTIME.md).

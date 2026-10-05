@@ -47,6 +47,13 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
     npm_config_audit: 'false',
     npm_config_fund: 'false',
   };
+  for (const executable of ['python', 'python3']) {
+    assert.equal(
+      spawnSync(executable, ['--version'], { encoding: 'utf8', env }).error?.code,
+      'ENOENT',
+      `${executable} must be unavailable during the isolated package test`,
+    );
+  }
 
   const packed = run('npm', [
     'pack',
@@ -58,14 +65,18 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
   const packRecord = JSON.parse(packed.stdout)[0];
   const packedFiles = packRecord.files.map(({ path: file }) => file).sort();
   assert.deepEqual(packedFiles, [
+    '.foundry/LICENSE-framework',
+    '.foundry/THIRD_PARTY_NOTICES.md',
     '.foundry/roles.json',
     'LICENSE',
     'README.md',
     'THIRD_PARTY_NOTICES.md',
     'dist/runtime/foundry-worker.cjs',
     'dist/runtime/foundry.cjs',
+    'licenses/Zod-MIT.txt',
     'package.json',
   ]);
+  assert.doesNotMatch(packedFiles.join('\n'), /\b(?:app|server|mcp|python|state|tests|scripts)\b/i);
 
   const tarball = path.join(base, packRecord.filename);
   run('npm', [
@@ -82,7 +93,17 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
   assert.equal(metadata.private, true);
   assert.deepEqual(metadata.bin, { foundry: 'dist/runtime/foundry.cjs' });
   assert.deepEqual(Object.keys(metadata.bin), ['foundry']);
-  assert.deepEqual((await readdir(path.join(installedRoot, '.foundry'))).sort(), ['roles.json']);
+  assert.deepEqual(metadata.dependencies ?? {}, {});
+  assert.doesNotMatch(JSON.stringify(metadata), /@modelcontextprotocol|@openai\/mcp|python|mcp\.cjs/i);
+  assert.deepEqual((await readdir(path.join(installedRoot, '.foundry'))).sort(), [
+    'LICENSE-framework',
+    'THIRD_PARTY_NOTICES.md',
+    'roles.json',
+  ]);
+  const zodLicense = await readFile(path.join(installedRoot, 'licenses/Zod-MIT.txt'), 'utf8');
+  assert.match(zodLicense, /Copyright \(c\) 2025 Colin McDonnell/);
+  assert.match(zodLicense, /Permission is hereby granted, free of charge/);
+  assert.match(zodLicense, /THE SOFTWARE IS PROVIDED "AS IS"/);
   await assert.rejects(readFile(path.join(installedRoot, 'dist/runtime/project.cjs')));
   await assert.rejects(readFile(path.join(installedRoot, 'dist/runtime/assets/roles.json')));
 
@@ -90,6 +111,7 @@ test('npm tarball exposes one private Node bin and runs outside the checkout', a
   const help = run(executable, ['--help'], { cwd: prefix, env });
   assert.match(help.stdout, /Foundry terminal-first runtime/);
   assert.doesNotMatch(help.stdout, /\b(?:typed|mcp|http|python)\b/i);
+  assert.ok(run(executable, ['roles'], { cwd: prefix, env }).stdout.trim());
 
   const created = run(executable, [
     'new',

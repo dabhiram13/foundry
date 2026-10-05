@@ -6,6 +6,7 @@ import { cancel, execute, providerStatus, registry, reconcile } from '../runtime
 import { writeResult } from './output.js';
 
 type Options = Record<string, string | boolean | string[]>;
+type JsonRecord = Record<string, unknown>;
 
 interface OptionSpec {
   value?: readonly string[];
@@ -107,6 +108,39 @@ function rootOption(options: Options): string {
 
 function output(value: unknown, json = false): void {
   writeResult(value, json);
+}
+
+async function runLifecycleCommand(
+  command: 'verify' | 'complete',
+  root: string,
+  json: boolean,
+): Promise<number> {
+  try {
+    const before = command === 'complete' ? await status(root) : null;
+    const exitCode = command === 'verify' ? await verify(root) : await complete(root);
+    const current = await status(root);
+    const active = before?.active && typeof before.active === 'object'
+      ? before.active as JsonRecord
+      : null;
+    output({
+      command,
+      status: exitCode === 0 ? command === 'complete' ? 'completed' : 'verified' : 'failed',
+      exit_code: exitCode,
+      ...(command === 'complete' ? { completed_run_id: active?.run_id ?? null } : {}),
+      result: current,
+    }, json);
+    return exitCode;
+  } catch (error) {
+    if (!json) throw error;
+    const exitCode = error instanceof FoundryError ? 2 : 1;
+    output({
+      command,
+      status: 'failed',
+      exit_code: exitCode,
+      error: error instanceof Error ? error.message : String(error),
+    }, true);
+    return exitCode;
+  }
 }
 
 const PROJECT_OPTION = ['project'] as const;
@@ -278,11 +312,11 @@ export async function dispatchProjectCommand(arguments_: string[]): Promise<numb
   }
   if (command === 'verify') {
     const { options } = parse(rest, { value: [...PROJECT_OPTION] });
-    return verify(rootOption(options));
+    return runLifecycleCommand('verify', rootOption(options), options.json === true);
   }
   if (command === 'complete') {
     const { options } = parse(rest, { value: [...PROJECT_OPTION] });
-    return complete(rootOption(options));
+    return runLifecycleCommand('complete', rootOption(options), options.json === true);
   }
   if (command === 'recover') {
     const { options } = parse(rest, { value: [...PROJECT_OPTION] });

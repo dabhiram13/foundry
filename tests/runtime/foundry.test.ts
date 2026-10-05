@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { chmod, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -125,6 +126,123 @@ test('init installs into an existing repository without changing Git history or 
   const recovery = runCli(['migrate', '--project', project, '--apply', '--recover', '--json'], base);
   assert.equal(recovery.status, 2);
   assert.match(recovery.stderr, /No interrupted migration journal is present/);
+});
+
+test('init --recover resumes a pending install without legacy migration permission', async (t) => {
+  const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-cli-init-recover-'));
+  const project = path.join(base, 'owner-repository');
+  const runtimeDirectory = path.join(project, '.foundry/runtime');
+  t.after(async () => {
+    await chmod(runtimeDirectory, 0o700).catch(() => {});
+    await rm(base, { recursive: true, force: true });
+  });
+  await mkdir(project);
+  const initialized = runCli(['init', '--project', project], base);
+  assert.equal(initialized.status, 0, initialized.stderr);
+
+  await chmod(runtimeDirectory, 0o500);
+  const interrupted = runCli(['init', '--project', project, '--update'], base);
+  assert.notEqual(interrupted.status, 0);
+  await chmod(runtimeDirectory, 0o700);
+  assert.equal(existsSync(path.join(project, '.foundry/install-pending.json')), true);
+
+  const recovered = runCli(['init', '--project', project, '--recover', '--update', '--json'], base);
+  assert.equal(recovered.status, 0, recovered.stderr);
+  assert.equal(JSON.parse(recovered.stdout).recovered, true);
+  assert.equal(existsSync(path.join(project, '.foundry/install-pending.json')), false);
+});
+
+test('init refuses unmarked Foundry data and command options are validated before mutation', async (t) => {
+  const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-cli-validation-'));
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const legacy = path.join(base, 'legacy-repository');
+  await mkdir(path.join(legacy, '.foundry'), { recursive: true });
+  await writeFile(path.join(legacy, '.foundry/project.json'), '{"schema_version":1}\n');
+
+  const init = runCli(['init', '--project', legacy], base);
+  assert.equal(init.status, 2);
+  assert.match(init.stderr, /unmarked Foundry workspace/);
+  assert.equal(existsSync(path.join(legacy, '.foundry/runtime.json')), false);
+
+  const products = path.join(base, 'products');
+  const ignoredFlag = runCli([
+    'new', 'Must Not Exist', '--idea', 'Parser errors must precede service mutation.',
+    '--products-dir', products, '--confirmed',
+  ], base);
+  assert.equal(ignoredFlag.status, 2);
+  assert.match(ignoredFlag.stderr, /--confirmed is not valid for new/);
+  assert.equal(existsSync(products), false);
+
+  const extraPosition = runCli(['status', 'one', 'two', '--products-dir', products], base);
+  assert.equal(extraPosition.status, 2);
+  assert.match(extraPosition.stderr, /accepts at most 1 positional argument/);
+  assert.equal(existsSync(products), false);
+});
+
+test('work verify and complete return one useful JSON result on runtime errors', async (t) => {
+  const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-cli-json-work-'));
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const project = path.join(base, 'unmarked');
+  await mkdir(path.join(project, '.foundry'), { recursive: true });
+  await writeFile(path.join(project, '.foundry/project.json'), '{"name":"Legacy fixture","checks":[]}\n');
+
+  for (const command of ['verify', 'complete']) {
+    const result = runCli(['work', command, '--project', project, '--json'], base);
+    assert.equal(result.status, 2);
+    assert.equal(result.stderr, '');
+    assert.deepEqual(JSON.parse(result.stdout), {
+      command,
+      status: 'failed',
+      exit_code: 2,
+      error: `Cannot ${command} an unmarked or legacy workspace. Inspect it with foundry migrate --project PATH --dry-run before applying an explicit migration.`,
+    });
+  }
+});
+
+test('work verify and complete return saved nested status in successful JSON results', async (t) => {
+  const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-cli-json-success-'));
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const project = path.join(base, 'typed-workspace');
+  await mkdir(project);
+  const initialized = runCli(['init', '--project', project], base);
+  assert.equal(initialized.status, 0, initialized.stderr);
+  const specPath = path.join(project, 'docs/specs/product.md');
+  await mkdir(path.dirname(specPath), { recursive: true });
+  await writeFile(specPath, '# Local work\n');
+  await writeFile(path.join(project, '.foundry/project.json'), JSON.stringify({
+    name: 'Typed Workspace',
+    checks: [{
+      name: 'behavior',
+      command: [process.execPath, '-e', 'process.stdout.write("ok")'],
+      inputs: ['docs/specs/product.md'],
+      timeout: 10,
+      required: true,
+    }],
+  }));
+
+  const started = runCli([
+    'work', 'start', 'local-fix', '--spec', 'docs/specs/product.md', '--project', project, '--json',
+  ], base);
+  assert.equal(started.status, 0, started.stderr);
+  assert.equal(JSON.parse(started.stdout).status, 'building');
+
+  const verified = runCli(['work', 'verify', '--project', project, '--json'], base);
+  assert.equal(verified.status, 0, verified.stderr);
+  const verifyResult = JSON.parse(verified.stdout);
+  assert.equal(verifyResult.command, 'verify');
+  assert.equal(verifyResult.status, 'verified');
+  assert.equal(verifyResult.exit_code, 0);
+  assert.equal(verifyResult.result.active.status, 'verified');
+  assert.ok(verifyResult.result.active.verification);
+
+  const completed = runCli(['work', 'complete', '--project', project, '--json'], base);
+  assert.equal(completed.status, 0, completed.stderr);
+  const completeResult = JSON.parse(completed.stdout);
+  assert.equal(completeResult.command, 'complete');
+  assert.equal(completeResult.status, 'completed');
+  assert.equal(completeResult.exit_code, 0);
+  assert.ok(completeResult.completed_run_id);
+  assert.deepEqual(completeResult.result.active, { status: 'idle' });
 });
 
 test('work and provider subcommands reuse the scoped Node contracts without starting provider work', async (t) => {

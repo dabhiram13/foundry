@@ -1,7 +1,8 @@
 # One terminal-first Foundry
 
-Status: implementation authorized by the owner after the single-path plan.
-This document does not claim completion or authorize npm publication.
+Status: implemented. This spec records the terminal-only boundaries and acceptance
+criteria; current setup and qualification limits are in the main documentation.
+It does not authorize npm publication.
 
 ## Outcome
 
@@ -16,20 +17,8 @@ Do not provision another deployment, change account settings or trigger a manual
 release. Repository pushes may trigger the owner's existing Vercel integration.
 
 This supersedes the earlier product direction of parallel Python/typed paths and
-CLI/browser/MCP interfaces. Preserve historical records; do not keep a second
-execution path merely to preserve an old interface.
-
-## Current implementation and gaps
-
-- The shell launcher selects Python by default and TypeScript through `typed`.
-- The TypeScript project service and tested lifecycle already exist. Reuse them.
-- The typed CLI currently prints JSON, including its default human output; it is
-  not an interactive terminal interface.
-- Two compiled CLI entry points and HTTP/MCP commands remain.
-- The root npm package is private, has no public executable mapping, and does not
-  yet provide the proposed `build` and `start` commands.
-- Static docs use Astro/Starlight, but their preparation still imports landing
-  code and assets from the browser app. Separate these before removing that app.
+CLI/browser/MCP interfaces. Superseded implementation records remain in Git
+history; do not keep a second execution path or duplicate historical manuals.
 
 ## Final boundaries
 

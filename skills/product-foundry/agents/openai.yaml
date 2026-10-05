@@ -1,4 +1,0 @@
-interface:
-  display_name: "Product Foundry (Marketcraft compatibility)"
-  short_description: "Build a product through evidence and conversation"
-  default_prompt: "Use $product-foundry to guide my product idea, selecting the next useful action and checks."

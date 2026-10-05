@@ -12,7 +12,6 @@ export default function links() {
         const relative = decodeURIComponent(target.pathname.slice(1));
         const slug = pages.get(relative);
         node.url = slug ? `${pageUrl(slug)}${target.search}${target.hash}`
-          : relative.startsWith('docs/images/') ? `/${relative}${target.hash}`
           : `https://github.com/dabhiram13/foundry/blob/main/${relative}${target.hash}`;
       }
       for (const child of node.children ?? []) walk(child);

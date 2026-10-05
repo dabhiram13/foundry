@@ -24,7 +24,7 @@ upstream revisions. Missing origin information is not proof of ownership, and a
 local integrity hash is not an upstream revision or license determination.
 
 Foundry is the current product name. Marketcraft and Product Foundry are historical
-names retained in instruction aliases and persisted records, not separate runtime
+names retained in persisted records, not separate runtime
 entry points. Renaming does not alter origin or licensing.
 Preserve notices with copied material. Any future adoption needs an identified
 source/revision, applicable notices, dependency review, and a demonstrated use case;

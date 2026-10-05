@@ -11,6 +11,4 @@ The retained controls adapt Animate UI patterns in
 `site/src/landing/controls.css`. Third-party fonts and asset attribution remain
 beside the assets and in `THIRD_PARTY_NOTICES.md`.
 
-`history/COMPONENT-SOURCES-old.md` preserves the earlier application
-component research. It mentions dependencies and controls that are not part of
-the current runtime or public site.
+Superseded application research remains in Git history, not the current docs.

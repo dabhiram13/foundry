@@ -27,7 +27,6 @@ browser automation.
 ## Navigation and links
 
 The sidebar follows Start, Daily use, Providers, Reference, Architecture and
-Security. Keep links directed at canonical repository sources. `docs/history/`
-contains clearly labeled historical implementation and verification records,
-not current documentation pages. Do not promote old UI evidence to a present
-runtime claim.
+Security. Keep links directed at canonical repository sources. Superseded
+implementation notes and verification reports belong in Git history, not the
+current documentation. Do not promote old UI evidence to a present runtime claim.

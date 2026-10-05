@@ -28,7 +28,7 @@ const recordSchema = z.object({
   title: z.string().min(1),
   source: sourceSchema,
   basis: z.enum(['observed', 'inferred']),
-  status: z.enum(['proposed', 'accepted']),
+  status: z.enum(['proposed', 'accepted', 'rejected']),
   supersedes: z.string().optional(),
   expires_at: z.string().optional(),
   references: z.array(z.string()).default([]),
@@ -149,6 +149,9 @@ async function validateRecord(root: string, payload: unknown, earlier: Record<st
   const parsed = recordSchema.safeParse(item);
   if (!parsed.success) throw new FoundryError(`Invalid record: ${parsed.error.issues.map((issue) => issue.message).join('; ')}`);
   const kind = String(item.kind);
+  if (item.status === 'rejected' && (kind !== 'criterion' || item.required !== false)) {
+    throw new FoundryError('Only nonrequired criteria can be rejected');
+  }
   const allowed = new Set([...commonFields, ...(allowedFields[kind] ?? []), ...(stored ? ['created_at', 'input_revisions', 'reference_revisions'] : [])]);
   const unknown = Object.keys(item).filter((key) => !allowed.has(key));
   if (unknown.length) throw new FoundryError(`Unknown ${kind} fields: ${unknown.sort().join(', ')}`);

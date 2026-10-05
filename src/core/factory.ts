@@ -123,7 +123,10 @@ function invalidateFrom(state: FactoryState, stage: FactoryStage): void {
   state.review = null;
   state.ship = null;
   state.build_tasks = [];
-  if (FACTORY_STAGES.indexOf(stage) <= FACTORY_STAGES.indexOf('scope')) state.workflow_criteria = [];
+  if (FACTORY_STAGES.indexOf(stage) <= FACTORY_STAGES.indexOf('scope')) {
+    state.workflow_criteria = [];
+    state.required_checks_revision = null;
+  }
   if (FACTORY_STAGES.indexOf(stage) <= FACTORY_STAGES.indexOf('scope')) state.approvals.plan = null;
   if (FACTORY_STAGES.indexOf(stage) <= FACTORY_STAGES.indexOf('design')) state.approvals.design = null;
   if (FACTORY_STAGES.indexOf(stage) <= FACTORY_STAGES.indexOf('research')) {
@@ -217,6 +220,7 @@ async function captureUpstream(
 ): Promise<Record<string, string>> {
   const captured: Record<string, string> = {};
   for (const relative of upstreamPaths[stage]) {
+    if (allowMissingBuildArtifacts && relative === FACTORY_CHECKS) continue;
     const revision = await digestDocument(root, relative);
     if (!revision && allowMissingBuildArtifacts && (relative === TASKS || relative === FACTORY_CHECKS)) continue;
     if (!revision) throw new FoundryError(`Required upstream document is missing: ${relative}`);
@@ -381,6 +385,9 @@ async function assertWorkflowCriteria(root: string, state: FactoryState): Promis
     throw new FoundryError('Accepted required verify criteria changed during Build');
   }
   const checks = await configuredChecks(root);
+  if (state.required_checks_revision !== digestJson(checks.filter((check) => check.required))) {
+    throw new FoundryError('Required check configuration changed after Build freeze');
+  }
   for (const frozen of state.workflow_criteria) {
     const matches = activeRequired.filter((record) => record.id === frozen.id);
     if (matches.length !== 1) {
@@ -435,8 +442,24 @@ async function freezeWorkflowCriteria(root: string, state: FactoryState): Promis
   }
   const saved = await workflowContext(root);
   let records = saved.records as JsonRecord[];
-  const activeCriteria = records.filter((record) => record.kind === 'criterion' && record.stage === 'verify'
-    && record.required === true && record.status === 'accepted' && record.freshness === 'active');
+  for (const previous of records) {
+    if (previous.kind !== 'criterion' || previous.stage !== 'verify'
+      || previous.accepted_by !== 'factory-approve' || previous.required !== true
+      || previous.freshness === 'superseded' || typeof previous.acceptance_ref !== 'string') continue;
+    const priorApproval = String(previous.acceptance_ref);
+    const removedId = /^Approved criterion ([A-Z][A-Z0-9_-]{1,63})$/.exec(String(previous.title))?.[1];
+    if (!removedId || previous.id !== criterionRecordId(removedId, priorApproval)
+      || approved.some((current) => current.id === removedId)) continue;
+    await workflowRecord(root, {
+      id: criterionRecordId(removedId, approvalRevision),
+      supersedes: previous.id,
+      kind: 'criterion', title: `Retired criterion ${removedId}`,
+      source: { kind: 'owner', ref: PLAN, observed_at: now() },
+      basis: 'observed', status: 'rejected', stage: 'verify', required: false,
+      expected: previous.expected, method: 'command', command: previous.command,
+      inputs: [PLAN], accepted_by: 'factory-approve', acceptance_ref: approvalRevision,
+    });
+  }
   for (const criterion of approved) {
     const mappingEntry = mapping.value.criteria.find((item) => item.id === criterion.id);
     if (!mappingEntry) throw new FoundryError(`Factory check mapping is missing approved criterion ${criterion.id}`);
@@ -455,7 +478,7 @@ async function freezeWorkflowCriteria(root: string, state: FactoryState): Promis
         id: recordId,
         ...(prior ? { supersedes: prior.id } : {}),
         kind: 'criterion',
-        title: criterion.expected.slice(0, 120),
+        title: `Approved criterion ${criterion.id}`,
         source: { kind: 'owner', ref: PLAN, observed_at: now() },
         basis: 'observed',
         status: 'accepted',
@@ -498,6 +521,7 @@ async function freezeWorkflowCriteria(root: string, state: FactoryState): Promis
     };
   });
   state.documents.checks = digest(mapping.bytes);
+  state.required_checks_revision = digestJson(checks);
   await assertWorkflowCriteria(root, state);
   await save(root, state);
 }
@@ -638,20 +662,6 @@ async function parseTasks(root: string): Promise<string[]> {
   return titles;
 }
 
-function changedProductSourcePaths(root: string): string[] {
-  const listed = new Set<string>();
-  for (const args of [['diff', '--name-only', 'HEAD'], ['ls-files', '--others', '--exclude-standard']]) {
-    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
-    if (result.status !== 0) continue;
-    for (const line of result.stdout.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)) listed.add(line);
-  }
-  return [...listed].filter((relative) => {
-    const parts = relative.split('/');
-    if (parts[0] === '.foundry' || parts[0] === 'docs' || parts[0] === 'tests') return false;
-    return /\.(c|cc|cpp|cs|go|html?|java|js|jsx|mjs|php|py|rb|rs|sh|swift|ts|tsx|vue|svelte|css)$/i.test(relative);
-  });
-}
-
 async function validateBuildBootstrap(root: string, state: FactoryState): Promise<void> {
   const checks = await configuredChecks(root);
   if (!checks.some((check) => check.required) || checks.some((check) => check.required && !check.inputs.length)) {
@@ -670,13 +680,6 @@ async function validateBuildBootstrap(root: string, state: FactoryState): Promis
       throw new FoundryError(`First Build task mapped ${entry.id} to a missing or invalid required check`);
     }
   }
-  const sources = changedProductSourcePaths(root);
-  if (!sources.length) throw new FoundryError('First Build task must create or change product source before checks run');
-  for (const relative of sources) {
-    const file = await readBoundedText(root, relative, 8 * 1024 * 1024);
-    if (file.text.trim()) return;
-  }
-  throw new FoundryError('First Build task must create non-empty product source before checks run');
 }
 
 async function tickTask(root: string, title: string): Promise<void> {
@@ -1148,6 +1151,7 @@ export async function initFactory(rootInput: string, options: FactoryInitOptions
         idea: digest(Buffer.from(ideaText)), research: null, plan: null, design: null, tasks: null, checks: null,
       },
       workflow_criteria: [],
+      required_checks_revision: null,
       build_tasks: [],
       verification_receipt: null,
       review: null,
@@ -1408,7 +1412,7 @@ export async function runFactory(rootInput: string): Promise<FactoryState> {
     } catch (error) {
       const current = await readFactoryState(root) ?? state;
       const canceled = cancellationRequested(root) || /cancel/i.test((error as Error).message);
-      if (current.status !== 'completed' && current.status !== 'awaiting_approval') {
+      if (current.status !== 'completed' && current.status !== 'awaiting_approval' && current.status !== 'shipping') {
         current.status = current.status === 'recovery_required' ? 'recovery_required' : canceled ? 'interrupted' : 'failed';
         current.failure = safeFailure(current.stage, canceled ? 'canceled' : current.stage === 'verify' ? 'review' : current.stage === 'build' ? 'check' : 'artifact');
         await save(root, current);
@@ -1470,6 +1474,7 @@ async function assertCompletedFactoryGate(root: string, state: FactoryState): Pr
     state.verification_receipt,
     state.review.workspace_revision,
   );
+  await lifecycleComplete(root);
 }
 
 export async function recoverFactory(rootInput: string): Promise<FactoryState> {
@@ -1582,7 +1587,7 @@ export async function recoverFactory(rootInput: string): Promise<FactoryState> {
         // A lifecycle completion without a valid matching controller review stays unresolved.
       }
     }
-    state.status = 'recovery_required';
+    state.status = state.status === 'shipping' ? 'shipping' : 'recovery_required';
     state.failure = safeFailure(state.stage, 'recovery');
     await save(root, state);
     return state;

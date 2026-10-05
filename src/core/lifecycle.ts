@@ -761,6 +761,31 @@ async function completionEvidence(root: string, state: RunState): Promise<[strin
   return [fingerprint, validated];
 }
 
+async function factoryCompletionExclusions(root: string, state: RunState): Promise<string[]> {
+  const intent = state.completion;
+  if (!intent) {
+    if (state.status === 'completed' || state.status === 'completing') {
+      throw new FoundryError('Factory completion is missing its durable output intent');
+    }
+    return [];
+  }
+  const paths = [
+    `.foundry/state/runs/${state.run_id}/completion.md`,
+    `docs/built/${state.slug}-${state.run_id}.md`,
+  ];
+  if (!paths.includes(intent.path) || (state.status === 'completed' && state.built_doc !== intent.path)) {
+    throw new FoundryError('Factory completion output does not match its durable intent');
+  }
+  const output = await readFile(within(root, intent.path), 'utf8').catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT' && state.status !== 'completed') return null;
+    throw error;
+  });
+  if (output !== null && output !== intent.text) {
+    throw new FoundryError('Factory completion output changed; preserve it for reconciliation');
+  }
+  return [intent.path];
+}
+
 export async function complete(rootInput: string): Promise<number> {
   const root = await requireRuntimeWorkspace(rootInput, 'complete');
   return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
@@ -780,7 +805,7 @@ export async function complete(rootInput: string): Promise<number> {
                 root,
                 completed.run_id,
                 completed.verification,
-                await workspaceRevision(root, typeof completed.built_doc === 'string' ? [completed.built_doc] : []),
+                await workspaceRevision(root, await factoryCompletionExclusions(root, completed)),
               );
             }
             return 0;
@@ -801,7 +826,7 @@ export async function complete(rootInput: string): Promise<number> {
         root,
         current.run_id,
         current.verification,
-        await workspaceRevision(root, current.completion?.path ? [current.completion.path] : []),
+        await workspaceRevision(root, await factoryCompletionExclusions(root, current)),
       );
     }
     let state = current;
@@ -859,7 +884,7 @@ export async function recover(rootInput: string): Promise<RunState | null> {
           root,
           state.run_id,
           state.verification,
-          await workspaceRevision(root, typeof state.built_doc === 'string' ? [state.built_doc] : []),
+          await workspaceRevision(root, await factoryCompletionExclusions(root, state)),
         );
       }
       await atomicJson(root, '.foundry/state/last-completed.json', {
@@ -876,12 +901,11 @@ export async function recover(rootInput: string): Promise<RunState | null> {
           if (factory.lifecycle_run_id !== state.run_id || !state.verification) {
             throw new FoundryError('Factory controller does not own this completing lifecycle run');
           }
-          const intent = state.completion as { path?: string } | undefined;
           await assertFactoryShipGate(
             root,
             state.run_id,
             state.verification,
-            await workspaceRevision(root, intent?.path ? [intent.path] : []),
+            await workspaceRevision(root, await factoryCompletionExclusions(root, state)),
           );
         }
         await completionEvidence(root, state);
@@ -907,6 +931,7 @@ export async function recover(rootInput: string): Promise<RunState | null> {
         await rm(within(root, '.foundry/state/active.json'));
         return completed;
       } catch (error) {
+        if (await readFactoryState(root)) throw error;
         const intent = state.completion as { path: string; text: string };
         if (intent?.path) {
           const output = await readFile(within(root, intent.path), 'utf8').catch(() => null);

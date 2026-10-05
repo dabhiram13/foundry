@@ -134,6 +134,7 @@ const controllerSchema = z.object({
     checks: sha256Schema.nullable(),
   }).strict(),
   workflow_criteria: z.array(workflowCriterionSchema).max(200),
+  required_checks_revision: sha256Schema.nullable(),
   build_tasks: z.array(taskSchema).max(12),
   verification_receipt: projectPathSchema.nullable(),
   review: reviewBindingSchema.nullable(),
@@ -189,7 +190,7 @@ export async function readBoundedBytes(root: string, relative: string, limit = 8
   const absolute = within(root, relative);
   let handle: Awaited<ReturnType<typeof open>> | undefined;
   try {
-    const flags = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0);
+    const flags = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0);
     handle = await open(absolute, flags);
     const info = await handle.stat();
     if (!info.isFile()) throw new FoundryError(`Required document is not a regular file: ${relative}`);

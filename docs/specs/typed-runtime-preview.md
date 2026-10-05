@@ -12,7 +12,9 @@ The task-planning turn may create `docs/product/tasks.md` while the installed pr
 {"schema_version":1,"criteria":[{"id":"AC-001","check_name":"behavior"}]}
 ```
 
-Each mapped check must be required, declare inputs, and include `docs/specs/product.md`. The controller freezes its name, command, and check inputs separately from the workflow criterion contract inputs (pinned to the Plan). The mapping and configured checks cannot silently change after freeze. This records the declared check-to-criterion relationship; a passing command is not proof that it semantically satisfies the requirement.
+Each mapped check must be required, declare inputs, and include `docs/specs/product.md`. The controller freezes all required check settings, including working directory and environment declarations, separately from the workflow criterion contract inputs (pinned to the Plan). The mapping and required-check set cannot silently change after freeze. This records the declared check-to-criterion relationship; a passing command is not proof that it semantically satisfies the requirement.
+
+An owner-approved Plan revision can replace requirements. The TypeScript controller preserves retired criteria in the ledger with nonrequired `rejected` successor records rather than deleting history. This preview-only record state is not a Python workspace migration.
 
 Review evidence is read from bounded regular files, hashed from their bytes after review, and revalidated before Ship. The reviewer receives the strict review JSON contract and is asked to report `pass`, `fail`, `unverified`, and blockers honestly. Lifecycle completion and recovery also enforce the Factory review gate when controller state exists.
 
@@ -38,8 +40,10 @@ node "$cli" factory --help
 These commands install local files and read status/guidance. They do not connect
 an account or start an AI run. After registering a supported local adapter in
 the workspace's `.foundry/providers.json`, `node "$cli" factory init --name
-"My product" --idea "A local product idea" --adapter ADAPTER_NAME` records the
-opt-in controller settings; `node "$cli" factory status` shows the next action.
+"My product" --idea "A local product idea" --adapter ADAPTER_NAME --project "$preview"` records the
+opt-in controller settings; `node "$cli" factory status --project "$preview"` shows the next action.
+Before Build, initialize its local Git history with `git -C "$preview" init` if
+the workspace is not already a repository. Checkpoints are local commits, not pushes.
 The installed test journey covers an empty-check workspace, two product-changing
 tasks and local Ship using a fake provider. No live provider run is claimed as
 tested. The copied runtime needs Node.js 24, not Python or the framework

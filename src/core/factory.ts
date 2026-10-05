@@ -349,7 +349,7 @@ function stagePrompt(stage: FactoryStage, state: FactoryState, role: {
     ? '\nThis is a bounded repair attempt. Inspect the saved check receipt and fix the product; never weaken or delete a check.'
     : '';
   return [
-    `You are the ${role.name} role in the installed TypeScript project CLI factory preview.`,
+    `You are the ${role.name} role in Foundry.`,
     role.description,
     role.instructions,
     `The current stage is ${FACTORY_STAGE_LABELS[stage]}. Work only inside the workspace and inspect ${paths}.`,

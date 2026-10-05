@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dabhiram13/foundry/main/site/assets/foundry-banner.svg" alt="Foundry" width="960" />
+  <img src="./site/assets/foundry-banner.svg" alt="Foundry" width="960" />
 </p>
 
 # Build software from your terminal.
@@ -29,20 +29,20 @@ Small changes to an existing repository use a [shorter workflow][runtime].
 The final stage, called **Ship** in the CLI, writes a local summary—it does not
 publish or deploy.
 
-## Install the CLI
+## Install
 
-Requires **Node.js 24**, **npm** and **Git**. No Foundry account needed. The
-commands use a POSIX shell; package checks have local Linux evidence, while
-macOS and native Windows remain unqualified. Install the CLI from npm:
+Requires **Node.js 24**, **npm** and **Git**. No Foundry or npm account needed.
 
 ```sh
-npm install --global --ignore-scripts @dabhiram13/foundry
+npm install -g @dabhiram13/foundry
 foundry
 ```
 
 After setup, run `foundry` from any directory to open the interactive terminal.
 Use `foundry --version` to check the installed version and [commands][commands]
 for scripts. No source checkout, website build or AI work is needed to install.
+
+Tested on Linux. macOS and Windows have not been verified.
 
 Follow the [setup guide][getting-started] to connect a provider and start your
 first project, update or uninstall. Find releases on [npm][npm-package]. To
@@ -52,7 +52,7 @@ change Foundry itself, see [contributor setup][contributing].
 
 Codex is built in. Developers can connect other tools through
 [provider adapters][providers]; an API key alone is not enough.
-Other live providers and native Windows remain unqualified.
+Other providers still need live testing.
 
 You confirm subscription use before running AI work. Cloud providers receive the
 prompts and project content sent to them. Local files do not mean local AI

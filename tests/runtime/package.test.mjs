@@ -38,12 +38,13 @@ test('linked CLI runs by name outside the checkout and can be unlinked', async (
     npm_config_update_notifier: 'false',
     npm_config_audit: 'false',
     npm_config_fund: 'false',
+    npm_config_ignore_scripts: 'false',
   };
-  run('npm', ['link', '--ignore-scripts'], { cwd: root, env });
+  run('npm', ['link'], { cwd: root, env });
   const help = run('foundry', ['--help'], { cwd: home, env });
   assert.match(help.stdout, /Foundry terminal-first runtime/);
   assert.ok(run('foundry', ['roles'], { cwd: home, env }).stdout.trim());
-  run('npm', ['unlink', '--global', '--ignore-scripts', '@dabhiram13/foundry'], { cwd: home, env });
+  run('npm', ['unlink', '-g', '@dabhiram13/foundry'], { cwd: home, env });
   assert.equal(existsSync(path.join(prefix, 'bin/foundry')), false);
   assert.ok(existsSync(path.join(root, 'dist/runtime/foundry.cjs')));
 });
@@ -72,6 +73,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     npm_config_update_notifier: 'false',
     npm_config_audit: 'false',
     npm_config_fund: 'false',
+    npm_config_ignore_scripts: 'false',
   };
   for (const executable of ['python', 'python3']) {
     assert.equal(
@@ -106,8 +108,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   const tarball = path.join(base, packRecord.filename);
   run('npm', [
     'install',
-    '--global',
-    '--ignore-scripts',
+    '-g',
     '--no-audit',
     '--no-fund',
     '--prefix',
@@ -122,6 +123,9 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.equal(metadata.repository.url, 'git+https://github.com/dabhiram13/foundry.git');
   assert.equal(metadata.scripts.prepack, 'npm run build:runtime');
   assert.equal(metadata.scripts.prepublishOnly, 'npm test');
+  for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) {
+    assert.equal(metadata.scripts[hook], undefined, `${hook} must not be needed to install`);
+  }
   assert.deepEqual(metadata.bin, { foundry: 'dist/runtime/foundry.cjs' });
   assert.deepEqual(Object.keys(metadata.bin), ['foundry']);
   assert.deepEqual(metadata.dependencies ?? {}, {});
@@ -178,7 +182,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     .then((content) => content.includes('Create one local workspace')), true);
   assert.equal(await readFile(path.join(project.path, '.foundry/runtime.json'), 'utf8')
     .then((content) => JSON.parse(content).runtime), 'typescript');
-  run('npm', ['uninstall', '--global', '--ignore-scripts', '--prefix', prefix, metadata.name], { cwd: home, env });
+  run('npm', ['uninstall', '-g', '--prefix', prefix, metadata.name], { cwd: home, env });
   assert.equal(existsSync(path.join(prefix, 'bin/foundry')), false);
   assert.ok(existsSync(path.join(project.path, 'docs/product/idea.md')));
 });

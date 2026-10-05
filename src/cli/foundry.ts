@@ -8,7 +8,7 @@ import {
   ProjectService, type ConfigureProjectOptions,
 } from '../core/projects.js';
 import { loadRoles } from '../core/roles.js';
-import { closeProjectRuns, isProjectRunActive, startProjectRun } from '../transports/jobs.js';
+import { closeProjectRuns, isProjectRunActive, startProjectRun } from '../runtime/jobs.js';
 import { projectRunExitCode } from './run-exit-code.js';
 import { dispatchProjectCommand } from './project.js';
 import { writeResult } from './output.js';

@@ -4,14 +4,13 @@ Foundry runs on Node.js 24 and npm. It does not need Python, a browser service o
 a Foundry account. Git is required for product checkpoints. Provider requirements
 are separate, and no provider runs during installation or help.
 
-## Install the CLI
+## Install Foundry
 
-Foundry is an npm CLI package with one command: `foundry`. Install it once,
-then run it from any directory. Package checks have local Linux evidence;
-macOS and native Windows remain unqualified.
+Install once, then run `foundry` from any directory. No npm account or access
+token is needed.
 
 ```sh
-npm install --global --ignore-scripts @dabhiram13/foundry
+npm install -g @dabhiram13/foundry
 foundry
 ```
 
@@ -26,19 +25,23 @@ foundry --version
 foundry --help
 ```
 
+The `-g` flag makes the command available from any directory. The package is
+already built and needs no install scripts or extra flags. Tested on Linux;
+macOS and Windows have not been verified.
+
 If `foundry` is not found, check that your npm global executable directory
 (`$(npm prefix -g)/bin` on macOS/Linux) is on `PATH`. If installation reports a
 permissions error, use a Node version manager or a user-writable npm prefix;
 do not retry with `sudo`. See npm's [permissions guide](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally).
 
-## Switch from a source-linked install
+## Switch from a local checkout
 
 If you previously used `npm link`, stop active Foundry work and unlink it
 before installing the registry package:
 
 ```sh
-npm unlink --global --ignore-scripts @dabhiram13/foundry
-npm install --global --ignore-scripts @dabhiram13/foundry@latest
+npm unlink -g @dabhiram13/foundry
+npm install -g @dabhiram13/foundry
 ```
 
 This replaces the command link, not your project data. Keep any local changes
@@ -50,19 +53,19 @@ Stop active Foundry work and back up important projects before changing
 versions. Update to the latest release:
 
 ```sh
-npm install --global --ignore-scripts @dabhiram13/foundry@latest
+npm install -g @dabhiram13/foundry
 ```
 
-To pin a specific published version:
+To install a specific version:
 
 ```sh
-npm install --global --ignore-scripts @dabhiram13/foundry@0.2.0
+npm install -g @dabhiram13/foundry@0.2.0
 ```
 
 To uninstall the command:
 
 ```sh
-npm uninstall --global --ignore-scripts @dabhiram13/foundry
+npm uninstall -g @dabhiram13/foundry
 ```
 
 Uninstalling the command does not remove the source checkout or projects in
@@ -77,7 +80,7 @@ git clone https://github.com/dabhiram13/foundry.git
 cd foundry
 npm ci --ignore-scripts
 npm run build:runtime
-npm link --ignore-scripts
+npm link
 foundry
 ```
 
@@ -85,7 +88,7 @@ The linked command points to the built files, so keep the checkout. To update,
 stop active Foundry work and run `git pull --ff-only`, `npm ci --ignore-scripts`
 and `npm run build:runtime` inside this checkout, not a product repository.
 Resolve local changes or conflicts rather than discarding them. Remove the
-link with `npm unlink --global --ignore-scripts @dabhiram13/foundry`.
+link with `npm unlink -g @dabhiram13/foundry`.
 
 See [contributor setup](../CONTRIBUTING.md#start-locally) for development and
 the [release guide](RELEASING.md) for owner-controlled publication.

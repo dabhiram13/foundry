@@ -7,7 +7,7 @@ private accounts or paid inference. Read [the setup guide](docs/GETTING-STARTED.
 ## Start locally
 
 This is contributor setup, not required for everyday CLI use. For installation,
-follow [Install the CLI](docs/GETTING-STARTED.md#install-the-cli).
+follow [Install Foundry](docs/GETTING-STARTED.md#install-foundry).
 
 ```sh
 npm ci --ignore-scripts

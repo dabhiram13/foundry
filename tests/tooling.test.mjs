@@ -45,4 +45,14 @@ test('catalog preserves policy, native-role parsing, path and provenance checks'
   assert.ok(errors.some(error => error.includes('missing required workflow skills')));
   await writeFile(path.join(root, '.codex/agents/broken.toml'), 'model = "do-not-pin"\n');
   assert.ok(validate(root).errors.some(error => error.includes('hardcoded model')));
+  await mkdir(path.join(root, 'library/skills/session-management'), { recursive: true });
+  const guides = ['library/README.md', 'library/skills/session-management/SKILL.md'];
+  for (const guide of guides) {
+    await writeFile(path.join(root, guide), 'Run `python3 scripts/foundry.py status`.\n');
+  }
+  for (const guide of guides) {
+    assert.ok(validate(root).errors.includes(`removed Python CLI reference in ${guide}`));
+    await writeFile(path.join(root, guide), 'Run `foundry work status --project PATH`.\n');
+  }
+  assert.ok(!validate(root).errors.some(error => error.includes('removed Python CLI reference')));
 });

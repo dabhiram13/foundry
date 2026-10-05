@@ -70,6 +70,7 @@ export function validate(root) {
   for (const relative of all) {
     const content = text(root, relative);
     if (content === null) continue;
+    if (/\bscripts\/foundry\.py\b/.test(content)) errors.push(`removed Python CLI reference in ${relative}`);
     if (machinePath.test(content)) errors.push(`source-machine path in ${relative}`);
     if (referenceRoots.some(prefix => relative.startsWith(`${prefix}/`))) {
       if (legacyPath.test(content) || legacyNamedPath.test(content) || legacyCommand.test(content)) errors.push(`obsolete harness reference in ${relative}`);

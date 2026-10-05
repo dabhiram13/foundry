@@ -55,11 +55,46 @@ test('every canonical documentation source produces a searchable linked page', a
 
 test('public landing is pre-rendered and does not load the workspace client', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
-  assert.match(html, /Start with an idea/);
+  assert.match(html, /Build software<br\/>/);
+  assert.match(html, /from your terminal/);
   assert.match(html, /href="\/docs\/"/);
   assert.doesNotMatch(html, /foundry-token|src="\/app.js"|Open local browser view/);
   const script = await readFile(path.join(output, 'public.js'), 'utf8');
   assert.doesNotMatch(script, /\/api\/snapshot|X-Foundry-Token|foundry_snapshot/);
   assert.ok(gzipSync(script).byteLength <= 165_000, 'Public JS exceeds the 165 kB gzip budget');
   await checkLocalLinks(parse(html), '/');
+});
+
+test('landing groups six specialist roles with decorative icons and a catalog link', async () => {
+  const tree = parse(await readFile(path.join(output, 'index.html'), 'utf8'));
+  let section;
+  walk(tree, node => {
+    if (attr(node, 'aria-labelledby') === 'specialists-title') section = node;
+  });
+  assert.ok(section, 'specialist section has a named heading');
+  const roles = [];
+  let catalog = false;
+  walk(section, node => {
+    if (node.tagName === 'li') {
+      const heading = node.childNodes.find(child => child.tagName === 'h3');
+      roles.push(heading?.childNodes[0]?.value);
+      const icon = node.childNodes.find(child => child.tagName === 'svg');
+      assert.equal(attr(icon, 'aria-hidden'), 'true');
+    }
+    if (attr(node, 'href') === '/docs/catalog/') catalog = true;
+  });
+  assert.deepEqual(roles, ['Research', 'Planning', 'Design', 'Development', 'Testing', 'Review']);
+  assert.ok(catalog);
+});
+
+test('README banner reuses the Foundry wordmark and has a self-contained background', async () => {
+  const banner = await readFile(path.join(root, 'site/assets/foundry-banner.svg'), 'utf8');
+  const wordmark = await readFile(path.join(root, 'site/assets/foundry-wordmark.svg'), 'utf8');
+  const logoPath = /<path d="([^"]+)"/.exec(wordmark)?.[1];
+  assert.ok(logoPath);
+  assert.ok(banner.includes(logoPath));
+  assert.match(banner, /<rect[^>]+fill="#101010"/);
+  assert.doesNotMatch(banner, /<script|<image|<foreignObject/);
+  const readme = await readFile(path.join(root, 'README.md'), 'utf8');
+  assert.match(readme, /src="site\/assets\/foundry-banner.svg"/);
 });

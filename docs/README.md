@@ -1,8 +1,8 @@
 # Foundry documentation
 
-Foundry is a single TypeScript runtime on Node 24. Use its interactive terminal
-or explicit commands backed by the same core. The landing page and searchable
-documentation are static; there is no browser workspace.
+Build software from your terminal. Start with an idea or an existing project,
+then plan, write code and run checks. You review the plan and design before a
+new product is built. Your files and Git history stay in your project.
 
 ## Start here
 

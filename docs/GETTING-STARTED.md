@@ -6,7 +6,7 @@ are separate, and no provider runs during installation or help.
 
 ## Install from source
 
-There is no public npm-registry installation promise. Build the current source:
+There is no published npm package yet. Install from source:
 
 ```sh
 git clone https://github.com/dabhiram13/foundry.git

@@ -6,7 +6,7 @@ import { ProductWalkthrough } from './product-walkthrough';
 
 const repository = 'https://github.com/dabhiram13/foundry';
 const docs = '/docs';
-const install = 'npm install --global --ignore-scripts @dabhiram13/foundry\nfoundry';
+const install = 'npm install -g @dabhiram13/foundry\nfoundry';
 const specialists = [
   { name: 'Research', description: 'Explore the problem.', icon: Search },
   { name: 'Planning', description: 'Define what to build.', icon: ListChecks },

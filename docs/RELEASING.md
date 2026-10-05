@@ -20,6 +20,19 @@ version for later releases.
   tarball.
 - A release does not establish additional provider or platform qualification.
 
+## When npm access is needed
+
+- Installing or updating Foundry needs no npm account or token.
+- Editing code, pushing to GitHub and building the connected Vercel website
+  use their own access, not an npm token.
+- Publishing a new npm version needs the owner's npm publishing access.
+  The owner can sign in locally, or provide a short-lived, package-scoped
+  token for an approved release. Revoke that token when the release is done.
+
+A GitHub or website update does not update the installed npm package. Publish
+a new version for package changes, including changes to the README shown on
+npm. Do not reuse an already published version.
+
 ## Owner release checklist
 
 Do not publish until each item is checked:
@@ -46,20 +59,21 @@ Do not publish until each item is checked:
    npm pack --pack-destination ./release-artifacts
    ```
 
-5. Smoke-test that exact tarball globally in a disposable prefix with scripts
-   disabled. Run it outside the checkout, then uninstall it:
+5. Test that exact tarball with normal npm installation in a temporary folder.
+   Do not disable install scripts: this must test the same behavior users get.
+   Run it outside the checkout, then uninstall it:
 
    ```sh
    PREFIX="$(mktemp -d)"
    TARBALL="./release-artifacts/dabhiram13-foundry-0.2.0.tgz"
-   npm install --global --ignore-scripts --prefix "$PREFIX" "$TARBALL"
+   npm install -g --prefix "$PREFIX" "$TARBALL"
    (
      cd "$HOME"
      PATH="$PREFIX/bin:$PATH" foundry --version
      PATH="$PREFIX/bin:$PATH" foundry --help
      PATH="$PREFIX/bin:$PATH" foundry roles
    )
-   npm uninstall --global --ignore-scripts --prefix "$PREFIX" @dabhiram13/foundry
+   npm uninstall -g --prefix "$PREFIX" @dabhiram13/foundry
    ```
 
    Confirm the version, one executable, and retained fixture/user project data.
@@ -95,14 +109,14 @@ Do not publish until each item is checked:
    ```sh
    npm view @dabhiram13/foundry@0.2.0 version dist.tarball
    PREFIX="$(mktemp -d)"
-   npm install --global --ignore-scripts --prefix "$PREFIX" @dabhiram13/foundry@0.2.0
+   npm install -g --prefix "$PREFIX" @dabhiram13/foundry@0.2.0
    (
      cd "$HOME"
      PATH="$PREFIX/bin:$PATH" foundry --version
      PATH="$PREFIX/bin:$PATH" foundry --help
      PATH="$PREFIX/bin:$PATH" foundry roles
    )
-   npm uninstall --global --ignore-scripts --prefix "$PREFIX" @dabhiram13/foundry
+   npm uninstall -g --prefix "$PREFIX" @dabhiram13/foundry
    ```
 
    Keep the README, landing and Getting started installation commands aligned.

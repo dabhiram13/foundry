@@ -16,7 +16,8 @@ The standard aggregate is `npm test`. It runs each of these groups once:
   over tracked files.
 
 CI uses the same Node-only runtime and static checks with pinned actions. The
-package test builds and installs a local candidate tarball globally
+package test builds and installs a local candidate tarball globally with normal
+npm script handling (not `--ignore-scripts`)
 outside the checkout with Python absent; it checks the one public bin, version
 command, excluded files and installed assets, then uninstalls it without
 removing the fixture project. The `prepack` hook builds the runtime for a normal

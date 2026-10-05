@@ -21,7 +21,7 @@ test('README, setup guide and landing share the npm CLI installation', async () 
     if (attr(node, 'aria-label') === 'Installation commands') commands = textContent(node);
   });
   assert.ok(commands);
-  assert.equal(commands, 'npm install --global --ignore-scripts @dabhiram13/foundry\nfoundry');
+  assert.equal(commands, 'npm install -g @dabhiram13/foundry\nfoundry');
   assert.doesNotMatch(commands, /git clone|npm run build|npm link|\.\/foundry/);
   for (const source of ['README.md', 'docs/GETTING-STARTED.md']) {
     const markdown = await readFile(path.join(root, source), 'utf8');

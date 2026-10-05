@@ -277,7 +277,7 @@ function Workspace() {
     if (running) return <Act busy={busy} action="cancel" variant="outline" icon={<Square/>} onClick={()=>perform('cancel',async()=> {await api('cancel',{id:product.id});setNotice({text:'Stopping. This can take a few seconds.'});})}>Stop</Act>;
     if (product.status==='awaiting_approval') {const doc=latest(product,product.stage);return doc&&<Act busy={busy} action="review" onClick={()=>openArtifact(product,doc,true)}>Review {label(product.stage)}</Act>;}
     if (finished) return <Act busy={busy} action="handoff" icon={<ArrowUpRight/>} onClick={()=>openArtifact(product,finished)}>Read the ship summary</Act>;
-    if (product.status==='completed') return <span>The saved Ship summary is unavailable.</span>;
+    if (typed&&product.stage==='release'&&product.status==='completed') return <span>The saved Ship summary is unavailable.</span>;
     if (typed && (product.ready_next_step?.action==='recover'||['interrupted','recovery_required'].includes(product.status))) return <Act busy={busy} action="recover" onClick={()=>perform('recover',async()=>{const recovered=await api('recover',{id:product.id});if(!['interrupted','ready'].includes(recovered.status))throw new Error('Recovery is not complete. Check the saved run and stop any remaining work before continuing.');await api('run',{id:product.id});})}>Recover and continue</Act>;
     if ((product.adapter==='codex'||product.billing_mode==='subscription')&&!product.subscription_confirmed) return <Act busy={busy} action="confirm-login" onClick={()=>openSettings('runtime')}>Confirm AI login</Act>;
     const retry=['failed','interrupted'].includes(product.status);
@@ -285,7 +285,7 @@ function Workspace() {
   }
   function documents(product:Product, inset=false) { return <section className={"document-list"+(inset?"":" surface")}><div className="section-label"><h3>Documents</h3><span>{product.artifacts?.length||0} {(product.artifacts?.length||0)===1?'file':'files'}</span></div><div id="outputs">{(product.artifacts||[]).map(item=><Item asChild key={item.path}><Button type="button" variant="ghost" className="document-row" aria-label={`Open ${label(item.stage)}`} data-action={'open-'+item.path} disabled={!!busy} onClick={()=>openArtifact(product,item)}><FileText/><span><strong>{documentNames[item.path]||label(item.stage)}</strong><small>{item.path}</small></span><ArrowUpRight className="row-arrow"/></Button></Item>)}</div>{!product.artifacts?.length&&<Empty id="empty-outputs"><EmptyHeader><EmptyTitle>No documents yet</EmptyTitle><EmptyDescription>Each step saves a document here.</EmptyDescription></EmptyHeader></Empty>}</section>; }
   const activeStage=p ? Math.max(0,stages.indexOf(p.stage)) : 0;
-  const finished=p?.stage==='release'&&p.status==='completed';
+  const finished=p?.stage==='release'&&p.status==='completed'&&(typed||latest(p,'release'));
   const running=p&&(p.status==='running'||snapshot.jobs?.[p.id]?.status==='running');
   const pageNotice=notice||(job?.status==='failed'&&job.error?{text:job.error,error:true}:null);
   const progress=p&&((['failed','interrupted'].includes(p.status)?p.history?.at(-1)?.note:'')||p.error||(snapshot.jobs?.[p.id]?.status==='failed'?snapshot.jobs[p.id].error:'')||(running?'Working in this product’s folder. A log of each run is saved with it.':''));

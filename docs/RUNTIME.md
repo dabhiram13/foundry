@@ -1,6 +1,6 @@
 # Existing repositories and recovery
 
-Foundry's runtime is one Node 24 executable. Install from the source checkout,
+Foundry's runtime is one Node 24 executable. [Install it with npm](GETTING-STARTED.md#install-foundry),
 then use `init` for a clean repository or the explicit migration flow for a
 legacy workspace. There is no Python fallback, browser workspace, HTTP server or
 MCP runtime.
@@ -19,8 +19,8 @@ foundry init --project /path/to/repository
 foundry init --project /path/to/repository --update
 ```
 
-Initialization manages files inside the target `.foundry` directory and
-framework documentation. It preserves unmanaged owner files. Normal `init`
+Initialization installs the runtime, role catalog and project settings inside
+the target `.foundry` directory. It preserves unmanaged owner files. Normal `init`
 refuses any existing `.foundry` directory that lacks the TypeScript runtime
 marker; `--update` does not grant permission to import an old runtime.
 

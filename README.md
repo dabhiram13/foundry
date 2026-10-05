@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dabhiram13/foundry/main/site/assets/foundry-banner.svg" alt="Foundry" width="960" />
+  <img src="./site/assets/foundry-banner.svg" alt="Foundry" width="960" />
 </p>
 
 # Build software from your terminal.

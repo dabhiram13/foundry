@@ -497,67 +497,6 @@ export class ProjectService {
     return (await this.discover()).map((project) => project.summary);
   }
 
-  async snapshot(): Promise<JsonRecord> {
-    const located = await this.discover();
-    const projects = await Promise.all(located.map((project) => this.view(project)));
-    let roleCatalog: JsonRecord[] = [];
-    try {
-      roleCatalog = (await loadRoles(this.sourceRoot)).map((role) => ({
-        name: role.name,
-        description: role.description,
-        sandbox: role.sandbox,
-      }));
-    } catch {
-      roleCatalog = [];
-    }
-    let providers: JsonRecord[] = [];
-    let providerError: string | undefined;
-    try {
-      providers = Object.values(await registry(this.sourceRoot)).map(publicAdapter);
-    } catch {
-      providerError = 'Provider configuration is invalid; no adapters are available.';
-    }
-    const projectProviders: Record<string, JsonRecord[]> = {};
-    const providerErrors: Record<string, string> = {};
-    const projectRoles: Record<string, JsonRecord[]> = {};
-    for (const project of located) {
-      if (project.summary.runtime !== 'typescript') continue;
-      try {
-        projectProviders[project.summary.id] = Object.values(await registry(project.root)).map(publicAdapter);
-      } catch {
-        projectProviders[project.summary.id] = [];
-        providerErrors[project.summary.id] = 'Provider configuration is invalid for this workspace.';
-      }
-      try {
-        projectRoles[project.summary.id] = (await loadRoles(project.root)).map((role) => ({
-          name: role.name,
-          description: role.description,
-          sandbox: role.sandbox,
-        }));
-      } catch {
-        projectRoles[project.summary.id] = [];
-      }
-    }
-    return {
-      schema_version: 1,
-      runtime: 'typescript',
-      products_dir: this.productsDir,
-      projects,
-      roles: roleCatalog,
-      project_roles: projectRoles,
-      providers,
-      ...(providerError ? { provider_error: providerError } : {}),
-      project_providers: projectProviders,
-      provider_errors: providerErrors,
-      account: {
-        connected: false,
-        sharing: false,
-        message: 'Login is handled by the TypeScript runtime CLI; ChatGPT is unsupported in this preview.',
-      },
-      jobs: this.jobSnapshot(),
-    };
-  }
-
   async status(identifier: string): Promise<JsonRecord> {
     return this.view(await this.locate(identifier));
   }
@@ -754,9 +693,5 @@ export class ProjectService {
     const file = await readBoundedText(project.root, relative);
     const stage = FACTORY_DOCUMENTS.find(([candidate]) => candidate === relative)?.[1] ?? 'document';
     return { path: relative, stage, revision: digest(file.bytes), content: file.text };
-  }
-
-  async models(): Promise<never[]> {
-    return [];
   }
 }

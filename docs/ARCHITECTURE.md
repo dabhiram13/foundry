@@ -83,9 +83,11 @@ extension installation or executable package marketplace.
 | `src/core/lifecycle.ts` | Scoped runs, checks, receipts and completion |
 | `src/core/workflow.ts` | Criteria, evidence, decisions and handoff records |
 | `src/core/install.ts` | Managed files, conflicts and recoverable installation |
+| `src/core/migrate.ts` | Explicit legacy import with backups and conflict checks |
 | `src/core/roles.ts` | Provider-neutral role validation |
+| `src/runtime/jobs.ts`, `src/runtime/worker.ts` | Local worker threads and confirmed shutdown for terminal runs |
 | `src/runtime/providers.ts` | Adapter execution, messages, cancellation and recovery |
-| `src/runtime/environment.ts` | Restricted child environment and redaction |
+| `src/runtime/environment.ts` | Restricted provider child environment |
 | `site/` | Static landing page and searchable documentation |
 | `scripts/` | Node build, catalog and exact-index secret checks |
 

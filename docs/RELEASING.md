@@ -121,7 +121,9 @@ Do not publish until each item is checked:
 
    Keep the README, landing and Getting started installation commands aligned.
    Include the npm-ready README in the tested tarball so the package page does
-   not inherit obsolete source-only setup instructions. Announce availability
+   not inherit obsolete source-only setup instructions. Check its links and
+   banner on both GitHub and npm; private repository assets are not public image
+   hosting. Announce availability
    only after registry verification, then tag the approved source commit as
    `v0.2.0` and publish matching release notes.
 

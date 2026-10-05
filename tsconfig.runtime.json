@@ -14,6 +14,6 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/core/**/*.ts", "src/runtime/**/*.ts", "src/cli/**/*.ts", "src/transports/**/*.ts", "tests/runtime/**/*.ts"],
+  "include": ["src/core/**/*.ts", "src/runtime/**/*.ts", "src/cli/**/*.ts", "tests/runtime/**/*.ts"],
   "exclude": ["dist", "node_modules"]
 }

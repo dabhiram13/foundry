@@ -1,4 +1,4 @@
-import { chmod, copyFile, mkdir, readFile, readdir, rm } from 'node:fs/promises';
+import { chmod, mkdir, readFile, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -20,7 +20,7 @@ async function files(directory) {
 
 await rm(runtimeOutput, { recursive: true, force: true });
 await rm(testsOutput, { recursive: true, force: true });
-await mkdir(path.join(runtimeOutput, 'assets'), { recursive: true });
+await mkdir(runtimeOutput, { recursive: true });
 await mkdir(testsOutput, { recursive: true });
 await build({
   entryPoints: [path.join(root, 'src/cli/foundry.ts')],
@@ -35,7 +35,7 @@ await build({
 });
 await chmod(path.join(runtimeOutput, 'foundry.cjs'), 0o755);
 await build({
-  entryPoints: [path.join(root, 'src/transports/worker.ts')],
+  entryPoints: [path.join(root, 'src/runtime/worker.ts')],
   outfile: path.join(runtimeOutput, 'foundry-worker.cjs'),
   bundle: true,
   platform: 'node',
@@ -45,7 +45,6 @@ await build({
   banner: { js: '#!/usr/bin/env node' },
 });
 await chmod(path.join(runtimeOutput, 'foundry-worker.cjs'), 0o755);
-await copyFile(path.join(root, '.foundry/roles.json'), path.join(runtimeOutput, 'assets/roles.json'));
 
 const testEntries = (await files(path.join(root, 'tests/runtime')))
   .filter((file) => file.endsWith('.test.ts'));

@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { readFactoryState } from '../../src/core/factory-contract.js';
 import { ProjectService, runProjectUntilBoundary } from '../../src/core/projects.js';
 import { projectRunExitCode } from '../../src/cli/run-exit-code.js';
-import { closeProjectRuns, isProjectRunActive, startProjectRun } from '../../src/transports/jobs.js';
+import { closeProjectRuns, isProjectRunActive, startProjectRun } from '../../src/runtime/jobs.js';
 
 const sourceRoot = path.resolve('.');
 const nodeBin = path.dirname(process.execPath);
@@ -102,8 +102,6 @@ test('project service creates Node workspaces and reports legacy workspaces with
   await assert.rejects(service.create({ name: 'Typed Notes', idea: 'Do not overwrite.' }), /already exists/);
   await assert.rejects(service.run(String(created.id)), /explicit confirmation/);
   assert.equal((await service.status(String(created.id))).status, 'ready');
-  assert.deepEqual(await service.models(), []);
-  assert.equal((await service.snapshot()).runtime, 'typescript');
   assert.deepEqual(await readFile(path.join(legacy, '.foundry/project.json'), 'utf8'), '{"name":"old app","checks":[]}\n');
 });
 

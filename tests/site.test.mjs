@@ -4,6 +4,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { gzipSync } from 'node:zlib';
 import { parse } from 'parse5';
+import postcss from 'postcss';
 import { pages, pageUrl, root } from '../site/content-map.mjs';
 
 const output = path.join(root, 'site/dist');
@@ -79,6 +80,24 @@ test('public landing is pre-rendered and does not load the workspace client', as
   assert.doesNotMatch(script, /\/api\/snapshot|X-Foundry-Token|foundry_snapshot/);
   assert.ok(gzipSync(script).byteLength <= 165_000, 'Public JS exceeds the 165 kB gzip budget');
   await checkLocalLinks(parse(html), '/');
+});
+
+test('landing CSS compiles utilities, local styles and font assets', async () => {
+  const html = await readFile(path.join(output, 'index.html'), 'utf8');
+  assert.match(html, /<link[^>]+href="\/style\.css"/);
+  const css = postcss.parse(await readFile(path.join(output, 'style.css'), 'utf8'));
+  const selectors = new Set();
+  css.walkRules(rule => selectors.add(rule.selector));
+  for (const selector of ['.flex', '.landing-page', '.landing-shell']) {
+    assert.ok(selectors.has(selector), `missing compiled selector: ${selector}`);
+  }
+  css.walkAtRules(rule => {
+    assert.ok(!['import', 'tailwind', 'apply', 'theme', 'source', 'custom-variant'].includes(rule.name),
+      `uncompiled CSS directive: @${rule.name}`);
+  });
+  const fonts = [];
+  css.walkAtRules('font-face', rule => rule.walkDecls('src', declaration => fonts.push(declaration.value)));
+  assert.ok(fonts.some(value => value.includes('/assets/inter-latin-wght-normal.woff2')));
 });
 
 test('landing groups six specialist roles with decorative icons and a catalog link', async () => {

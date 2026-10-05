@@ -2,7 +2,8 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
-import { execFileSync } from 'node:child_process';
+import tailwindcss from '@tailwindcss/postcss';
+import postcss from 'postcss';
 import { pages, root } from '../site/content-map.mjs';
 
 const content = path.join(root, 'site/src/content/docs/docs');
@@ -23,8 +24,11 @@ await mkdir(generated, { recursive: true });
 await rm(path.join(publicDir, 'assets'), { recursive: true, force: true });
 await cp(path.join(root, 'site/assets'), path.join(publicDir, 'assets'), { recursive: true });
 await rm(path.join(publicDir, 'docs/images'), { recursive: true, force: true });
-execFileSync(process.execPath, [path.join(root, 'node_modules/@tailwindcss/cli/dist/index.mjs'),
-  '-i', path.join(root, 'site/src/landing/globals.css'), '-o', path.join(publicDir, 'style.css'), '--minify'], { cwd: root, stdio: 'inherit' });
+const cssInput = path.join(root, 'site/src/landing/globals.css');
+const cssOutput = path.join(publicDir, 'style.css');
+const css = await postcss([tailwindcss({ base: root, optimize: { minify: true } })])
+  .process(await readFile(cssInput, 'utf8'), { from: cssInput, to: cssOutput, map: false });
+await writeFile(cssOutput, css.css.replace(/\r?\n$/, ''));
 const notice = await readFile(path.join(root, 'site/assets/animate-ui.LICENSE.md'), 'utf8')
   + '\n' + await readFile(path.join(root, 'site/assets/licenses/shadcn-ui.txt'), 'utf8');
 const options = { bundle: true, tsconfig: path.join(root, 'tsconfig.json'), banner: { js: `/*! ${notice} */` } };

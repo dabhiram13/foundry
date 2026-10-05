@@ -12,6 +12,10 @@ public assets, builds Tailwind CSS and the standalone landing bundle. Edit the
 source Markdown and components under `site/src/landing`, not generated pages in
 `site/src/content/docs/docs` or assets in `site/public`.
 
+The one-time CSS build uses Tailwind's official PostCSS plugin, without the
+Tailwind CLI's unused file-watching dependencies. Tailwind stays pinned to the
+same version as its plugin.
+
 Run the site checks from the repository root:
 
 ```sh

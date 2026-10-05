@@ -24,6 +24,30 @@ function hostExecutable(name) {
   return found;
 }
 
+test('linked CLI runs by name outside the checkout and can be unlinked', async (t) => {
+  const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-link-'));
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const prefix = path.join(base, 'prefix');
+  const home = path.join(base, 'home');
+  await Promise.all([mkdir(prefix), mkdir(home)]);
+  const env = {
+    HOME: home,
+    PATH: `${path.join(prefix, 'bin')}${path.delimiter}${path.dirname(process.execPath)}`,
+    npm_config_prefix: prefix,
+    npm_config_cache: path.join(base, 'cache'),
+    npm_config_update_notifier: 'false',
+    npm_config_audit: 'false',
+    npm_config_fund: 'false',
+  };
+  run('npm', ['link', '--ignore-scripts'], { cwd: root, env });
+  const help = run('foundry', ['--help'], { cwd: home, env });
+  assert.match(help.stdout, /Foundry terminal-first runtime/);
+  assert.ok(run('foundry', ['roles'], { cwd: home, env }).stdout.trim());
+  run('npm', ['unlink', '--global', '--ignore-scripts', '@dabhiram13/foundry'], { cwd: home, env });
+  assert.equal(existsSync(path.join(prefix, 'bin/foundry')), false);
+  assert.ok(existsSync(path.join(root, 'dist/runtime/foundry.cjs')));
+});
+
 test('npm tarball exposes one private Node bin and runs outside the checkout', async (t) => {
   const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-pack-'));
   t.after(() => rm(base, { recursive: true, force: true }));

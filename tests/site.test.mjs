@@ -12,6 +12,22 @@ function walk(node, callback) {
   for (const child of node.childNodes ?? []) walk(child, callback);
 }
 function attr(node, name) { return node.attrs?.find((attribute) => attribute.name === name)?.value; }
+function textContent(node) { return node.value ?? (node.childNodes ?? []).map(textContent).join(''); }
+
+test('README, setup guide and landing share the runtime-only CLI installation', async () => {
+  const tree = parse(await readFile(path.join(output, 'index.html'), 'utf8'));
+  let commands;
+  walk(tree, node => {
+    if (attr(node, 'aria-label') === 'Installation commands') commands = textContent(node);
+  });
+  assert.ok(commands);
+  assert.match(commands, /npm run build:runtime\nnpm link --ignore-scripts\nfoundry$/);
+  assert.doesNotMatch(commands, /npm run build\n|\.\/foundry/);
+  for (const source of ['README.md', 'docs/GETTING-STARTED.md']) {
+    const markdown = await readFile(path.join(root, source), 'utf8');
+    assert.equal(/```sh\n([\s\S]*?)\n```/.exec(markdown)?.[1], commands, source);
+  }
+});
 
 async function checkLocalLinks(tree, current) {
   const links = [];

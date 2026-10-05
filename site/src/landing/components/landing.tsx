@@ -6,7 +6,7 @@ import { ProductWalkthrough } from './product-walkthrough';
 
 const repository = 'https://github.com/dabhiram13/foundry';
 const docs = '/docs';
-const install = `git clone ${repository}.git\ncd foundry\nnpm ci --ignore-scripts\nnpm run build\n./foundry`;
+const install = `git clone ${repository}.git\ncd foundry\nnpm ci --ignore-scripts\nnpm run build:runtime\nnpm link --ignore-scripts\nfoundry`;
 const specialists = [
   { name: 'Research', description: 'Explore the problem.', icon: Search },
   { name: 'Planning', description: 'Define what to build.', icon: ListChecks },
@@ -72,10 +72,10 @@ export function Landing() {
       <section className="landing-shell landing-setup" id="landing-start" tabIndex={-1} aria-labelledby="start-title">
         <div className="landing-section-heading"><h2 id="start-title">Start with<br />one small project.</h2><p>Install Foundry, connect your provider and choose what to build.</p><a href={`${docs}/getting-started/`}>Follow the setup guide <ArrowUpRight aria-hidden="true" /></a></div>
         <div className="landing-install" id="landing-install" tabIndex={-1} aria-labelledby="install-title">
-          <div className="install-heading"><h3 id="install-title"><Terminal aria-hidden="true" /> Install from source</h3><span>macOS / Linux</span></div>
+          <div className="install-heading"><h3 id="install-title"><Terminal aria-hidden="true" /> Install the CLI</h3><span>macOS / Linux</span></div>
           <pre aria-label="Installation commands"><code>{install}</code></pre>
           <div className="install-copy"><CopyButton content={install} label="Copy commands" /><span>No Foundry account needed.</span></div>
-          <div className="install-note"><p>Requires <strong>Node.js 24 LTS</strong>, <strong>npm</strong> and <strong>Git</strong>. These commands do not start AI work.</p><p>Codex is built in. Confirm subscription use before running AI work. Installation is from source; there is no published npm package yet.</p><a href={`${docs}/getting-started/`}>Check your setup <ArrowUpRight aria-hidden="true" /></a></div>
+          <div className="install-note"><p>Requires <strong>Node.js 24 LTS</strong>, <strong>npm</strong> and <strong>Git</strong>. Not published to npm yet: build from source, then run <code>foundry</code> from any directory. Keep the checkout—the command links to it. No website build needed.</p><p>Installation does not start AI work. Codex is built in; confirm subscription use before running it.</p><a href={`${docs}/getting-started/`}>Setup, updates and uninstall <ArrowUpRight aria-hidden="true" /></a></div>
         </div>
         <div className="landing-already"><p>Already have a project?</p><a href={`${docs}/runtime/`}>Use Foundry in an existing repository <ArrowRight aria-hidden="true" /></a></div>
       </section>

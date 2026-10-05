@@ -6,11 +6,22 @@ private accounts or paid inference. Read [the setup guide](docs/GETTING-STARTED.
 
 ## Start locally
 
+This is contributor setup, not required for everyday CLI use. For installation,
+follow [Install the CLI](docs/GETTING-STARTED.md#install-the-cli).
+
 ```sh
 npm ci --ignore-scripts
 npm run build
 ./foundry --help
 ```
+
+`npm run build` builds the CLI and static website. Use `npm run build:runtime`
+when working only on the CLI, or `npm run build:site` for the website.
+`./foundry` runs the checkout directly; contributors do not need a global link.
+
+For an isolated local package, run `npm pack --ignore-scripts` after the runtime
+build. The package remains private and unpublished. A public npm release needs
+separate owner approval; do not publish as part of setup.
 
 Use test projects in isolated temporary directories. Do not exercise migration,
 failure or cancellation against an owner's real product. Local provider fixtures

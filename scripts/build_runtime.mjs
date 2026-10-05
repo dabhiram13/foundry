@@ -1,4 +1,4 @@
-import { chmod, copyFile, mkdir, readdir } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -29,19 +29,9 @@ function mcpSdkCjsPlugin() {
   };
 }
 
+await rm(path.join(runtimeOutput, 'project.cjs'), { force: true });
 await mkdir(path.join(runtimeOutput, 'assets'), { recursive: true });
 await mkdir(testsOutput, { recursive: true });
-await build({
-  entryPoints: [path.join(root, 'src/cli/project.ts')],
-  outfile: path.join(runtimeOutput, 'project.cjs'),
-  bundle: true,
-  platform: 'node',
-  target: 'node24',
-  format: 'cjs',
-  external: ['node:*'],
-  banner: { js: '#!/usr/bin/env node' },
-});
-await chmod(path.join(runtimeOutput, 'project.cjs'), 0o755);
 await build({
   entryPoints: [path.join(root, 'src/cli/foundry.ts')],
   outfile: path.join(runtimeOutput, 'foundry.cjs'),
@@ -50,7 +40,6 @@ await build({
   target: 'node24',
   format: 'cjs',
   external: ['node:*'],
-  plugins: [mcpSdkCjsPlugin()],
   banner: { js: '#!/usr/bin/env node' },
 });
 await chmod(path.join(runtimeOutput, 'foundry.cjs'), 0o755);

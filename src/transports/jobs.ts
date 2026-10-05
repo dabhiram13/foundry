@@ -99,7 +99,7 @@ export async function startProjectRun(service: ProjectService, identifier: strin
   service.setJob(target.id, 'running');
 
   try {
-    const workerPath = path.join(service.sourceRoot, 'dist/runtime/foundry-worker.cjs');
+    const workerPath = path.join(service.runtimeDir, 'foundry-worker.cjs');
     const workerInfo = await lstat(workerPath);
     if (!workerInfo.isFile() || workerInfo.isSymbolicLink()) {
       throw new FoundryError('The TypeScript worker bundle must be a regular file');

@@ -8,66 +8,28 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
-      options: --init
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified 2026-09-29
-      - name: Trust checked-out workspace
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - name: Install factory runtime dependencies
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq python3-venv
-          python3 -m venv /tmp/foundry-env
-          /tmp/foundry-env/bin/python -m pip install -r requirements.txt
-          echo "/tmp/foundry-env/bin" >> "$GITHUB_PATH"
-      - name: Behavior and runtime contracts
-        run: python3 -m unittest discover -s tests -v
-      - name: Web application behavior
-        working-directory: tests/fixtures/web_app
-        run: python3 -m unittest test_app -v
-      - name: Check TypeScript project runtime
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24.19.0
           cache: npm
-      - name: Install pinned browser test library
+      - name: Install pinned Node dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: TypeScript runtime contracts
         run: |
           npm run typecheck:runtime
           npm run build:runtime
           npm run test:runtime
-      - name: Build and check plugin panel
-        run: |
-          npx tsc --noEmit
-          npm run build:panel
-          git diff --exit-code -- app/app.js app/style.css app/panel.html app/assets/manrope-latin-wght-normal.woff2
+          npm run test:pack
+      - name: Node tooling contracts
+        run: node --test tests/tooling.test.mjs
       - name: Build and test public documentation
         run: |
           npm run build:site
           npm run test:site
-      - name: Documentation asset server contracts
-        run: python3 -m unittest discover -s tests -p test_docs_assets.py -v
-      - name: Documentation browser journey
-        env:
-          FOUNDRY_PYTHON: /tmp/foundry-env/bin/python
-        run: npm run test:docs-browser
-      - name: Factory UI journey
-        env:
-          FOUNDRY_PYTHON: /tmp/foundry-env/bin/python
-        run: node tests/factory_browser.cjs
-      - name: Studio interactions and accessibility
-        env:
-          FOUNDRY_PYTHON: /tmp/foundry-env/bin/python
-        run: node tests/studio_browser.cjs
-      - name: SaaS HTTP and browser journey
-        run: python3 scripts/evaluate_journey.py
-      - name: Evaluation honesty and cancellation contracts
-        run: python3 -m unittest discover -s tests/fixtures/saas_app -p test_evaluator.py -v
       - name: Native catalog integrity
-        run: python3 scripts/check_catalog.py
+        run: node scripts/check_catalog.mjs
       - name: Exact index secret scan
-        run: python3 scripts/security_scan.py --whole-tracked
+        run: node scripts/security_scan.mjs --whole-tracked

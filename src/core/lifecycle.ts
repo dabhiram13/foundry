@@ -80,6 +80,10 @@ export type RuntimeMarker = z.infer<typeof runtimeMarkerSchema>;
 export type CheckConfig = z.infer<typeof checkSchema>;
 export type RunState = z.infer<typeof runStateSchema> & Record<string, unknown>;
 
+export function validateCompatibleRunState(value: unknown): RunState {
+  return runStateSchema.parse(value);
+}
+
 export async function readRuntimeMarker(root: string): Promise<RuntimeMarker | null> {
   const markerPath = within(root, '.foundry/runtime.json');
   if (!(await exists(root, '.foundry/runtime.json'))) return null;

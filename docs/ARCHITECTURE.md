@@ -1,199 +1,127 @@
 # Inside Foundry
 
-Foundry's product direction is a **provider-independent software factory**: give it a product idea, settle meaningful decisions, choose an execution provider, and carry the work through design, implementation, verification, and release. The repository owns the process and materials; a provider supplies execution.
+Foundry is one terminal-first TypeScript framework on Node.js 24. The interactive
+terminal and explicit commands use the same core. There is no browser workspace,
+HTTP workspace server, MCP bridge or alternative Python controller in the shipped
+runtime. The landing page and documentation are a separate static build.
 
-This document maps the current local factory and the reusable materials inherited from the `32d5a87` baseline. A separately installed global Foundry skill is optional convenience packaging. It is not the factory and is not required to use the repository.
+## The boundaries
 
-## TypeScript migration status
+```text
+                         foundry
+                terminal UI │ commands / JSON
+                            ▼
+                    shared project service
+                            │
+             ┌──────────────┼──────────────┐
+             ▼              ▼              ▼
+       product stages   scoped work    install / import
+             │              │          safe updates
+             └──────┬───────┘
+                    ▼
+       saved records / approvals / recovery
+             │                      │
+             ▼                      ▼
+      specialist policy      checks / review / Git
+             │                      ▲
+             ▼                      │
+       provider adapter ───► product repository
 
-The diagrams below describe the active Python controller. The parallel TypeScript
-runtime in `src/core/`, `src/runtime/`, `src/cli/` and `src/transports/` includes
-an opt-in multi-project service exposed by `./foundry typed`, an authenticated
-loopback HTTP transport, and an official-SDK stdio MCP transport. They reuse the
-strict controller state, revision-bound Plan/Design approvals, bounded build
-loop and validated read-only Test review. This is not a replacement for the
-default Python launcher, browser UI or MCP. Python and TypeScript workspaces must
-not be written by both runtimes; there is no automatic state migration.
-
-Build can begin from the installer's empty required-check list: task planning is
-separate from the first implementation task, which must add product source, real
-required checks, and an explicit `docs/product/checks.json` mapping for every
-approved Plan criterion. Mapped checks must declare `docs/specs/product.md` as
-an input. Frozen check settings remain distinct from the Plan-pinned workflow
-criterion contract. Completion and recovery preserve the same Test review gate;
-Ship creates only a local summary.
-
-The typed terminal, HTTP and MCP surfaces are an opt-in preview. The HTTP server
-binds to loopback and requires a local token for APIs; stdio MCP does not expose
-configuration or approval tools. The preview does not qualify live providers or
-prove their advertised capabilities are enforced, port the default Python
-launcher, or authorize publication. Those migrations and qualifications remain
-outstanding before any default launcher change.
-The local browser serves only the built docs, `_astro` and Pagefind namespaces;
-static reads are bounded to 8 MiB and use no-follow, nonblocking file opens.
-See the [preview](specs/typed-runtime-preview.md) and
-[full migration scope](specs/typed-foundry.md).
-
-## 1. Materials already inside this repository
-
-```mermaid
-flowchart TB
-    F["Foundry repository"]
-    F --> W["Workflow and product contracts"]
-    F --> M["Reusable building materials"]
-    F --> X["Executable Python components"]
-    F --> C["Current Codex integration"]
-
-    W --> W1["docs/WORKFLOW.md<br/>Research → scope → design → build → verify → release → learn"]
-    W --> W2["docs/WORKFLOW-CONTRACTS.md<br/>Criteria, evidence, decisions and handoffs"]
-    W --> W3["docs/templates/<br/>Briefs, UX artifacts and record shapes"]
-
-    M --> M1[".agents/skills/<br/>37 workflow instructions"]
-    M --> M2[".foundry/workflows/<br/>6 deeper implementation recipes"]
-    M --> M3["library/skills/<br/>67 optional references"]
-    M --> M4[".foundry/philosophy/<br/>7 engineering principles"]
-    M --> M5[".foundry/references/source-docs/<br/>101 supporting documents"]
-
-    X --> X1["scripts/foundry.py<br/>Install, run state, checks and completion"]
-    X --> X2["scripts/workflow.py<br/>Records, next-step guidance and evidence gates"]
-    X --> X3["scripts/providers.py<br/>Execution adapters, budgets and cancellation"]
-    X --> X4["scripts/qualification.py<br/>Local evaluation and explicit selection"]
-
-    C --> C1[".codex/agents/<br/>28 specialist role configurations"]
-    C --> C2[".codex/hooks.json + scripts/hooks.py<br/>Optional context and recovery hooks"]
-    C --> C3["skills/* + scripts/connect_codex.py<br/>Optional global conversation shortcuts"]
+       Astro / Starlight → static landing + docs
+                           existing Vercel connection
 ```
 
-The materials are concrete files, not 37 running services or 28 continuously active agents. The coordinator reads relevant instructions and chooses appropriate specialists. Inventory counts describe what is packaged, not what has been executed successfully for a product.
+Foundry controls progression and approval. The provider performs bounded work.
+The product repository contains the application, which can use any stack.
+A successful provider turn or passing check alone does not prove the whole product.
 
-| Material | What it contributes | Actual source |
-|---|---|---|
-| Workflow instructions | Tasks such as discovery, specification, design, implementation, verification, repair, and release | [.agents/skills/](../.agents/skills/), for example [foundry-mvp-build](../.agents/skills/foundry-mvp-build/SKILL.md) |
-| Deeper recipes | Authentication, billing, design system, landing page, legal, and onboarding instructions | [.foundry/workflows/](../.foundry/workflows/) |
-| Principles | Scope, evidence, trust boundaries, async state, entitlement, data flow, and visual behavior | [.foundry/philosophy/](../.foundry/philosophy/) |
-| Specialist roles | Research, planning, design, implementation, testing, security, and completion responsibilities | [.codex/agents/](../.codex/agents/), listed in [CATALOG.md](CATALOG.md) |
-| Optional references | Stack-specific implementation knowledge to load when relevant | [library/skills/](../library/skills/) and [.foundry/references/source-docs/](../.foundry/references/source-docs/) |
-| Record templates | Inputs for decisions, assumptions, criteria, observations, quality evidence, and handoffs | [docs/templates/](templates/) |
+## One executable, two sizes of work
 
-Several recipes and roles contain Next.js, Supabase, Stripe, oRPC, or other stack assumptions. These are conditional materials, not a requirement that every product use that stack. Markdown can be read by different agents, but that does not make its tool names, role format, or execution instructions automatically portable.
+- **New product:** Research → Plan → Design → Build → Test → Ship. Plan and Design
+  need exact-revision owner approval. Build makes bounded tasks, runs configured
+  checks, attempts limited repairs and saves Git checkpoints.
+- **Repository change:** a scoped `work` run connects a spec to implementation,
+  verification and completion. It does not invent Research, Design or product
+  Ship evidence for a small fix.
 
-## 2. How the existing components work together
+Both reuse state, check, provider and recovery contracts. Noninteractive commands
+return errors rather than ask for hidden consent. JSON is output for scripts,
+not a separate API service.
 
-Solid arrows below represent explicit work or calls. Reading instructions does not automatically execute them.
+## Specialist roles
 
-```mermaid
-flowchart TB
-    O["Owner: terminal commands, idea and decisions"] --> CLI["factory_cli.py<br/>Primary local entry"]
-    O --> UI["Optional browser UI<br/>Same Factory state"]
-    CLI --> K["Coordinator<br/>factory.py + selected agent runtime"]
-    UI --> K
-    M["Repository workflows, roles and references"] -. "reads relevant materials" .-> K
-    K -->|"implements and integrates"| A["Application in its own product workspace"]
-    K -->|"record / guide / context / gate"| W["workflow.py"]
-    W --> L["docs/project/marketcraft.json<br/>Durable criteria, decisions and observations"]
-    K -->|"start / pause / resume / verify / complete"| R["foundry.py<br/>Lifecycle and verification"]
-    J[".foundry/project.json<br/>Configured argv checks"] --> R
-    R -->|"runs checks against"| A
-    R --> S[".foundry/state/<br/>Run state, logs, receipts and fingerprints"]
-    R --> B["docs/built/<br/>Local completion record"]
-    K -->|"explicit provider run"| P["providers.py"]
-    P --> E["Codex CLI or registered command adapter"]
-    E -->|"events and result"| P
-    P --> T[".foundry/state/providers/<br/>Task attempts and usage"]
+A role contains a name, purpose, instructions and requested permission mode.
+The neutral catalog is validated before dispatch. Stage defaults select roles;
+model preferences are checked against the adapter's declared capabilities.
+
+Roles are reusable policies, not continuously running services or an automatic
+parallel agent swarm. One controller determines handoffs and required results.
+Read-only reviewers report findings; write-capable implementers repair defects.
+Metadata does not prove that a provider actually enforces requested permissions.
+
+Optional skills and recipes are source material, not extra engines. They cannot
+grant owner approval or change spending rules. There is no automatic third-party
+extension installation or executable package marketplace.
+
+## Module map
+
+| Location | Responsibility |
+| --- | --- |
+| `src/cli/` | Arguments, terminal interaction and output |
+| `src/core/projects.ts` | Shared project operations |
+| `src/core/factory.ts` | Six-stage coordination, task/check/repair loop, review and Ship |
+| `src/core/factory-contract.ts` | Validated state and artifact contracts |
+| `src/core/lifecycle.ts` | Scoped runs, checks, receipts and completion |
+| `src/core/workflow.ts` | Criteria, evidence, decisions and handoff records |
+| `src/core/install.ts` | Managed files, conflicts and recoverable installation |
+| `src/core/roles.ts` | Provider-neutral role validation |
+| `src/runtime/providers.ts` | Adapter execution, messages, cancellation and recovery |
+| `src/runtime/environment.ts` | Restricted child environment and redaction |
+| `site/` | Static landing page and searchable documentation |
+| `scripts/` | Node build, catalog and exact-index secret checks |
+
+## What counts as complete
+
+```text
+approved criteria → explicit check mapping → command receipts
+        │                                         │
+        └─────────────────┬───────────────────────┘
+                          ▼
+             structured review + current evidence
+                          │
+                          ▼
+                     local summary
+                publication: not_authorized
 ```
 
-The lower-level lifecycle and provider runner remain separate APIs. The new `factory.py` controller integrates them: stage artifacts, owner approvals, provider receipts, configured checks, workflow criteria, and local completion. The UI and MCP service use that same controller.
+The first Build task configures real required checks with declared inputs and
+maps each approved Plan criterion to a check. Missing checks stop progression.
+Stale evidence is not a pass. Failed checks and interrupted attempts remain
+recorded. A checkpoint failure is not misreported as a product-check failure.
 
-| Executable | Responsibility | Boundary |
-|---|---|---|
-| [foundry.py](../scripts/foundry.py) | Install/update managed files; maintain one active run; execute configured checks; fingerprint inputs; record completion | `start` does not generate an app. Completion is local evidence, not deployment or owner acceptance. |
-| [marketcraft.py](../scripts/marketcraft.py) | Compatible CLI entry into the same runtime | Its name does not identify a second factory. |
-| [workflow.py](../scripts/workflow.py) | Validate and append records; track freshness; recommend a next step; evaluate declared criteria | `guide` is advice. `gate` checks records and executes no work. Add the applicable gate to required project checks when it must block completion. |
-| [providers.py](../scripts/providers.py) | Validate execution requests; launch an adapter; track attempts, output, budgets, cancellation, and recovery | The factory selects stage guidance and dispatches through this contract. Capability metadata alone is not proof that a provider implements it. |
-| [qualification.py](../scripts/qualification.py) | Register artifacts, run local evaluators, and permit explicit selection against current qualified evidence | Optional side path; does not generate candidates, promote automatically, or deploy. |
-| [hooks.py](../scripts/hooks.py) | Context recovery, checkpoints, and narrow optional local guards | Codex event integration; not the factory engine or a security boundary. |
-| [test_runner.py](../scripts/test_runner.py), [evaluate_journey.py](../scripts/evaluate_journey.py) | Nonempty test reports and representative SaaS/browser evaluation | Framework fixtures do not prove a newly generated product. |
-| [security_scan.py](../scripts/security_scan.py), [.githooks/pre-commit](../.githooks/pre-commit) | Scan tracked/staged content for known secret patterns | Pattern coverage, not a complete security audit. |
-| [check_catalog.py](../scripts/check_catalog.py) | Check the packaged catalog and references | Packaging consistency, not execution quality. |
+Ship requires current review and verification records. Its summary is exposed
+only after its hash and bindings are validated. Private state is not an arbitrary
+document API. Publication, deployment and accounts remain separate decisions.
 
-## 3. Product flow and evidence
+## Durability and limits
 
-```mermaid
-flowchart LR
-    I["Idea and research"] --> S["Scope and accepted criteria"]
-    S --> D["Flows, prototype and design"]
-    D --> B["Build one complete journey"]
-    B --> V["Review and actual app checks"]
-    V -->|"failure"| B
-    V -->|"current passing evidence"| C["Local completion"]
-    C -->|"authorized release"| R["Deployed verification"]
-    R --> F["Actual feedback"]
-    F --> S
-```
+Locks and journals prevent competing writers and expose uncertain outcomes.
+Cancellation is not successful until cleanup is confirmed. Migration is explicit,
+backed up and refuses unsupported or active work. Changing a runtime marker cannot
+turn old approvals into new review evidence. See [migration and recovery](RUNTIME.md).
 
-The local factory executes research through the release handoff, stopping for owner scope/design reviews and failed checks. Deployed verification and customer feedback remain separate authorized work. The lower-level process in [WORKFLOW.md](WORKFLOW.md) also supports small fixes using only relevant stages. Decisions and observations go in the ledger; specs live in `docs/specs/`; application checks belong in `.foundry/project.json`.
+The boundary is not an OS sandbox. A sufficiently privileged runtime can access
+local files or alter checks. Independently protected acceptance checks and stronger
+execution isolation remain improvements, not guarantees. Live-provider reliability,
+native Windows and performance need separate evidence.
 
-Local completion checks the configured commands and freshness of their evidence. It does not independently know that every customer requirement has been covered. The coordinator must connect accepted criteria to real tests and, where needed, configure workflow gates as required checks. [The contract explains that wiring](WORKFLOW-CONTRACTS.md).
+## Design references
 
-## 4. Provider independence: current implementation and missing pieces
+| Reference | Useful pattern | Foundry's choice |
+| --- | --- | --- |
+| [OpenCode](https://opencode.ai/docs/agents/) | Primary/specialist roles and planning/build permissions | The controller owns product progression and approvals |
+| [Pi](https://github.com/earendil-works/pi) and [packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md) | Small core with optional skills | Reusable policies, not automatic extension execution |
+| [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent) | Saved sessions and recoverable long-running work | No Python REPL, schedules or recursive agent network |
 
-```mermaid
-flowchart TB
-    UI["app/ + factory_ui.py"] --> F["factory.py"]
-    MCP["factory_mcp.py + official MCP SDK"] --> F
-    F --> P["providers.py"]
-    P --> C["codex exec: existing local login"]
-    P --> G["chatgpt_runtime.py: App Server"]
-    P --> X["Registered local JSONL runtime"]
-    AUTH["chatgpt_auth.py: browser OAuth, verified identity, Keychain"] -->|"private child environment"| G
-    F --> L["foundry.py + workflow.py"]
-    L --> E["Actual checks, immutable receipts, evidence gate"]
-    E --> F
-```
-
-| Layer | Current boundary |
-|---|---|
-| Factory coordination | Python owns durable stages, artifact checks, owner approval digests, dispatch, integration and recovery. |
-| Local UI and plugin | Same controller through loopback HTTP or MCP. The bundled panel declares global and thread entrypoints. |
-| Install/update and verification | Existing provider-neutral file, argv, receipt, freshness and record contracts. |
-| Codex execution | Existing login through CLI; role files support explicit owner settings when the installed runtime supports them. |
-| ChatGPT connection | Original standards-based OAuth code, verified JWKS identity, Keychain storage and a private App Server adapter. macOS credential backend only; plan-preview and App Server limitations apply. |
-| Other providers | Strict registered JSONL processes can supply an agent runtime. No second live commercial provider has been qualified. |
-| Specialist roles and hooks | Concrete Codex formats. The controller does not translate them into another provider's tools. ChatGPT plan preview disables native multi-agent. |
-| Services and accounts | Connections already available to the selected runtime, with explicit permission. No separate universal OAuth broker or automatic paid-service provisioning. |
-| Public hosting | Not implemented or published. Local plugin support does not make a laptop reachable from ChatGPT web. |
-
-A product's own AI service is separate from the provider building that product.
-A completed model turn verifies that request, not the application. See
-[PROVIDERS.md](PROVIDERS.md), [CHATGPT.md](CHATGPT.md), and the live-flow checks in
-[VALIDATION.md](VALIDATION.md).
-
-## 5. Use the repository without a global Foundry skill
-
-Run `./foundry --help`, create a product with `new`, and continue through
-`run`, `review` and exact-revision `approve` commands. `./foundry ui` is an
-optional browser view over the same Factory state. You can also open the
-repository in a supported coding assistant and describe the product. The
-coordinator can read the repository instructions directly, choose a separate
-product folder, and invoke the installer. You do not need to install or invoke
-`$foundry` first.
-
-For an explicit local installation:
-
-```sh
-python3 scripts/marketcraft.py install /absolute/path/to/product
-```
-
-The [managed file list](../scripts/foundry.py) copies workflow materials, roles, references, selected docs, hooks, and Python scripts into the product and adds a managed instruction block. It preserves application code and initializes local Git if necessary. It does not scaffold the app, install its dependencies, connect a remote, or connect a provider account.
-
-Open that product workspace and use its instructions for ongoing work. These commands inspect its state without invoking a model:
-
-```sh
-python3 scripts/marketcraft.py status
-python3 scripts/marketcraft.py guide --request "Plan the first useful journey" --intent plan --complexity product
-python3 scripts/marketcraft.py provider list
-```
-
-Then create the accepted spec, implement the actual app, configure its real checks, and use `start`, `verify`, and `complete` as documented in [RUNTIME.md](RUNTIME.md). Provider execution is an explicit additional call; `provider list` only lists registration metadata. Global conversation shortcuts under `skills/` are optional and are not copied by the product installer.
-
-This architecture document belongs to the framework repository. Product installation copies the documents explicitly named by the installer, not every file under `docs/`.
+These are references, not bundled dependencies or qualified Foundry providers.
+Their published benchmarks do not establish Foundry's performance.

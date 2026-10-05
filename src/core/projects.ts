@@ -299,12 +299,15 @@ export async function runProjectUntilBoundary(rootInput: string, maxStages = FAC
 export class ProjectService {
   readonly sourceRoot: string;
   readonly productsDir: string;
+  readonly runtimeDir: string;
   private readonly activeJobs = new Map<string, { status: string; error?: string }>();
 
-  constructor(sourceRoot: string, productsDir?: string) {
+  constructor(sourceRoot: string, productsDir?: string, runtimeDir?: string) {
     this.sourceRoot = path.resolve(sourceRoot);
     rejectSymlinkComponents(this.sourceRoot);
-    const fallback = path.join(path.dirname(this.sourceRoot), 'products');
+    this.runtimeDir = path.resolve(runtimeDir ?? path.join(this.sourceRoot, 'dist/runtime'));
+    rejectSymlinkComponents(this.runtimeDir);
+    const fallback = '~/.foundry/products';
     this.productsDir = path.resolve(expandUserPath(productsDir ?? fallback));
     if (this.productsDir === this.sourceRoot || this.productsDir.startsWith(`${this.sourceRoot}${path.sep}`)) {
       throw new FoundryError('Products directory must be outside the framework checkout');

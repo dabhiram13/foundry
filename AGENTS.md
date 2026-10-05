@@ -13,19 +13,19 @@ the product decisions. You do the work and keep the next step clear.
 
 ## Building a new product
 
-- Start with `./foundry --help` or `./foundry` for terminal commands. Use
+- Build with `npm ci --ignore-scripts` and `npm run build`. Start with
+  `./foundry --help` or `./foundry` for the interactive terminal. Use
   `new`, `configure`, `run`, `review` and exact-revision `approve` to move
-  through Research, Plan, Design, Build, Test and Ship. The optional browser
-  view is `./foundry ui`; the owner approves the plan and design.
+  through Research, Plan, Design, Build, Test and Ship. The owner approves the
+  plan and design. There is no browser workspace or separate MCP runtime.
 - To add Foundry to an existing product from the command line, follow
   `skills/foundry/SKILL.md` and point its framework path at this checkout.
 - Put product code in that product's own folder, never in this repository.
-- Old names still work: `marketcraft`, `product-foundry`, `foundry-*`,
-  `scripts/foundry.py`, and `.foundry`.
+- Use the single TypeScript executable. Legacy Python launchers are not supported.
 
 ## Rules for the work
 
-- Use `python3 scripts/marketcraft.py` to track work and run checks. Finish or
+- Use `foundry work` to track scoped work and run checks. Finish or
   resume the current run before starting another one.
 - You (the coordinator) combine the results and move the run forward. Give helper
   roles separate files to change, wait for them, and read what they actually wrote.
@@ -50,15 +50,14 @@ the product decisions. You do the work and keep the next step clear.
   messages, or changes something outside this computer. Permission already given
   still counts.
 
-## Changing the Foundry app
+## Changing the public website
 
-- Read `docs/DESIGN-SYSTEM.md` and reuse the shadcn components in
-  `app/src/components/ui/`.
-- Colors and sizes live in `app/src/globals.css`, screens in `app/src/main.tsx`,
-  and layout in `app/src/workspace.css`.
-- Run `npx tsc --noEmit` and `npm run build:panel`, then check the app on desktop
-  and mobile widths.
-- The design document also lists the installed design skills and when to use them.
+- Read `docs/DESIGN-SYSTEM.md`. Preserve the neutral, accessible landing design.
+- Keep the website static and independent of project state and provider accounts.
+- Run site typechecking, build and content/link checks. Do not introduce a local
+  browser workspace as another supported product path.
+- Browser testing for this cutover is excluded by the owner's direction; report
+  that limit rather than claiming rendered verification.
 
 ## Changing Foundry itself
 

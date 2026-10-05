@@ -938,30 +938,18 @@ test('factory init preserves a pre-existing owner idea document', async () => {
   assert.equal(await readFactoryState(root), null);
 });
 
-test('installed factory route exposes help and rejects unknown options', async () => {
-  const help = spawnSync(process.execPath, ['dist/runtime/project.cjs', 'factory', '--help'], {
+test('the public CLI exposes one terminal surface and rejects legacy routes', async () => {
+  const help = spawnSync(process.execPath, ['dist/runtime/foundry.cjs', '--help'], {
     cwd: process.cwd(), encoding: 'utf8',
   });
   assert.equal(help.status, 0);
-  assert.match(help.stdout, /factory init --name NAME/);
-  const root = await project();
+  assert.match(help.stdout, /foundry work start/);
+  assert.match(help.stdout, /foundry provider run/);
   const initialized = spawnSync(process.execPath, [
-    'dist/runtime/project.cjs', 'factory', 'init',
-    '--name', 'CLI preview', '--idea', 'Create a local tested feature.',
-    '--adapter', 'fixture', '--project', root,
+    'dist/runtime/foundry.cjs', 'factory',
   ], { cwd: process.cwd(), encoding: 'utf8' });
-  assert.equal(initialized.status, 0, initialized.stderr);
-  assert.match(initialized.stdout, /"stage":\s*"research"/);
-  const unknown = spawnSync(process.execPath, [
-    'dist/runtime/project.cjs', 'factory', 'status', '--unknown', '--project', root,
-  ], { cwd: process.cwd(), encoding: 'utf8' });
-  assert.equal(unknown.status, 2);
-  assert.match(unknown.stderr, /Unknown option --unknown/);
-  const unknownFactory = spawnSync(process.execPath, [
-    'dist/runtime/project.cjs', 'factory', '--unknown', '--project', root,
-  ], { cwd: process.cwd(), encoding: 'utf8' });
-  assert.equal(unknownFactory.status, 2);
-  assert.match(unknownFactory.stderr, /Unknown factory option/);
+  assert.equal(initialized.status, 2);
+  assert.match(initialized.stderr, /Unknown command factory/);
 });
 
 test('preseeded Build task titles still receive the required bootstrap instructions', async () => {
@@ -994,52 +982,49 @@ test('Build freezes only exact mapped checks and rejects invalid bootstrap mappi
   });
 });
 
-test('installed runtime bootstraps empty checks and ships two product-changing tasks', async () => {
+test('installed single-bin runtime bootstraps and ships two product-changing tasks', async () => {
   const providerWorkspace = await project();
   const installParent = await mkdtemp(path.join(os.tmpdir(), 'foundry-installed-factory-'));
-  const root = path.join(installParent, 'product');
+  const root = path.join(installParent, 'framework');
   await installWorkspace(process.cwd(), root);
-  const git = (args: string[]) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
-  assert.equal(git(['init', '-q']).status, 0);
-  assert.equal(git(['config', 'user.name', 'Installed Factory Test']).status, 0);
-  assert.equal(git(['config', 'user.email', 'factory-installed-test@localhost']).status, 0);
   const installedProject = JSON.parse(await readFile(path.join(root, '.foundry/project.json'), 'utf8')) as JsonRecord;
   assert.deepEqual(installedProject.checks, []);
-  assert.ok((await readFile(path.join(root, '.foundry/runtime/project.cjs'))).length > 0);
+  assert.ok((await readFile(path.join(root, '.foundry/runtime/foundry.cjs'))).length > 0);
   const roles = JSON.parse(await readFile(path.join(root, '.foundry/roles.json'), 'utf8')) as JsonRecord;
   assert.ok((roles.roles as JsonRecord[]).some((role) => role.name === 'quality-gate' && role.sandbox === 'read-only'));
   await writeFile(
     path.join(root, '.foundry/providers.json'),
     await readFile(path.join(providerWorkspace, '.foundry/providers.json')),
   );
-  assert.equal(git(['add', '.']).status, 0);
-  assert.equal(git(['commit', '-q', '-m', 'installed workspace fixture']).status, 0);
-  const cli = path.join(root, '.foundry/runtime/project.cjs');
+  const products = path.join(installParent, 'products');
+  const cli = path.join(root, '.foundry/runtime/foundry.cjs');
   const invoke = (...args: string[]): JsonRecord => {
-    const result = spawnSync(process.execPath, [cli, 'factory', ...args, '--project', root], {
+    const result = spawnSync(process.execPath, [cli, ...args, '--products-dir', products, '--json'], {
       cwd: root, encoding: 'utf8',
     });
     assert.equal(result.status, 0, result.stderr);
     return JSON.parse(result.stdout) as JsonRecord;
   };
-  invoke('init', '--name', 'Installed journey', '--idea', 'Create two verified local behaviors.', '--adapter', 'fixture');
-  invoke('run');
-  invoke('run');
-  const plan = invoke('review', '--stage', 'plan');
-  invoke('approve', '--stage', 'plan', '--revision', String(plan.revision));
-  invoke('run');
-  const design = invoke('review', '--stage', 'design');
-  invoke('approve', '--stage', 'design', '--revision', String(design.revision));
-  const built = invoke('run');
+  const createdProject = invoke('new', 'Installed journey', '--idea', 'Create two verified local behaviors.', '--adapter', 'fixture');
+  const identifier = String(createdProject.id);
+  const workspaceRoot = String(createdProject.path);
+  invoke('run', identifier);
+  invoke('run', identifier);
+  const plan = invoke('review', identifier);
+  invoke('approve', identifier, '--revision', String(plan.revision));
+  invoke('run', identifier);
+  const design = invoke('review', identifier);
+  invoke('approve', identifier, '--revision', String(design.revision));
+  const built = invoke('run', identifier);
   assert.equal(built.stage, 'verify');
-  const first = await readFile(path.join(root, 'src/product.js'), 'utf8');
-  const second = await readFile(path.join(root, 'src/second.js'), 'utf8');
+  const first = await readFile(path.join(workspaceRoot, 'src/product.js'), 'utf8');
+  const second = await readFile(path.join(workspaceRoot, 'src/second.js'), 'utf8');
   assert.match(first, /verified local feature/);
   assert.match(second, /verified second behavior/);
-  invoke('run');
-  const completed = invoke('run');
+  invoke('run', identifier);
+  const completed = invoke('run', identifier);
   assert.equal(completed.status, 'completed');
-  await assert.rejects(configureFactory(root, { model: 'replacement' }), /Completed Factory work cannot be reconfigured/);
-  assert.equal(JSON.parse(await readFile(path.join(root, '.foundry/project.json'), 'utf8')).checks.length, 1);
-  assert.ok(await readFactoryState(root));
+  await assert.rejects(configureFactory(workspaceRoot, { model: 'replacement' }), /Completed Factory work cannot be reconfigured/);
+  assert.equal(JSON.parse(await readFile(path.join(workspaceRoot, '.foundry/project.json'), 'utf8')).checks.length, 1);
+  assert.ok(await readFactoryState(workspaceRoot));
 });

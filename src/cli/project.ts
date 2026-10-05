@@ -1,13 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { FoundryError, normalizeLocalPath, within } from '../core/fs.js';
-import { installWorkspace } from '../core/install.js';
 import { complete, pauseOrResume, recover, start, status, verify } from '../core/lifecycle.js';
 import { context, gate, guide, record } from '../core/workflow.js';
-import {
-  approveFactory, cancelFactory, configureFactory, factoryHelp, initFactory, recoverFactory,
-  reviewFactory, runFactory, statusFactory,
-} from '../core/factory.js';
 import { cancel, execute, providerStatus, registry, reconcile } from '../runtime/providers.js';
+import { writeResult } from './output.js';
 
 type Options = Record<string, string | boolean | string[]>;
 
@@ -19,27 +15,25 @@ interface OptionSpec {
 }
 
 function usage(): string {
-  return `Foundry TypeScript project runtime
+  return `Foundry scoped work and provider operations
 
 Usage:
-  project install --source PATH --target PATH [--update] [--recover]
-  project status [--project PATH]
-  project start SLUG --spec PATH [--project PATH]
-  project pause|resume|verify|complete|recover [--project PATH]
-  project workflow guide|context|gate|record|feedback [options]
-  project providers [--project PATH]
-  project providers run --adapter NAME --prompt TEXT [--project PATH] [--billing MODE]
-  project providers run --request PATH [--project PATH]
-  project providers status [TASK_ID] [--project PATH]
-  project providers cancel|reconcile TASK_ID [--project PATH]
-  project factory init|configure|status|run|review|approve|cancel|recover [options]
+  foundry work status [--project PATH]
+  foundry work start SLUG --spec PATH [--project PATH]
+  foundry work pause|resume|verify|complete|recover [--project PATH]
+  foundry work workflow guide|context|gate|record|feedback [options]
+  foundry provider [--project PATH]
+  foundry provider run --adapter NAME --prompt TEXT [--project PATH] [--billing MODE]
+  foundry provider run --request PATH [--project PATH]
+  foundry provider status [TASK_ID] [--project PATH]
+  foundry provider cancel|reconcile TASK_ID [--project PATH]
 `;
 }
 
 function parse(arguments_: string[], spec: OptionSpec): { positional: string[]; options: Options } {
   const valueNames = new Set(spec.value ?? []);
   const listNames = new Set(spec.list ?? []);
-  const booleanNames = new Set(spec.boolean ?? []);
+  const booleanNames = new Set([...(spec.boolean ?? []), 'json']);
   const positional: string[] = [];
   const options: Options = {};
   const addValue = (name: string, value: string): void => {
@@ -111,8 +105,8 @@ function rootOption(options: Options): string {
   return stringOption(options, 'project', process.cwd()) ?? process.cwd();
 }
 
-function output(value: unknown): void {
-  process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+function output(value: unknown, json = false): void {
+  writeResult(value, json);
 }
 
 const PROJECT_OPTION = ['project'] as const;
@@ -141,27 +135,6 @@ const PROVIDER_SPECS: Record<string, OptionSpec> = {
   },
 };
 
-const FACTORY_SPECS: Record<string, OptionSpec> = {
-  init: {
-    value: [...PROJECT_OPTION, 'name', 'idea', 'adapter', 'model', 'reasoning', 'billing'],
-    list: ['role'],
-    boolean: ['confirmed'],
-    positional: 0,
-  },
-  configure: {
-    value: [...PROJECT_OPTION, 'adapter', 'model', 'reasoning', 'billing'],
-    list: ['role'],
-    boolean: ['confirmed'],
-    positional: 0,
-  },
-  status: { value: [...PROJECT_OPTION], positional: 0 },
-  run: { value: [...PROJECT_OPTION], positional: 0 },
-  review: { value: [...PROJECT_OPTION, 'stage'], positional: 0 },
-  approve: { value: [...PROJECT_OPTION, 'stage', 'revision'], positional: 0 },
-  cancel: { value: [...PROJECT_OPTION], positional: 0 },
-  recover: { value: [...PROJECT_OPTION], positional: 0 },
-};
-
 function action(arguments_: string[]): string {
   const first = arguments_[0];
   return first && !first.startsWith('--') ? first : '';
@@ -170,11 +143,11 @@ function action(arguments_: string[]): string {
 async function workflowCommand(arguments_: string[]): Promise<number> {
   const requested = action(arguments_);
   const spec = WORKFLOW_SPECS[requested];
-  if (!spec) throw new FoundryError('Usage: project workflow guide|context|gate|record|feedback');
+  if (!spec) throw new FoundryError('Usage: foundry work workflow guide|context|gate|record|feedback');
   const { options } = parse(arguments_, spec);
   const root = rootOption(options);
   if (requested === 'guide') {
-    output(await guide(
+    const guidance = await guide(
       root,
       stringOption(options, 'request'),
       stringOption(options, 'intent'),
@@ -182,7 +155,26 @@ async function workflowCommand(arguments_: string[]): Promise<number> {
       stringOption(options, 'surface'),
       stringListOption(options, 'requires'),
       stringListOption(options, 'available'),
-    ));
+    );
+    if (options.json === true) {
+      output(guidance, true);
+    } else {
+      const current = guidance.current as Record<string, unknown>;
+      const next = guidance.next as Record<string, unknown>;
+      const userNeeded = (guidance.user_needed as Record<string, unknown>[])
+        .map((item) => `${String(item.kind)}: ${String(item.action)}`)
+        .join('; ') || 'none';
+      output({
+        request: guidance.request || 'unspecified',
+        intent: current.intent,
+        complexity: current.complexity,
+        surface: current.surface,
+        next_stage: next.stage,
+        next_action: next.action,
+        next_reason: next.reason,
+        user_needed: userNeeded,
+      }, false);
+    }
   } else if (requested === 'context') {
     const result = await context(root);
     const id = stringOption(options, 'id');
@@ -191,17 +183,17 @@ async function workflowCommand(arguments_: string[]): Promise<number> {
       if (!records.length) throw new FoundryError(`Unknown record ${id}`);
       result.records = records;
     }
-    output(result);
+    output(result, options.json === true);
   }
   else if (requested === 'gate') {
     const result = await gate(root, stringOption(options, 'stage'));
-    output(result);
+    output(result, options.json === true);
     return result.status === 'pass' ? 0 : 1;
   } else {
     const file = within(root, normalizeLocalPath(root, requiredOption(options, 'file')));
     const payload = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>;
     if (requested === 'feedback' && payload.kind !== 'feedback') throw new FoundryError('feedback accepts only a feedback record');
-    output(await record(root, payload));
+    output(await record(root, payload), options.json === true);
   }
   return 0;
 }
@@ -209,24 +201,24 @@ async function workflowCommand(arguments_: string[]): Promise<number> {
 async function providersCommand(arguments_: string[]): Promise<number> {
   const requested = action(arguments_);
   const spec = PROVIDER_SPECS[requested];
-  if (!spec) throw new FoundryError('Usage: project providers [run|status|cancel|reconcile]');
+  if (!spec) throw new FoundryError('Usage: foundry provider [run|status|cancel|reconcile]');
   const { positional, options } = parse(arguments_, spec);
   const root = rootOption(options);
   if (!requested) {
-    output(await registry(root));
+    output(await registry(root), options.json === true);
     return 0;
   }
   if (requested === 'status') {
-    output(await providerStatus(root, positional[1]));
+    output(await providerStatus(root, positional[1]), options.json === true);
     return 0;
   }
   const taskId = positional[1] ?? stringOption(options, 'task-id');
   if (requested === 'cancel') {
-    output(await cancel(root, taskId ?? requiredOption(options, 'task-id')));
+    output(await cancel(root, taskId ?? requiredOption(options, 'task-id')), options.json === true);
     return 0;
   }
   if (requested === 'reconcile') {
-    output(await reconcile(root, taskId ?? requiredOption(options, 'task-id'), options['acknowledge-stopped'] === true));
+    output(await reconcile(root, taskId ?? requiredOption(options, 'task-id'), options['acknowledge-stopped'] === true), options.json === true);
     return 0;
   }
   let request: unknown;
@@ -258,92 +250,30 @@ async function providersCommand(arguments_: string[]): Promise<number> {
       request = directRequest;
   }
   const result = await execute(root, request, taskId);
-  output(result);
+  output(result, options.json === true);
   return result.status === 'completed' ? 0 : result.status === 'canceled' ? 130 : 1;
 }
 
-async function factoryCommand(arguments_: string[]): Promise<number> {
-  const requested = action(arguments_);
-  const first = arguments_[0];
-  if (requested === 'help' || first === '--help' || first === '-h' || !arguments_.length) {
-    process.stdout.write(`${factoryHelp()}\n`);
-    return 0;
-  }
-  if (!requested) throw new FoundryError('Unknown factory option. Use --help.');
-  const spec = FACTORY_SPECS[requested];
-  if (!spec) throw new FoundryError('Usage: project factory init|configure|status|run|review|approve|cancel|recover');
-  const { options } = parse(arguments_.slice(1), spec);
-  const root = rootOption(options);
-  if (requested === 'init') {
-    output(await initFactory(root, {
-      name: requiredOption(options, 'name'),
-      idea: requiredOption(options, 'idea'),
-      adapter: requiredOption(options, 'adapter'),
-      model: stringOption(options, 'model'),
-      reasoning: stringOption(options, 'reasoning'),
-      billing: stringOption(options, 'billing') as 'local' | 'subscription' | undefined,
-      confirmed: options.confirmed === true,
-      roles: stringListOption(options, 'role'),
-    }));
-  } else if (requested === 'configure') {
-    output(await configureFactory(root, {
-      adapter: stringOption(options, 'adapter'),
-      model: stringOption(options, 'model'),
-      reasoning: stringOption(options, 'reasoning'),
-      billing: stringOption(options, 'billing') as 'local' | 'subscription' | undefined,
-      confirmed: options.confirmed === true,
-      roles: stringListOption(options, 'role'),
-    }));
-  } else if (requested === 'status') {
-    output(await statusFactory(root));
-  } else if (requested === 'run') {
-    output(await runFactory(root));
-  } else if (requested === 'review') {
-    const stage = stringOption(options, 'stage');
-    if (stage && stage !== 'plan' && stage !== 'design') throw new FoundryError('Factory review stage must be plan or design');
-    output(await reviewFactory(root, stage as 'plan' | 'design' | undefined));
-  } else if (requested === 'approve') {
-    const stage = requiredOption(options, 'stage');
-    if (stage !== 'plan' && stage !== 'design') throw new FoundryError('Factory approval stage must be plan or design');
-    output(await approveFactory(root, stage, requiredOption(options, 'revision')));
-  } else if (requested === 'cancel') {
-    output(await cancelFactory(root));
-  } else {
-    output(await recoverFactory(root));
-  }
-  return 0;
-}
-
-export async function main(arguments_ = process.argv.slice(2)): Promise<number> {
+export async function dispatchProjectCommand(arguments_: string[]): Promise<number> {
   const [command, ...rest] = arguments_;
   if (!command || command === '--help' || command === '-h' || command === 'help') {
     process.stdout.write(usage());
     return 0;
   }
-  if (command === 'install') {
-    const { options } = parse(rest, { value: ['source', 'target'], boolean: ['update', 'recover'] });
-    output(await installWorkspace(
-      requiredOption(options, 'source'),
-      requiredOption(options, 'target'),
-      options.update === true,
-      options.recover === true,
-    ));
-    return 0;
-  }
   if (command === 'status') {
     const { options } = parse(rest, { value: [...PROJECT_OPTION] });
-    output(await status(rootOption(options)));
+    output(await status(rootOption(options)), options.json === true);
     return 0;
   }
   if (command === 'start') {
     const { positional, options } = parse(rest, { value: [...PROJECT_OPTION, 'spec'], positional: 1 });
     const state = await start(rootOption(options), positional[0] ?? '', requiredOption(options, 'spec'));
-    output(state);
+    output(state, options.json === true);
     return 0;
   }
   if (['pause', 'resume'].includes(command)) {
     const { options } = parse(rest, { value: [...PROJECT_OPTION] });
-    output(await pauseOrResume(rootOption(options), command === 'pause'));
+    output(await pauseOrResume(rootOption(options), command === 'pause'), options.json === true);
     return 0;
   }
   if (command === 'verify') {
@@ -356,16 +286,10 @@ export async function main(arguments_ = process.argv.slice(2)): Promise<number> 
   }
   if (command === 'recover') {
     const { options } = parse(rest, { value: [...PROJECT_OPTION] });
-    output(await recover(rootOption(options)));
+    output(await recover(rootOption(options)), options.json === true);
     return 0;
   }
   if (command === 'workflow') return workflowCommand(rest);
   if (command === 'providers') return providersCommand(rest);
-  if (command === 'factory') return factoryCommand(rest);
   throw new FoundryError(`Unknown command ${command}. Use --help.`);
 }
-
-main().then((code) => { process.exitCode = code; }).catch((error: unknown) => {
-  process.stderr.write(`Foundry: ${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = error instanceof FoundryError ? 2 : 1;
-});

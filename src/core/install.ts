@@ -38,6 +38,10 @@ const journalSchema = z.object({
 type InstallManifest = z.infer<typeof manifestSchema>;
 type InstallJournal = z.infer<typeof journalSchema>;
 
+export function validCurrentInstallManifest(value: unknown): boolean {
+  return manifestSchema.safeParse(value).success;
+}
+
 interface ManagedFile {
   source: string;
   target: string;
@@ -73,18 +77,24 @@ async function removeJournal(root: string): Promise<void> {
 }
 
 async function managedFiles(source: string): Promise<ManagedFile[]> {
-  const runtime = path.join(source, 'dist/runtime/project.cjs');
+  const installedRuntime = path.join(source, '.foundry/runtime');
+  const runtimeDirectory = await exists(source, '.foundry/runtime/foundry.cjs') ? installedRuntime : path.join(source, 'dist/runtime');
+  const runtime = path.join(runtimeDirectory, 'foundry.cjs');
+  const worker = path.join(runtimeDirectory, 'foundry-worker.cjs');
   const roles = path.join(source, '.foundry/roles.json');
   try {
     rejectSymlinkComponents(runtime);
+    rejectSymlinkComponents(worker);
     rejectSymlinkComponents(roles);
     await lstat(runtime);
+    await lstat(worker);
   } catch (error) {
     if (error instanceof FoundryError) throw error;
-    throw new FoundryError(`Built TypeScript runtime is missing; run npm ci && npm run build:runtime: ${runtime}`, { cause: error });
+    throw new FoundryError(`Built Foundry runtime is missing; run npm ci && npm run build:runtime: ${runtime}`, { cause: error });
   }
   return [
-    { source: runtime, target: '.foundry/runtime/project.cjs', mode: 0o700 },
+    { source: runtime, target: '.foundry/runtime/foundry.cjs', mode: 0o700 },
+    { source: worker, target: '.foundry/runtime/foundry-worker.cjs', mode: 0o700 },
     { source: roles, target: '.foundry/roles.json', mode: 0o600 },
   ];
 }
@@ -112,11 +122,13 @@ export function sharedInstallGuardPath(target: string): string {
   return path.join(tmpdir(), `product-foundry-install-${digest(normalized).slice(0, 24)}.guard`);
 }
 
-export async function installWorkspace(
+async function installWorkspaceCore(
   sourceInput: string,
   targetInput: string,
   update = false,
   recoverPending = false,
+  allowLegacy = false,
+  installGuardHeld = false,
 ): Promise<JsonRecord> {
   const sourceCandidate = path.resolve(sourceInput);
   rejectSymlinkComponents(sourceCandidate);
@@ -129,12 +141,12 @@ export async function installWorkspace(
     throw new FoundryError('Install into a separate product folder, outside the framework checkout.');
   }
   rejectSymlinkComponents(target);
-  return withProcessLock(sharedInstallGuardPath(target), async () => {
+  const install = async (): Promise<JsonRecord> => {
   const hasRuntimeMarker = await exists(target, '.foundry/runtime.json');
   const hasProjectManifest = await exists(target, '.foundry/project.json');
   const hasPendingJournal = await exists(target, '.foundry/install-pending.json');
-  if (hasProjectManifest && !hasRuntimeMarker && !hasPendingJournal) {
-    throw new FoundryError('Target is an unmarked or legacy workspace; use the existing Python runtime until an explicit migration command is available.');
+  if (hasProjectManifest && !hasRuntimeMarker && !hasPendingJournal && !allowLegacy) {
+    throw new FoundryError('Target is an unmarked or legacy workspace; use foundry migrate explicitly.');
   }
   let journal: InstallJournal | null = null;
   if (hasPendingJournal) {
@@ -159,6 +171,19 @@ export async function installWorkspace(
   }
   const files = await managedFiles(source);
   const { incoming, sourceBytes } = await preflight(files);
+  if (allowLegacy && !journal) {
+    for (const file of files) {
+      const current = await fileDigest(target, file.target);
+      if (current !== null && current !== incoming[file.target]) {
+        if (file.target !== '.foundry/roles.json') {
+          throw new FoundryError(`Legacy migration refuses modified managed bytes at ${file.target}.`);
+        }
+        incoming[file.target] = current;
+        sourceBytes.set(file.target, await readFile(targetPath(target, file.target)));
+        file.mode = (await lstat(targetPath(target, file.target))).mode & 0o777;
+      }
+    }
+  }
   const sourcePin = digest(JSON.stringify({ files: incoming, runtime: 1 }));
   if (journal && journal.source_pin !== sourcePin) {
     throw new FoundryError('Recovery requires exactly the pinned source of the interrupted installation.');
@@ -195,22 +220,27 @@ export async function installWorkspace(
     if (await exists(target, '.foundry/install.json')) {
       const parsed = manifestSchema.safeParse(JSON.parse(await readFile(manifestPath, 'utf8')));
       if (!parsed.success) {
-        throw new FoundryError('Existing install manifest is invalid or uses an unsupported format; reconcile it manually.');
+        if (!allowLegacy) {
+          throw new FoundryError('Existing install manifest is invalid or uses an unsupported format; reconcile it manually.');
+        }
+      } else {
+        previous = parsed.data;
       }
-      previous = parsed.data;
       if (!update && !journal) throw new FoundryError('Target is already installed; use update to reconcile managed files.');
       if (!journal) {
-        const recorded = previous.files;
+        const recorded = previous?.files ?? {};
         for (const relative of Object.keys(incoming)) {
           const current = await fileDigest(target, relative);
           const expected = recorded[relative];
-          if (current !== expected && current !== incoming[relative]) {
+          if ((current !== expected && current !== incoming[relative])
+            && (current !== null || expected !== undefined)) {
             throw new FoundryError(`Managed file conflict: preserve ${relative} and reconcile it before updating.`);
           }
         }
       }
     }
-    if (!previous && !journal && (await exists(target, '.foundry/runtime.json') || await exists(target, '.foundry/install.json'))) {
+    if (!previous && !journal && !allowLegacy
+      && (await exists(target, '.foundry/runtime.json') || await exists(target, '.foundry/install.json'))) {
       throw new FoundryError('Target contains runtime or install metadata without a trusted manifest; preserve it and reconcile manually.');
     }
     if (journal) {
@@ -227,7 +257,7 @@ export async function installWorkspace(
           throw new FoundryError(`Recovery refuses modified bytes at ${relative}; preserve and reconcile it manually.`);
         }
       }
-    } else if (!previous) {
+    } else if (!previous && !allowLegacy) {
       for (const relative of Object.keys(incoming)) {
         if (await exists(target, relative)) {
           throw new FoundryError(`Managed target conflict: preserve ${relative} and reconcile it before installing.`);
@@ -266,7 +296,6 @@ export async function installWorkspace(
       await atomicWrite(target, file.target, bytes);
       if (file.mode !== undefined) await chmod(targetPath(target, file.target), file.mode);
     }
-    await atomicWrite(target, '.foundry/runtime.json', markerContents);
     const modes: Record<string, number> = {};
     for (const file of files) modes[file.target] = file.mode ?? 0o600;
     await atomicJson(target, '.foundry/install.json', {
@@ -279,7 +308,29 @@ export async function installWorkspace(
       modes,
       ...(previous ? { updated_from: previous.source_pin } : {}),
     });
+    await atomicWrite(target, '.foundry/runtime.json', markerContents);
     await removeJournal(target);
     return { target, source_pin: sourcePin, updated: Boolean(previous), recovered: Boolean(journal) };
-  });
+  };
+  return installGuardHeld ? install() : withProcessLock(sharedInstallGuardPath(target), install);
+}
+
+export function installWorkspace(
+  sourceInput: string,
+  targetInput: string,
+  update = false,
+  recoverPending = false,
+  allowLegacy = false,
+): Promise<JsonRecord> {
+  return installWorkspaceCore(sourceInput, targetInput, update, recoverPending, allowLegacy, false);
+}
+
+export function installWorkspaceWithSharedGuard(
+  sourceInput: string,
+  targetInput: string,
+  update = false,
+  recoverPending = false,
+  allowLegacy = false,
+): Promise<JsonRecord> {
+  return installWorkspaceCore(sourceInput, targetInput, update, recoverPending, allowLegacy, true);
 }

@@ -142,6 +142,12 @@ const savedTaskSchema = z.object({
 }).strict();
 
 export type ProviderRequest = z.infer<typeof requestSchema>;
+export type SavedTaskStatus = typeof TASK_STATUSES[number];
+
+export function savedTaskStatus(value: unknown): SavedTaskStatus {
+  return savedTaskSchema.parse(value).status;
+}
+
 type JsonRecord = Record<string, unknown>;
 export interface ExecuteOptions {
   onStarted?: (taskId: string) => Promise<void> | void;

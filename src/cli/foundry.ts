@@ -1,69 +1,89 @@
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
-import { FoundryError } from '../core/fs.js';
-import { projectRunExitCode } from './run-exit-code.js';
+import { FoundryError, expandUserPath } from '../core/fs.js';
+import { installWorkspace } from '../core/install.js';
+import { migrateWorkspace } from '../core/migrate.js';
 import {
-  ProjectService, type ConfigureProjectOptions, type FactoryRoleMap,
+  ProjectService, type ConfigureProjectOptions,
 } from '../core/projects.js';
-import { startHttpServer } from '../transports/http.js';
-import { startMcpServer } from '../transports/mcp.js';
+import { loadRoles } from '../core/roles.js';
+import { closeProjectRuns, startProjectRun } from '../transports/jobs.js';
+import { projectRunExitCode } from './run-exit-code.js';
+import { dispatchProjectCommand } from './project.js';
+import { writeResult } from './output.js';
+import { runTerminal } from './terminal.js';
 
 type JsonRecord = Record<string, unknown>;
+type Values = Record<string, string | string[] | undefined>;
 
 interface Parsed {
   positionals: string[];
-  values: Record<string, string>;
-  lists: Record<string, string[]>;
+  values: Values;
   flags: Set<string>;
 }
 
 const VALUE_OPTIONS = new Set([
-  'adapter', 'billing', 'idea', 'model', 'port', 'products-dir', 'reasoning', 'revision', 'role',
+  'adapter', 'billing', 'idea', 'model', 'products-dir', 'project', 'reasoning', 'revision',
+  'role', 'spec', 'source', 'target', 'request', 'task-id', 'stage', 'name',
 ]);
-const FLAG_OPTIONS = new Set(['confirmed', 'json', 'no-browser', 'revoke-consent']);
+const FLAG_OPTIONS = new Set([
+  'apply', 'confirmed', 'dry-run', 'json', 'recover', 'revoke-consent', 'update',
+]);
 
-function usage(): string {
-  return [
-    'Usage: ./foundry typed COMMAND [--products-dir DIR] [--json]',
-    '',
-    'Commands:',
-    '  new NAME --idea TEXT [--adapter NAME]',
-    '  list',
-    '  status PROJECT',
-    '  configure PROJECT [--adapter NAME] [--billing local|subscription] [--confirmed|--revoke-consent] [--role STAGE=NAME]',
-    '  run PROJECT',
-    '  review PROJECT',
-    '  approve PROJECT --revision HASH',
-    '  stop PROJECT',
-    '  recover PROJECT',
-    '  providers [PROJECT]',
-    '  ui --port N --no-browser',
-    '  mcp',
-  ].join('\n') + '\n';
+export function usage(): string {
+  return `Foundry terminal-first runtime
+
+Usage:
+  foundry COMMAND [options]
+
+Commands:
+  new NAME --idea TEXT [--adapter NAME]
+  list [--products-dir DIR]
+  status PROJECT
+  configure PROJECT [--adapter NAME] [--billing local|subscription] [--confirmed|--revoke-consent]
+  run PROJECT
+  review PROJECT
+  approve PROJECT --revision HASH
+  stop PROJECT
+  recover PROJECT
+  roles
+  providers [PROJECT]
+  init --project PATH
+  migrate --project PATH --dry-run|--apply [--recover]
+  foundry work start|status|verify|complete|pause|resume|recover|workflow ...
+  foundry provider run|status|cancel|reconcile ...
+
+With no command, an interactive readline terminal opens only on a TTY.
+Use --json for one JSON value on stdout.
+`;
 }
 
 function parse(arguments_: string[]): Parsed {
-  const parsed: Parsed = { positionals: [], values: {}, lists: {}, flags: new Set() };
+  const parsed: Parsed = { positionals: [], values: {}, flags: new Set() };
   for (let index = 0; index < arguments_.length; index += 1) {
     const argument = arguments_[index];
     if (!argument) continue;
+    if (argument === '--') throw new FoundryError('Unsupported argument --');
     if (!argument.startsWith('--')) {
       parsed.positionals.push(argument);
       continue;
     }
     const equal = argument.indexOf('=');
-    const name = (equal === -1 ? argument.slice(2) : argument.slice(2, equal));
-    if (!VALUE_OPTIONS.has(name) && !FLAG_OPTIONS.has(name)) {
-      throw new FoundryError(`Unknown option --${name}. Use --help.`);
-    }
+    const name = equal === -1 ? argument.slice(2) : argument.slice(2, equal);
+    const inline = equal === -1 ? undefined : argument.slice(equal + 1);
     if (FLAG_OPTIONS.has(name)) {
-      if (equal !== -1) throw new FoundryError(`Flag --${name} does not accept a value`);
+      if (inline !== undefined) throw new FoundryError(`Flag --${name} does not accept a value`);
+      if (parsed.flags.has(name)) throw new FoundryError(`Repeated option --${name}`);
       parsed.flags.add(name);
       continue;
     }
-    const value = equal === -1 ? arguments_[++index] : argument.slice(equal + 1);
+    if (!VALUE_OPTIONS.has(name)) throw new FoundryError(`Unknown option --${name}. Use --help.`);
+    const value = inline ?? arguments_[++index];
     if (!value || value.startsWith('--')) throw new FoundryError(`Option --${name} needs a value`);
     if (name === 'role') {
-      (parsed.lists.role ??= []).push(value);
+      const previous = parsed.values.role;
+      parsed.values.role = [...(Array.isArray(previous) ? previous : previous ? [previous] : []), value];
     } else {
       if (parsed.values[name] !== undefined) throw new FoundryError(`Option --${name} may be provided only once`);
       parsed.values[name] = value;
@@ -72,165 +92,286 @@ function parse(arguments_: string[]): Parsed {
   return parsed;
 }
 
-function requirePositional(parsed: Parsed, count: number, command: string): void {
-  if (parsed.positionals.length !== count) throw new FoundryError(`Usage: ${usage().split('\n')[0]} (${command} expects ${count} positional argument${count === 1 ? '' : 's'})`);
+function value(parsed: Parsed, name: string, fallback?: string): string | undefined {
+  const item = parsed.values[name];
+  return typeof item === 'string' ? item : fallback;
 }
 
-function roleMap(values: string[] | undefined): FactoryRoleMap | undefined {
-  if (!values) return undefined;
-  const result: FactoryRoleMap = {};
-  for (const value of values) {
-    const [stage, role, ...extra] = value.split('=');
-    if (extra.length || !stage || !role || !['research', 'scope', 'design', 'build', 'verify', 'release'].includes(stage)) {
-      throw new FoundryError('Roles must use --role STAGE=ROLE for a known factory stage');
-    }
-    if (Object.hasOwn(result, stage)) throw new FoundryError(`Only one --role value is allowed for ${stage}`);
-    result[stage as keyof FactoryRoleMap] = role;
+function values(parsed: Parsed, name: string): string[] | undefined {
+  const item = parsed.values[name];
+  return Array.isArray(item) ? item : typeof item === 'string' ? [item] : undefined;
+}
+
+function required(parsed: Parsed, name: string): string {
+  const item = value(parsed, name);
+  if (!item) throw new FoundryError(`Missing --${name}`);
+  return item;
+}
+
+function requireCount(parsed: Parsed, count: number, command: string): void {
+  if (parsed.positionals.length < count) throw new FoundryError(`${command} requires ${count} positional argument${count === 1 ? '' : 's'}`);
+}
+
+function sourceRoot(): string {
+  const executable = realpathSync(process.argv[1] ?? '.');
+  const fromExecutable = path.resolve(path.dirname(executable), '../..');
+  const candidates = [
+    process.env.FOUNDRY_SOURCE_ROOT,
+    fromExecutable,
+    process.cwd(),
+  ].filter((candidate): candidate is string => Boolean(candidate)).map((candidate) => path.resolve(candidate));
+  return candidates.find((candidate) => existsSync(path.join(candidate, '.foundry/roles.json'))) ?? candidates[0]!;
+}
+
+function projectPath(parsed: Parsed): string | undefined {
+  const selected = value(parsed, 'project');
+  return selected ? path.resolve(expandUserPath(selected)) : undefined;
+}
+
+function runtimeDirectory(root: string): string {
+  const installed = path.join(root, '.foundry/runtime');
+  return existsSync(path.join(installed, 'foundry-worker.cjs'))
+    ? installed : path.join(root, 'dist/runtime');
+}
+
+function workspaceIdentifier(project: string): string {
+  try {
+    const state = JSON.parse(readFileSync(path.join(project, '.foundry/state/factory/controller.json'), 'utf8')) as {
+      workspace_id?: unknown;
+    };
+    if (typeof state.workspace_id === 'string') return state.workspace_id;
+  } catch {
+    return path.basename(project);
+  }
+  return path.basename(project);
+}
+
+function serviceContext(parsed: Parsed): { service: ProjectService; identifier?: string; project?: string } {
+  const root = sourceRoot();
+  const project = projectPath(parsed);
+  if (!project) return {
+    service: new ProjectService(root, value(parsed, 'products-dir'), runtimeDirectory(root)),
+  };
+  const runtimeDir = existsSync(path.join(project, '.foundry/runtime'))
+    ? path.join(project, '.foundry/runtime') : runtimeDirectory(root);
+  return {
+    service: new ProjectService(root, path.dirname(project), runtimeDir),
+    identifier: workspaceIdentifier(project),
+    project,
+  };
+}
+
+function selectedIdentifier(parsed: Parsed, context: { identifier?: string }): string {
+  return parsed.positionals[0] ?? context.identifier
+    ?? (() => { throw new FoundryError('A project ID or slug is required; use --project PATH or provide PROJECT'); })();
+}
+
+function roleMap(entries: string[] | undefined): Record<string, string> | undefined {
+  if (!entries) return undefined;
+  const result: Record<string, string> = {};
+  for (const entry of entries) {
+    const separator = entry.indexOf('=');
+    if (separator <= 0 || separator === entry.length - 1) throw new FoundryError('--role must be STAGE=NAME');
+    result[entry.slice(0, separator)] = entry.slice(separator + 1);
   }
   return result;
 }
 
-function output(value: unknown, json: boolean): void {
-  process.stdout.write(`${json ? JSON.stringify(value) : JSON.stringify(value, null, 2)}\n`);
+const terminalServices = new Set<ProjectService>();
+const terminalReviews = new Map<string, string>();
+
+function reviewKey(service: ProjectService, identifier: string): string {
+  return `${service.productsDir}\0${identifier}`;
 }
 
-function waitForShutdown(close: () => Promise<void>): Promise<number> {
-  return new Promise((resolve, reject) => {
-    let shuttingDown = false;
-    const onSignal = (signal: NodeJS.Signals) => {
-      if (shuttingDown) return;
-      shuttingDown = true;
-      process.removeListener('SIGINT', onInterrupt);
-      process.removeListener('SIGTERM', onTerminate);
-      void close().then(() => resolve(signal === 'SIGINT' ? 130 : 143), reject);
-    };
-    const onInterrupt = () => onSignal('SIGINT');
-    const onTerminate = () => onSignal('SIGTERM');
-    process.once('SIGINT', onInterrupt);
-    process.once('SIGTERM', onTerminate);
-  });
-}
-
-function sourceRoot(): string {
-  return path.resolve(path.dirname(process.argv[1] ?? '.'), '../..');
-}
-
-function assertOptions(parsed: Parsed, values: string[], flags: string[], command: string): void {
-  const allowedValues = new Set([...values, 'products-dir']);
-  const allowedFlags = new Set([...flags, 'json']);
-  const unknownValue = Object.keys(parsed.values).find((name) => !allowedValues.has(name));
-  const unknownList = Object.keys(parsed.lists).find((name) => !values.includes(name));
-  const unknownFlag = [...parsed.flags].find((name) => !allowedFlags.has(name));
-  if (unknownValue) throw new FoundryError(`Option --${unknownValue} is not valid for ${command}`);
-  if (unknownList) throw new FoundryError(`Option --${unknownList} is not valid for ${command}`);
-  if (unknownFlag) throw new FoundryError(`Option --${unknownFlag} is not valid for ${command}`);
-}
-
-async function command(arguments_: string[]): Promise<number> {
-  if (!arguments_.length || arguments_[0] === '--help' || arguments_[0] === '-h' || arguments_[0] === 'help') {
+export async function runCommand(arguments_: string[], terminalMode = false): Promise<number> {
+  const [command, ...rest] = arguments_;
+  if (!command || command === '--help' || command === '-h' || command === 'help') {
     process.stdout.write(usage());
     return 0;
   }
-  const commandName = arguments_[0];
-  if (!commandName || commandName.startsWith('--')) throw new FoundryError('A typed command is required. Use --help.');
-  const parsed = parse(arguments_.slice(1));
-  const json = parsed.flags.has('json');
-  if (commandName === 'ui') {
-    assertOptions(parsed, ['port'], ['no-browser'], commandName);
-    requirePositional(parsed, 0, commandName);
-    const port = parsed.values.port ? Number(parsed.values.port) : 4321;
-    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new FoundryError('UI port must be an integer from 1 to 65535');
-    const handle = await startHttpServer(new ProjectService(sourceRoot(), parsed.values['products-dir']), {
-      port,
-      openBrowser: !parsed.flags.has('no-browser'),
-    });
-    return waitForShutdown(handle.close);
+  if (command === 'work') {
+    if (!rest.length || rest[0] === '--help' || rest[0] === '-h') {
+      process.stdout.write(usage());
+      return 0;
+    }
+    const [workCommand, ...workArgs] = rest;
+    if (workCommand === 'provider' || workCommand === 'providers') {
+      return dispatchProjectCommand(['providers', ...workArgs]);
+    }
+    return dispatchProjectCommand([workCommand!, ...workArgs]);
   }
-  if (commandName === 'mcp') {
-    assertOptions(parsed, [], [], commandName);
-    requirePositional(parsed, 0, commandName);
-    await startMcpServer(new ProjectService(sourceRoot(), parsed.values['products-dir']));
+  if (command === 'provider') return dispatchProjectCommand(['providers', ...rest]);
+  if (command === 'init') {
+    const parsed = parse(rest);
+    const project = projectPath(parsed);
+    if (!project) throw new FoundryError('init requires --project PATH');
+    const stats = await lstat(project).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') throw new FoundryError('init requires an existing repository directory', { cause: error });
+      throw error;
+    });
+    if (!stats.isDirectory() || stats.isSymbolicLink()) throw new FoundryError('init requires a regular repository directory');
+    if (existsSync(path.join(project, '.foundry/project.json')) && !existsSync(path.join(project, '.foundry/runtime.json'))) {
+      throw new FoundryError('Target is an unmarked or legacy workspace; use migrate explicitly.');
+    }
+    const result = await installWorkspace(sourceRoot(), project, Boolean(parsed.flags.has('update')), false, true);
+    writeResult(result, parsed.flags.has('json'));
     return 0;
   }
-  const service = new ProjectService(sourceRoot(), parsed.values['products-dir']);
+  if (command === 'migrate') {
+    const parsed = parse(rest);
+    const dryRun = parsed.flags.has('dry-run');
+    const apply = parsed.flags.has('apply');
+    const recover = parsed.flags.has('recover');
+    if (dryRun === apply) throw new FoundryError('migrate requires exactly one of --dry-run or --apply [--recover]');
+    if (recover && !apply) throw new FoundryError('--recover is valid only with --apply');
+    const project = projectPath(parsed);
+    if (!project) throw new FoundryError('migrate requires --project PATH');
+    const stats = await lstat(project).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') throw new FoundryError('migrate requires an existing repository directory', { cause: error });
+      throw error;
+    });
+    if (!stats.isDirectory() || stats.isSymbolicLink()) throw new FoundryError('migrate requires a regular repository directory');
+    const mode = dryRun ? 'dry-run' : recover ? 'recover' : 'apply';
+    const result = await migrateWorkspace(project, sourceRoot(), mode);
+    writeResult(result, parsed.flags.has('json'));
+    return 0;
+  }
+
+  const parsed = parse(rest);
+  const json = parsed.flags.has('json');
+  const context = serviceContext(parsed);
+  const { service } = context;
   let result: unknown;
-  let commandExitCode = 0;
-  if (commandName === 'new') {
-    assertOptions(parsed, ['idea', 'adapter'], [], commandName);
-    requirePositional(parsed, 1, commandName);
-    if (!parsed.values.idea) throw new FoundryError('new requires --idea TEXT');
+  let reviewText: string | undefined;
+  let exitCode = 0;
+  if (command === 'new') {
+    requireCount(parsed, 1, command);
     result = await service.create({
       name: parsed.positionals[0]!,
-      idea: parsed.values.idea,
-      adapter: parsed.values.adapter,
-      model: parsed.values.model ?? null,
-      reasoning: parsed.values.reasoning ?? null,
+      idea: required(parsed, 'idea'),
+      adapter: value(parsed, 'adapter'),
+      model: value(parsed, 'model') ?? null,
+      reasoning: value(parsed, 'reasoning') ?? null,
     });
-  } else if (commandName === 'list') {
-    assertOptions(parsed, [], [], commandName);
-    requirePositional(parsed, 0, commandName);
+  } else if (command === 'list') {
+    if (parsed.positionals.length) throw new FoundryError('list does not accept a project positional');
     result = await service.list();
-  } else if (commandName === 'status') {
-    assertOptions(parsed, [], [], commandName);
-    requirePositional(parsed, 1, commandName);
-    result = await service.status(parsed.positionals[0]!);
-  } else if (commandName === 'configure') {
-    assertOptions(parsed, ['adapter', 'billing', 'model', 'reasoning', 'role'], ['confirmed', 'revoke-consent'], commandName);
-    requirePositional(parsed, 1, commandName);
-    if (parsed.values.billing && !['local', 'subscription'].includes(parsed.values.billing)) {
-      throw new FoundryError('--billing must be local or subscription');
-    }
+  } else if (command === 'status') {
+    result = await service.status(selectedIdentifier(parsed, context));
+  } else if (command === 'configure') {
+    const identifier = selectedIdentifier(parsed, context);
+    const billing = value(parsed, 'billing');
+    if (billing && billing !== 'local' && billing !== 'subscription') throw new FoundryError('--billing must be local or subscription');
     if (parsed.flags.has('confirmed') && parsed.flags.has('revoke-consent')) {
       throw new FoundryError('--confirmed and --revoke-consent cannot be combined');
     }
     const options: ConfigureProjectOptions = {
-      adapter: parsed.values.adapter,
-      model: parsed.values.model,
-      reasoning: parsed.values.reasoning,
-      billing: parsed.values.billing as 'local' | 'subscription' | undefined,
+      adapter: value(parsed, 'adapter'),
+      model: value(parsed, 'model'),
+      reasoning: value(parsed, 'reasoning'),
+      billing: billing as 'local' | 'subscription' | undefined,
       confirmed: parsed.flags.has('confirmed') ? true : parsed.flags.has('revoke-consent') ? false : undefined,
-      factory_roles: roleMap(parsed.lists.role),
+      factory_roles: roleMap(values(parsed, 'role')),
     };
-    result = await service.configure(parsed.positionals[0]!, options);
-  } else if (commandName === 'run') {
-    assertOptions(parsed, [], [], commandName);
-    requirePositional(parsed, 1, commandName);
-    const runResult = await service.run(parsed.positionals[0]!);
-    result = runResult;
-    commandExitCode = projectRunExitCode(runResult.status);
-  } else if (commandName === 'review') {
-    assertOptions(parsed, [], [], commandName);
-    requirePositional(parsed, 1, commandName);
-    result = await service.review(parsed.positionals[0]!);
-  } else if (commandName === 'approve') {
-    assertOptions(parsed, ['revision'], [], commandName);
-    requirePositional(parsed, 1, commandName);
-    if (!parsed.values.revision) throw new FoundryError('approve requires --revision HASH');
-    result = await service.approve(parsed.positionals[0]!, parsed.values.revision);
-  } else if (commandName === 'stop') {
-    assertOptions(parsed, [], [], commandName);
-    requirePositional(parsed, 1, commandName);
-    result = await service.stop(parsed.positionals[0]!);
-  } else if (commandName === 'recover') {
-    assertOptions(parsed, [], [], commandName);
-    requirePositional(parsed, 1, commandName);
-    result = await service.recover(parsed.positionals[0]!);
-  } else if (commandName === 'providers') {
+    result = await service.configure(identifier, options);
+  } else if (command === 'run') {
+    const identifier = selectedIdentifier(parsed, context);
+    if (terminalMode) {
+      terminalServices.add(service);
+      result = await startProjectRun(service, identifier);
+    } else {
+      result = await service.run(identifier);
+      exitCode = projectRunExitCode(String((result as JsonRecord).status ?? 'failed'));
+    }
+  } else if (command === 'review') {
+    const identifier = selectedIdentifier(parsed, context);
+    result = await service.review(identifier);
+    const review = result as JsonRecord;
+    reviewText = `${String(review.label)} — ${String(review.path)}\nRevision: ${String(review.revision)}\n\n${String(review.text)}`;
+    if (terminalMode) {
+      terminalReviews.set(reviewKey(service, identifier), String(review.revision));
+    }
+  } else if (command === 'approve') {
+    const identifier = selectedIdentifier(parsed, context);
+    let revision = value(parsed, 'revision');
+    if (terminalMode) {
+      const displayed = terminalReviews.get(reviewKey(service, identifier));
+      if (!displayed) throw new FoundryError('Review the current document in this terminal before approving it.');
+      if (revision && revision !== displayed) throw new FoundryError('Approval must match the revision displayed in this terminal.');
+      revision = displayed;
+    }
+    result = await service.approve(identifier, revision ?? required(parsed, 'revision'));
+    if (terminalMode) terminalReviews.delete(reviewKey(service, identifier));
+  } else if (command === 'stop') {
+    result = await service.stop(selectedIdentifier(parsed, context));
+  } else if (command === 'recover') {
+    result = await service.recover(selectedIdentifier(parsed, context));
+  } else if (command === 'roles') {
+    if (parsed.positionals.length) throw new FoundryError('roles does not accept a project positional');
+    result = (await loadRoles(sourceRoot())).map((role) => ({
+      name: role.name, description: role.description, sandbox: role.sandbox,
+    }));
+  } else if (command === 'providers') {
     if (parsed.positionals.length > 1) throw new FoundryError('providers accepts at most one project');
-    assertOptions(parsed, [], [], commandName);
-    result = await service.providers(parsed.positionals[0]);
+    result = await service.providers(parsed.positionals[0] ?? context.identifier);
   } else {
-    throw new FoundryError(`Unknown typed command ${commandName}. Use --help.`);
+    throw new FoundryError(`Unknown command ${command}. Use --help.`);
   }
-  output(result, json);
-  return commandExitCode;
+  if (reviewText !== undefined && !json) process.stdout.write(`${reviewText}\n`);
+  else writeResult(result, json);
+  return exitCode;
 }
 
 export async function main(arguments_ = process.argv.slice(2)): Promise<number> {
-  return command(arguments_);
+  if (Number(process.versions.node.split('.')[0]) !== 24) {
+    throw new FoundryError(`Foundry requires Node 24 (found ${process.versions.node}).`);
+  }
+  if (!arguments_.length && process.stdin.isTTY) {
+    return runTerminal({
+      execute: (arguments__) => runCommand(arguments__, true),
+      prompt: async (selected) => {
+        if (!selected) return 'foundry> ';
+        try {
+          const context = serviceContext({ positionals: [], values: {}, flags: new Set() });
+          const status = await context.service.status(selected);
+          const stage = String(status.stage ?? 'idle');
+          const state = String(status.status ?? 'unknown');
+          const roles = status.factory_roles && typeof status.factory_roles === 'object'
+            ? status.factory_roles as Record<string, unknown> : {};
+          const role = roles[stage] ? ` · ${String(roles[stage])}` : '';
+          const verification = status.stage_verification && typeof status.stage_verification === 'object'
+            ? (status.stage_verification as JsonRecord).build : undefined;
+          const tasks = verification && typeof verification === 'object'
+            && Array.isArray((verification as JsonRecord).tasks)
+            ? ((verification as JsonRecord).tasks as JsonRecord[])
+            : [];
+          const progress = tasks.slice(-2).map((task) => (
+            `${String(task.title ?? 'task')}:${String(task.status ?? 'unknown')}`
+          )).join(', ');
+          return `foundry[${selected} · ${state}/${stage}${role}${progress ? ` · ${progress}` : ''}]> `;
+        } catch {
+          return `foundry[${selected}]> `;
+        }
+      },
+      onExit: async () => {
+        let confirmed = true;
+        for (const service of terminalServices) confirmed = (await closeProjectRuns(service)) && confirmed;
+        terminalServices.clear();
+        if (!confirmed) {
+          process.stderr.write('Foundry: worker shutdown was not confirmed; recovery_required state was preserved.\n');
+        }
+      },
+    });
+  }
+  return runCommand(arguments_);
 }
 
-main().then((code) => { process.exitCode = code; }).catch((error: unknown) => {
-  process.stderr.write(`Foundry: ${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = error instanceof FoundryError ? 2 : 1;
-});
+if (require.main === module || process.env.FOUNDRY_LAUNCHER === '1') {
+  main().then((code) => {
+    process.exitCode = code;
+  }).catch((error: unknown) => {
+    process.stderr.write(`Foundry: ${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = error instanceof FoundryError ? 2 : 1;
+  });
+}

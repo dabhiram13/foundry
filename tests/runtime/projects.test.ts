@@ -45,7 +45,7 @@ async function frameworkFixture(base: string, providerConfiguration?: string): P
   await mkdir(path.join(framework, 'dist/runtime'), { recursive: true });
   await copyFile(path.join(sourceRoot, '.foundry/project.json'), path.join(framework, '.foundry/project.json'));
   await copyFile(path.join(sourceRoot, '.foundry/roles.json'), path.join(framework, '.foundry/roles.json'));
-  for (const name of ['project.cjs', 'foundry.cjs', 'foundry-worker.cjs']) {
+  for (const name of ['foundry.cjs', 'foundry-worker.cjs']) {
     await copyFile(path.join(sourceRoot, 'dist/runtime', name), path.join(framework, 'dist/runtime', name));
   }
   if (providerConfiguration) await writeFile(path.join(framework, '.foundry/providers.json'), providerConfiguration);
@@ -448,7 +448,7 @@ test('typed CLI runs without Python and rejects unknown options', async (t) => {
     GIT_CONFIG_NOSYSTEM: '1',
   };
   delete env.PYTHONPATH;
-  const help = spawnSync(path.join(sourceRoot, 'foundry'), ['typed', '--help'], {
+  const help = spawnSync(path.join(sourceRoot, 'foundry'), ['--help'], {
     cwd: sourceRoot,
     encoding: 'utf8',
     env,
@@ -456,7 +456,7 @@ test('typed CLI runs without Python and rejects unknown options', async (t) => {
   assert.equal(help.status, 0, help.stderr);
   assert.match(help.stdout, /new NAME --idea TEXT/);
   const created = spawnSync(path.join(sourceRoot, 'foundry'), [
-    'typed', 'new', 'CLI Consent', '--idea', 'A service-created project without Python.',
+    'new', 'CLI Consent', '--idea', 'A service-created project without Python.',
     '--products-dir', products, '--json',
   ], { cwd: sourceRoot, encoding: 'utf8', env });
   assert.equal(created.status, 0, created.stderr);
@@ -468,25 +468,25 @@ test('typed CLI runs without Python and rejects unknown options', async (t) => {
   assert.equal(identity.status, 0, identity.stderr);
   assert.equal(identity.stdout.trim(), 'Foundry Workspace <foundry@localhost>');
   const consent = spawnSync(path.join(sourceRoot, 'foundry'), [
-    'typed', 'configure', createdProject.id, '--billing', 'subscription', '--confirmed',
+    'configure', createdProject.id, '--billing', 'subscription', '--confirmed',
     '--products-dir', products, '--json',
   ], { cwd: sourceRoot, encoding: 'utf8', env });
   assert.equal(consent.status, 0, consent.stderr);
   let current = await new ProjectService(sourceRoot, products).status(createdProject.id) as Record<string, unknown>;
   assert.equal(current.subscription_confirmed, true);
   const preference = spawnSync(path.join(sourceRoot, 'foundry'), [
-    'typed', 'configure', createdProject.id, '--model', 'cli-model', '--products-dir', products, '--json',
+    'configure', createdProject.id, '--model', 'cli-model', '--products-dir', products, '--json',
   ], { cwd: sourceRoot, encoding: 'utf8', env });
   assert.equal(preference.status, 0, preference.stderr);
   current = await new ProjectService(sourceRoot, products).status(createdProject.id) as Record<string, unknown>;
   assert.equal(current.subscription_confirmed, true);
   const revoke = spawnSync(path.join(sourceRoot, 'foundry'), [
-    'typed', 'configure', createdProject.id, '--revoke-consent', '--products-dir', products, '--json',
+    'configure', createdProject.id, '--revoke-consent', '--products-dir', products, '--json',
   ], { cwd: sourceRoot, encoding: 'utf8', env });
   assert.equal(revoke.status, 0, revoke.stderr);
   current = await new ProjectService(sourceRoot, products).status(createdProject.id) as Record<string, unknown>;
   assert.equal(current.subscription_confirmed, false);
-  const listed = spawnSync(path.join(sourceRoot, 'foundry'), ['typed', 'list', '--products-dir', products, '--json'], {
+  const listed = spawnSync(path.join(sourceRoot, 'foundry'), ['list', '--products-dir', products, '--json'], {
     cwd: sourceRoot,
     encoding: 'utf8',
     env,
@@ -494,14 +494,14 @@ test('typed CLI runs without Python and rejects unknown options', async (t) => {
   assert.equal(listed.status, 0, listed.stderr);
   const listedProjects = JSON.parse(listed.stdout) as Array<{ id: string }>;
   assert.deepEqual(listedProjects.map((project) => project.id), [createdProject.id]);
-  const unknown = spawnSync(path.join(sourceRoot, 'foundry'), ['typed', 'list', '--typo'], {
+  const unknown = spawnSync(path.join(sourceRoot, 'foundry'), ['list', '--typo'], {
     cwd: sourceRoot,
     encoding: 'utf8',
     env,
   });
   assert.equal(unknown.status, 2);
   assert.match(unknown.stderr, /Unknown option --typo/);
-  const invalidBilling = spawnSync(path.join(sourceRoot, 'foundry'), ['typed', 'configure', 'missing', '--billing', 'api'], {
+  const invalidBilling = spawnSync(path.join(sourceRoot, 'foundry'), ['configure', 'missing', '--billing', 'api'], {
     cwd: sourceRoot,
     encoding: 'utf8',
     env,

@@ -16,18 +16,16 @@ test('installed runtime is copied and usable without Python', async () => {
   assert.equal((await readRuntimeMarker(target))?.runtime, 'typescript');
   const project = JSON.parse(await readFile(path.join(target, '.foundry/project.json'), 'utf8')) as { name: string };
   assert.equal(project.name, path.basename(target));
-  const runtime = await readFile(path.join(target, '.foundry/runtime/project.cjs'), 'utf8');
-  assert.match(runtime, /Foundry TypeScript project runtime/);
-  assert.deepEqual(await readdir(path.join(target, '.foundry/runtime')), ['project.cjs']);
-  await assert.rejects(readFile(path.join(target, '.foundry/runtime/foundry.cjs')));
-  await assert.rejects(readFile(path.join(target, '.foundry/runtime/foundry-worker.cjs')));
-  const child = spawnSync(process.execPath, [path.join(target, '.foundry/runtime/project.cjs'), '--help'], {
+  const runtime = await readFile(path.join(target, '.foundry/runtime/foundry.cjs'), 'utf8');
+  assert.match(runtime, /Foundry terminal-first runtime/);
+  assert.deepEqual((await readdir(path.join(target, '.foundry/runtime'))).sort(), ['foundry-worker.cjs', 'foundry.cjs'].sort());
+  const child = spawnSync(process.execPath, [path.join(target, '.foundry/runtime/foundry.cjs'), '--help'], {
     encoding: 'utf8',
     env: { PATH: path.dirname(process.execPath), HOME: os.tmpdir() },
   });
   assert.equal(child.status, 0, child.stderr);
-  assert.match(child.stdout, /workflow guide\|context\|gate\|record\|feedback/);
-  const guidance = spawnSync(process.execPath, [path.join(target, '.foundry/runtime/project.cjs'), 'workflow', 'guide'], {
+  assert.match(child.stdout, /foundry work start\|status\|verify\|complete\|pause\|resume\|recover/);
+  const guidance = spawnSync(process.execPath, [path.join(target, '.foundry/runtime/foundry.cjs'), 'work', 'workflow', 'guide'], {
     cwd: target,
     encoding: 'utf8',
     env: { PATH: path.dirname(process.execPath), HOME: os.tmpdir() },
@@ -35,8 +33,8 @@ test('installed runtime is copied and usable without Python', async () => {
   assert.equal(guidance.status, 0, guidance.stderr);
   assert.match(guidance.stdout, /scope/);
   const noConsent = spawnSync(process.execPath, [
-    path.join(target, '.foundry/runtime/project.cjs'),
-    'providers', 'run', '--adapter', 'codex', '--prompt', 'test', '--billing', 'api',
+    path.join(target, '.foundry/runtime/foundry.cjs'),
+    'provider', 'run', '--adapter', 'codex', '--prompt', 'test', '--billing', 'api',
   ], {
     cwd: target,
     encoding: 'utf8',
@@ -49,8 +47,8 @@ test('installed runtime is copied and usable without Python', async () => {
     billing: { mode: 'api', allow_api: true },
   }));
   const requestFile = spawnSync(process.execPath, [
-    path.join(target, '.foundry/runtime/project.cjs'),
-    'providers', 'run', '--request', '.foundry/provider-request.json',
+    path.join(target, '.foundry/runtime/foundry.cjs'),
+    'provider', 'run', '--request', '.foundry/provider-request.json',
   ], {
     cwd: target,
     encoding: 'utf8',
@@ -93,13 +91,15 @@ test('installer rejects symlinked managed source ancestors during preflight', as
       await mkdir(path.join(source, '.foundry'), { recursive: true });
       await mkdir(path.join(realDist, 'runtime'), { recursive: true });
       await writeFile(path.join(source, '.foundry/roles.json'), '{}\n');
-      await writeFile(path.join(realDist, 'runtime/project.cjs'), '#!/usr/bin/env node\n');
+      await writeFile(path.join(realDist, 'runtime/foundry.cjs'), '#!/usr/bin/env node\n');
+      await writeFile(path.join(realDist, 'runtime/foundry-worker.cjs'), '#!/usr/bin/env node\n');
       await symlink(realDist, path.join(source, 'dist'), 'dir');
     } else {
       const realFoundry = path.join(source, 'real-foundry');
       await mkdir(path.join(source, 'dist/runtime'), { recursive: true });
       await mkdir(realFoundry, { recursive: true });
-      await writeFile(path.join(source, 'dist/runtime/project.cjs'), '#!/usr/bin/env node\n');
+      await writeFile(path.join(source, 'dist/runtime/foundry.cjs'), '#!/usr/bin/env node\n');
+      await writeFile(path.join(source, 'dist/runtime/foundry-worker.cjs'), '#!/usr/bin/env node\n');
       await writeFile(path.join(realFoundry, 'roles.json'), '{}\n');
       await symlink(realFoundry, path.join(source, '.foundry'), 'dir');
     }
@@ -183,13 +183,13 @@ test('an interrupted installation refuses ordinary retries and finishes under ex
     previous: {},
     update: false,
   }));
-  const copiedRuntime = path.join(target, '.foundry/runtime/project.cjs');
+  const copiedRuntime = path.join(target, '.foundry/runtime/foundry.cjs');
   await rm(copiedRuntime);
   await assert.rejects(install(source, target, true), /interrupted installation blocks this target/);
   await assert.rejects(readFile(copiedRuntime, 'utf8'));
   const recovered = await installWorkspace(source, target, true, true);
   assert.equal(recovered.recovered, true);
-  assert.match(await readFile(copiedRuntime, 'utf8'), /Foundry TypeScript project runtime/);
+  assert.match(await readFile(copiedRuntime, 'utf8'), /Foundry terminal-first runtime/);
   await assert.rejects(readFile(path.join(target, '.foundry/install-pending.json'), 'utf8'));
 });
 
@@ -285,7 +285,7 @@ test('install manifests with unsupported formats are refused', async () => {
 });
 
 test('CLI rejects unknown options, missing values, and boolean values before dispatch', () => {
-  const cli = path.resolve('dist/runtime/project.cjs');
+  const cli = path.resolve('dist/runtime/foundry.cjs');
   for (const args of [
     ['status', '--timeout', '5'],
     ['status', '--project'],

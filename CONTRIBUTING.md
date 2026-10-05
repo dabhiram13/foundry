@@ -17,11 +17,11 @@ npm run build:runtime
 
 `npm run build:runtime` builds the CLI only; `npm run build` also builds the
 static website. `./foundry` runs the checkout directly; contributors do not need
-a global link. The source-linked `foundry` command and any future registry
-install are user setup, not contributor requirements.
+a global link. Installing `@dabhiram13/foundry` from npm is for everyday use,
+not a contributor requirement.
 
-The package is an unpublished public-ready `0.2.0` candidate. To inspect a local
-tarball, use `npm pack`; its `prepack` hook rebuilds the runtime. `npm pack
+To inspect a local candidate tarball, use `npm pack`; its `prepack` hook rebuilds
+the runtime. `npm pack
 --ignore-scripts` skips that hook and is only appropriate when you intentionally
 use an already-built runtime. The owner-controlled release checklist is in the
 [release guide](docs/RELEASING.md). Do not publish as part of setup or

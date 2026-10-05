@@ -50,8 +50,8 @@ not a separate API service.
 
 ## Distribution boundary
 
-The source checkout is the current installation path; `@dabhiram13/foundry`
-`0.2.0` is a public-ready candidate but is not published. The package exposes
+Everyday users install `@dabhiram13/foundry` from npm; contributors build from
+the source checkout. The package exposes
 one Node executable and does not bundle project data or credentials. Registry
 publication is a separate owner-controlled release action, not part of product
 Ship or an automated workflow. See the [release guide](RELEASING.md) for its

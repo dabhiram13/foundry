@@ -23,8 +23,8 @@ npm run build:runtime
 ```
 
 These commands use the checkout directly. `./foundry` does not create an
-installed command; user installation is currently source-linked and registry
-installation is not yet available. Run `./foundry` in a terminal for slash
+installed command; everyday users install `@dabhiram13/foundry` from npm.
+Run `./foundry` in a terminal for slash
 commands, or use explicit commands such as `./foundry new NAME --idea TEXT`,
 `./foundry run PROJECT`, `./foundry review PROJECT`, and
 `./foundry approve PROJECT --revision HASH`.

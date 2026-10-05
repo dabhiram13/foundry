@@ -6,7 +6,7 @@ import { ProductWalkthrough } from './product-walkthrough';
 
 const repository = 'https://github.com/dabhiram13/foundry';
 const docs = '/docs';
-const install = `git clone ${repository}.git\ncd foundry\nnpm ci --ignore-scripts\nnpm run build:runtime\nnpm link --ignore-scripts\nfoundry`;
+const install = 'npm install --global --ignore-scripts @dabhiram13/foundry\nfoundry';
 const specialists = [
   { name: 'Research', description: 'Explore the problem.', icon: Search },
   { name: 'Planning', description: 'Define what to build.', icon: ListChecks },
@@ -75,7 +75,7 @@ export function Landing() {
           <div className="install-heading"><h3 id="install-title"><Terminal aria-hidden="true" /> Install the CLI</h3><span>macOS / Linux</span></div>
           <pre aria-label="Installation commands"><code>{install}</code></pre>
           <div className="install-copy"><CopyButton content={install} label="Copy commands" /><span>No Foundry account needed.</span></div>
-          <div className="install-note"><p>Requires <strong>Node.js 24 LTS</strong>, <strong>npm</strong> and <strong>Git</strong>. Not published to npm yet: build from source, then run <code>foundry</code> from any directory. Keep the checkout—the command links to it. No website build needed.</p><p>Installation does not start AI work. Codex is built in; confirm subscription use before running it.</p><a href={`${docs}/getting-started/`}>Setup, updates and uninstall <ArrowUpRight aria-hidden="true" /></a></div>
+          <div className="install-note"><p>Requires <strong>Node.js 24 LTS</strong>, <strong>npm</strong> and <strong>Git</strong>. Install once, then run <code>foundry</code> from any directory. No source checkout or website build needed.</p><p>Installation does not start AI work. Codex is built in; confirm subscription use before running it.</p><a href={`${docs}/getting-started/`}>Setup, updates and uninstall <ArrowUpRight aria-hidden="true" /></a></div>
         </div>
         <div className="landing-already"><p>Already have a project?</p><a href={`${docs}/runtime/`}>Use Foundry in an existing repository <ArrowRight aria-hidden="true" /></a></div>
       </section>

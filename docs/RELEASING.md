@@ -4,16 +4,13 @@ Foundry's product **Ship** command writes a local summary; it does not publish
 the product or this framework. Publishing the Foundry CLI is a separate,
 owner-controlled release decision.
 
-## Current status
+## Package and release notes
 
-Version `0.2.0` is an unpublished public-ready candidate for the intended scope
-`@dabhiram13/foundry`. The registry returned 404 at the last check, and
-`npm whoami` without local credentials returned `ENEEDAUTH`. Neither result
-proves that the npm scope is available or that this repository's owner controls
-it. The source install in [Getting started](GETTING-STARTED.md) remains the
-working installation path.
-
-## Candidate notes
+The public package name is [`@dabhiram13/foundry`](https://www.npmjs.com/package/@dabhiram13/foundry).
+Use [Getting started](GETTING-STARTED.md) for installation. Repository version
+metadata is not proof of publication; verify the exact version in npm before
+announcing a release. The examples below use `0.2.0`; substitute the intended
+version for later releases.
 
 - One Node 24 `foundry` executable provides the interactive terminal and
   explicit commands through the same TypeScript core.
@@ -21,8 +18,7 @@ working installation path.
   isolated project creation without Python or provider credentials.
 - The static landing page and documentation site are separate from the CLI
   tarball.
-- These notes describe the candidate only; they are not a published release or
-  provider/platform qualification.
+- A release does not establish additional provider or platform qualification.
 
 ## Owner release checklist
 
@@ -109,9 +105,11 @@ Do not publish until each item is checked:
    npm uninstall --global --ignore-scripts --prefix "$PREFIX" @dabhiram13/foundry
    ```
 
-   Only after this succeeds should the owner update the primary install
-   instructions in the README, landing and Getting started together, then tag
-   the approved source commit as `v0.2.0` and publish the matching release notes.
+   Keep the README, landing and Getting started installation commands aligned.
+   Include the npm-ready README in the tested tarball so the package page does
+   not inherit obsolete source-only setup instructions. Announce availability
+   only after registry verification, then tag the approved source commit as
+   `v0.2.0` and publish matching release notes.
 
 ## Recovery and rollback
 

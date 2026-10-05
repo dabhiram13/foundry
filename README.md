@@ -33,27 +33,20 @@ publish or deploy.
 
 Requires **Node.js 24**, **npm** and **Git**. No Foundry account needed. The
 commands use a POSIX shell; package checks have local Linux evidence, while
-macOS and native Windows remain unqualified. Foundry is an npm CLI package, but
-it is **not published to npm yet**. For now, build it from source and register
-the command once:
+macOS and native Windows remain unqualified. Install the CLI from npm:
 
 ```sh
-git clone https://github.com/dabhiram13/foundry.git
-cd foundry
-npm ci --ignore-scripts
-npm run build:runtime
-npm link --ignore-scripts
+npm install --global --ignore-scripts @dabhiram13/foundry
 foundry
 ```
 
 After setup, run `foundry` from any directory to open the interactive terminal.
-Use [commands][commands] for scripts. Keep the checkout: the command links to
-its built files. No website build or AI work is needed for installation.
+Use `foundry --version` to check the installed version and [commands][commands]
+for scripts. No source checkout, website build or AI work is needed to install.
 
 Follow the [setup guide][getting-started] to connect a provider and start your
-first project, update or uninstall. The future registry install is gated on an
-owner-approved release; see the [release process][release-guide]. To change
-Foundry itself, see [contributor setup][contributing].
+first project, update or uninstall. Find releases on [npm][npm-package]. To
+change Foundry itself, see [contributor setup][contributing].
 
 ## AI providers and your data
 
@@ -82,6 +75,7 @@ and [architecture][architecture] for how the pieces fit together.
 [third-party licenses][third-party-notices] and [origins][provenance].
 
 [getting-started]: https://github.com/dabhiram13/foundry/blob/main/docs/GETTING-STARTED.md
+[npm-package]: https://www.npmjs.com/package/@dabhiram13/foundry
 [documentation-index]: https://github.com/dabhiram13/foundry/blob/main/docs/README.md
 [release-guide]: https://github.com/dabhiram13/foundry/blob/main/docs/RELEASING.md
 [commands]: https://github.com/dabhiram13/foundry/blob/main/docs/COMMANDS.md

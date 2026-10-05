@@ -66,25 +66,35 @@ function request(): Record<string, unknown> {
 
 test('subprocess environment is restricted and explicitly selected values stay out of saved output', async () => {
   const key = 'FOUNDRY_ENVIRONMENT_TEST_VALUE';
+  const shortKey = 'FOUNDRY_ENVIRONMENT_TEST_SHORT';
   const previous = process.env[key];
+  const previousShort = process.env[shortKey];
   process.env[key] = 'local-fixture-private-value';
+  process.env[shortKey] = 'Q7';
   const root = await project();
   try {
-    await writeFile(path.join(root, 'fake.mjs'), `process.stdin.on('data',()=>{console.log(JSON.stringify({type:'session.started',session_id:'fixture-session'}));console.log(JSON.stringify({type:'result',status:'completed',output:{present:process.env.${key}!==undefined,value:process.env.${key}??null}}));});`);
+    await writeFile(path.join(root, 'fake.mjs'), `process.stdin.on('data',()=>{console.log(JSON.stringify({type:'session.started',session_id:'fixture-session'}));console.log(JSON.stringify({type:'result',status:'completed',output:{present:process.env.${key}!==undefined,value:process.env.${key}??null,neutral:process.env.${shortKey}??null}}));});`);
     const first = await execute(root, request());
     assert.equal(first.status, 'completed');
-    assert.deepEqual((first.attempts as JsonRecord[])[0]?.output, { present: false, value: null });
+    assert.deepEqual((first.attempts as JsonRecord[])[0]?.output, { present: false, value: null, neutral: null });
     const configPath = path.join(root, '.foundry/providers.json');
     const config = JSON.parse(await readFile(configPath, 'utf8')) as { adapters: JsonRecord[] };
-    config.adapters[0]!.environment = [key];
+    config.adapters[0]!.environment = [key, shortKey];
     await writeFile(configPath, JSON.stringify(config));
     const second = await execute(root, request());
     assert.equal(second.status, 'completed');
-    assert.deepEqual((second.attempts as JsonRecord[])[0]?.output, { present: true, value: '[redacted]' });
+    assert.deepEqual((second.attempts as JsonRecord[])[0]?.output, {
+      present: true,
+      value: '[redacted]',
+      neutral: '[redacted]',
+    });
     assert.equal(JSON.stringify(second).includes(process.env[key]!), false);
+    assert.equal(JSON.stringify(second).includes(process.env[shortKey]!), false);
   } finally {
     if (previous === undefined) delete process.env[key];
     else process.env[key] = previous;
+    if (previousShort === undefined) delete process.env[shortKey];
+    else process.env[shortKey] = previousShort;
     await rm(root, { recursive: true, force: true });
   }
 });

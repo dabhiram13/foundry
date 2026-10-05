@@ -193,6 +193,7 @@ npm run build:runtime
 ./foundry typed list --json
 ./foundry typed status reading-list
 ./foundry typed configure reading-list --role build=backend
+./foundry typed configure reading-list --billing subscription --confirmed
 ```
 
 Creation installs a TypeScript-owned workspace without starting provider work.
@@ -204,11 +205,16 @@ confirmation. The first Build implementation turn must add product source,
 configure real required checks, and write `docs/product/checks.json` with one
 explicit mapping for each approved Plan criterion. Mappings must include the
 Plan document as a check input and are frozen before checks run.
+Omitting `--confirmed` preserves saved consent; use `--revoke-consent` to
+explicitly withdraw subscription consent.
 
-Before a first `typed run`, initialize and commit the workspace's Git history,
-log in through the selected provider's own CLI, and explicitly confirm
-subscription billing when required. These are setup instructions, not evidence
-that a live provider has been qualified.
+`typed new` initializes Git and creates a safe local starting checkpoint; it
+does not start provider work. The initial commit contains the ignore rules,
+framework metadata, neutral roles and idea, not provider configuration, runtime
+bundles or state. Before a first `typed run`, log in through the selected
+provider's own CLI and explicitly confirm subscription billing when required.
+These are setup instructions, not evidence that a live provider has been
+qualified.
 
 `./foundry typed ui --port 4321 --no-browser` starts an authenticated,
 loopback-only browser transport. `./foundry typed mcp` starts the official

@@ -18,7 +18,7 @@ interface Parsed {
 const VALUE_OPTIONS = new Set([
   'adapter', 'billing', 'idea', 'model', 'port', 'products-dir', 'reasoning', 'revision', 'role',
 ]);
-const FLAG_OPTIONS = new Set(['confirmed', 'json', 'no-browser']);
+const FLAG_OPTIONS = new Set(['confirmed', 'json', 'no-browser', 'revoke-consent']);
 
 function usage(): string {
   return [
@@ -28,7 +28,7 @@ function usage(): string {
     '  new NAME --idea TEXT [--adapter NAME]',
     '  list',
     '  status PROJECT',
-    '  configure PROJECT [--role STAGE=NAME]',
+    '  configure PROJECT [--adapter NAME] [--billing local|subscription] [--confirmed|--revoke-consent] [--role STAGE=NAME]',
     '  run PROJECT',
     '  review PROJECT',
     '  approve PROJECT --revision HASH',
@@ -93,6 +93,23 @@ function output(value: unknown, json: boolean): void {
   process.stdout.write(`${json ? JSON.stringify(value) : JSON.stringify(value, null, 2)}\n`);
 }
 
+function waitForShutdown(close: () => Promise<void>): Promise<number> {
+  return new Promise((resolve, reject) => {
+    let shuttingDown = false;
+    const onSignal = (signal: NodeJS.Signals) => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      process.removeListener('SIGINT', onInterrupt);
+      process.removeListener('SIGTERM', onTerminate);
+      void close().then(() => resolve(signal === 'SIGINT' ? 130 : 143), reject);
+    };
+    const onInterrupt = () => onSignal('SIGINT');
+    const onTerminate = () => onSignal('SIGTERM');
+    process.once('SIGINT', onInterrupt);
+    process.once('SIGTERM', onTerminate);
+  });
+}
+
 function sourceRoot(): string {
   return path.resolve(path.dirname(process.argv[1] ?? '.'), '../..');
 }
@@ -122,11 +139,11 @@ async function command(arguments_: string[]): Promise<number> {
     requirePositional(parsed, 0, commandName);
     const port = parsed.values.port ? Number(parsed.values.port) : 4321;
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new FoundryError('UI port must be an integer from 1 to 65535');
-    await startHttpServer(new ProjectService(sourceRoot(), parsed.values['products-dir']), {
+    const handle = await startHttpServer(new ProjectService(sourceRoot(), parsed.values['products-dir']), {
       port,
       openBrowser: !parsed.flags.has('no-browser'),
     });
-    return 0;
+    return waitForShutdown(handle.close);
   }
   if (commandName === 'mcp') {
     assertOptions(parsed, [], [], commandName);
@@ -156,17 +173,20 @@ async function command(arguments_: string[]): Promise<number> {
     requirePositional(parsed, 1, commandName);
     result = await service.status(parsed.positionals[0]!);
   } else if (commandName === 'configure') {
-    assertOptions(parsed, ['adapter', 'billing', 'model', 'reasoning', 'role'], ['confirmed'], commandName);
+    assertOptions(parsed, ['adapter', 'billing', 'model', 'reasoning', 'role'], ['confirmed', 'revoke-consent'], commandName);
     requirePositional(parsed, 1, commandName);
     if (parsed.values.billing && !['local', 'subscription'].includes(parsed.values.billing)) {
       throw new FoundryError('--billing must be local or subscription');
+    }
+    if (parsed.flags.has('confirmed') && parsed.flags.has('revoke-consent')) {
+      throw new FoundryError('--confirmed and --revoke-consent cannot be combined');
     }
     const options: ConfigureProjectOptions = {
       adapter: parsed.values.adapter,
       model: parsed.values.model,
       reasoning: parsed.values.reasoning,
       billing: parsed.values.billing as 'local' | 'subscription' | undefined,
-      confirmed: parsed.flags.has('confirmed'),
+      confirmed: parsed.flags.has('confirmed') ? true : parsed.flags.has('revoke-consent') ? false : undefined,
       factory_roles: roleMap(parsed.lists.role),
     };
     result = await service.configure(parsed.positionals[0]!, options);

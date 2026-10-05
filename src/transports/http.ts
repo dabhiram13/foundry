@@ -1,11 +1,11 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { constants } from 'node:fs';
-import { lstat, open, readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { URL } from 'node:url';
-import { FoundryError, rejectSymlinkComponents, within } from '../core/fs.js';
+import { FoundryError, rejectSymlinkComponents } from '../core/fs.js';
+import { readBoundedBytes } from '../core/factory-contract.js';
 import { ProjectService } from '../core/projects.js';
 import { closeProjectRuns, startProjectRun } from './jobs.js';
 
@@ -13,6 +13,7 @@ type JsonRecord = Record<string, unknown>;
 type Asset = { file: string; contentType: string };
 
 const MAX_BODY = 256 * 1024;
+const MAX_STATIC_FILE = 8 * 1024 * 1024;
 const BODY_TIMEOUT_MS = 5_000;
 
 function contentType(file: string): string {
@@ -24,7 +25,15 @@ function contentType(file: string): string {
     '.json': 'application/json',
     '.md': 'text/markdown',
     '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
+    '.avif': 'image/avif',
     '.svg': 'image/svg+xml',
+    '.wasm': 'application/wasm',
+    '.xml': 'application/xml',
+    '.txt': 'text/plain',
+    '.woff': 'font/woff',
     '.woff2': 'font/woff2',
   } as Record<string, string>)[extension] ?? 'application/octet-stream';
 }
@@ -43,7 +52,8 @@ async function collectAssets(root: string, relative: string, prefix: string): Pr
       if (entry.isDirectory()) {
         for (const [url, asset] of await collectAssets(root, childRelative, childUrl)) assets.set(url, asset);
       } else if (entry.isFile()) {
-        assets.set(childUrl, { file: childRelative, contentType: contentType(entry.name) });
+        const url = childUrl.endsWith('/index.html') ? childUrl.slice(0, -10) : childUrl;
+        assets.set(url, { file: childRelative, contentType: contentType(entry.name) });
       }
     }
   } catch {
@@ -52,17 +62,22 @@ async function collectAssets(root: string, relative: string, prefix: string): Pr
   return assets;
 }
 
-async function readStaticFile(root: string, relative: string): Promise<Buffer> {
-  const file = within(root, relative);
-  rejectSymlinkComponents(file);
-  const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
-  try {
-    const metadata = await handle.stat();
-    if (!metadata.isFile()) throw new FoundryError('Static asset is not a regular file');
-    return await handle.readFile();
-  } finally {
-    await handle.close();
+async function collectDocumentationAssets(root: string): Promise<Map<string, Asset>> {
+  const assets = new Map<string, Asset>();
+  for (const namespace of ['docs', '_astro', 'pagefind']) {
+    for (const [url, asset] of await collectAssets(root, `site/dist/${namespace}`, `/${namespace}`)) {
+      assets.set(url, asset);
+    }
   }
+  return assets;
+}
+
+function documentationPolicy(content: string): string {
+  const hashes = (tag: 'script' | 'style') => [...content.matchAll(new RegExp(`<${tag}\\b[^>]*>(.*?)</${tag}>`, 'gis'))]
+    .map((match) => `'sha256-${crypto.createHash('sha256').update(match[1] ?? '').digest('base64')}'`);
+  const scriptHashes = hashes('script');
+  const styleHashes = hashes('style');
+  return `default-src 'self'; script-src 'self' 'wasm-unsafe-eval' ${scriptHashes.join(' ')}; style-src 'self' ${styleHashes.join(' ')}; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
 }
 
 function safeError(error: unknown): string {
@@ -107,6 +122,7 @@ function response(
   payload: unknown,
   content = 'application/json',
   nonce?: string,
+  policy?: string,
 ): void {
   const bytes = Buffer.isBuffer(payload)
     ? payload
@@ -117,7 +133,8 @@ function response(
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'no-referrer',
-    'Content-Security-Policy': `default-src 'self'; script-src 'self'; style-src 'self'${nonce ? ` 'nonce-${nonce}'` : ''}; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`,
+    'Content-Security-Policy': policy
+      ?? `default-src 'self'; script-src 'self'; style-src 'self'${nonce ? ` 'nonce-${nonce}'` : ''}; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`,
   });
   result.end(bytes);
 }
@@ -142,6 +159,23 @@ function strictKeys(data: JsonRecord, allowed: string[]): void {
   if (unknown) throw new FoundryError(`Unknown request field: ${unknown}`);
 }
 
+function optionalString(data: JsonRecord, key: string, nullable = false): string | null | undefined {
+  if (!Object.hasOwn(data, key)) return undefined;
+  const value = data[key];
+  if (nullable && value === null) return null;
+  if (typeof value !== 'string') throw new FoundryError(`${key} must be a ${nullable ? 'string or null' : 'string'}`);
+  return value;
+}
+
+function optionalRecord(data: JsonRecord, key: string): JsonRecord | undefined {
+  if (!Object.hasOwn(data, key)) return undefined;
+  const value = data[key];
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new FoundryError(`${key} must be a JSON object`);
+  }
+  return value as JsonRecord;
+}
+
 async function dispatch(service: ProjectService, action: string, data: JsonRecord): Promise<unknown> {
   if (action === 'snapshot') {
     if (Object.keys(data).length) throw new FoundryError('snapshot does not accept request data');
@@ -157,31 +191,31 @@ async function dispatch(service: ProjectService, action: string, data: JsonRecor
     return service.create({
       name: data.name,
       idea: data.idea,
-      adapter: typeof data.adapter === 'string' ? data.adapter : undefined,
-      model: typeof data.model === 'string' ? data.model : null,
-      reasoning: typeof data.reasoning === 'string' ? data.reasoning : null,
+      adapter: optionalString(data, 'adapter') as string | undefined,
+      model: optionalString(data, 'model', true),
+      reasoning: optionalString(data, 'reasoning', true),
     });
   }
   if (action === 'configure') {
     strictKeys(data, ['id', 'adapter', 'model', 'reasoning', 'subscription_confirmed', 'roles', 'factory_roles', 'role_settings']);
     if (typeof data.id !== 'string') throw new FoundryError('Configure requires a project ID');
-    const roles = data.roles;
-    const roleSettings: FactoryStateRoleSettings | undefined = data.role_settings
-      && typeof data.role_settings === 'object' && !Array.isArray(data.role_settings)
-      ? data.role_settings as FactoryStateRoleSettings
-      : roles && typeof roles === 'object' && !Array.isArray(roles)
-        ? roles as FactoryStateRoleSettings
-        : undefined;
-    const factoryRoles = data.factory_roles && typeof data.factory_roles === 'object' && !Array.isArray(data.factory_roles)
-      ? data.factory_roles as FactoryRoleMapData : undefined;
+    if (data.subscription_confirmed !== undefined && typeof data.subscription_confirmed !== 'boolean') {
+      throw new FoundryError('subscription_confirmed must be a boolean');
+    }
+    if (data.roles !== undefined && data.role_settings !== undefined) {
+      throw new FoundryError('Provide roles or role_settings, not both');
+    }
+    const roles = optionalRecord(data, 'roles');
+    const roleSettings = optionalRecord(data, 'role_settings') ?? roles;
+    const factoryRoles = optionalRecord(data, 'factory_roles');
     return service.configure(data.id, {
-      adapter: typeof data.adapter === 'string' ? data.adapter : undefined,
-      model: typeof data.model === 'string' ? data.model : data.model === null ? null : undefined,
-      reasoning: typeof data.reasoning === 'string' ? data.reasoning : data.reasoning === null ? null : undefined,
+      adapter: optionalString(data, 'adapter') as string | undefined,
+      model: optionalString(data, 'model', true),
+      reasoning: optionalString(data, 'reasoning', true),
       billing: data.subscription_confirmed === true ? 'subscription' : undefined,
-      confirmed: data.subscription_confirmed === true,
-      factory_roles: factoryRoles,
-      role_settings: roleSettings,
+      confirmed: data.subscription_confirmed as boolean | undefined,
+      factory_roles: factoryRoles as FactoryRoleMapData | undefined,
+      role_settings: roleSettings as FactoryStateRoleSettings | undefined,
     });
   }
   if (action === 'run') {
@@ -230,7 +264,7 @@ export async function startHttpServer(service: ProjectService, options: HttpOpti
   const requestedPort = options.port ?? 4321;
   const token = crypto.randomBytes(32).toString('base64url');
   const assets = await collectAssets(service.sourceRoot, 'app/assets', '/assets');
-  const docs = await collectAssets(service.sourceRoot, 'site/dist', '/docs');
+  const docs = await collectDocumentationAssets(service.sourceRoot);
   const staticFiles = new Map<string, Asset>([
     ['/', { file: 'app/index.html', contentType: 'text/html' }],
     ['/index.html', { file: 'app/index.html', contentType: 'text/html' }],
@@ -283,18 +317,17 @@ export async function startHttpServer(service: ProjectService, options: HttpOpti
         redirect(result, '/docs/');
         return;
       }
-      if (parsed.pathname === '/docs/' && staticFiles.has('/docs/index.html')) {
-        const index = staticFiles.get('/docs/index.html')!;
-        const bytes = await readStaticFile(service.sourceRoot, index.file);
-        response(request, result, 200, bytes, index.contentType);
-        return;
-      }
       const asset = staticFiles.get(parsed.pathname);
       if (!asset) {
+        if (parsed.pathname.startsWith('/docs/') && docs.size === 0) {
+          redirect(result, 'https://github.com/dabhiram13/foundry/blob/main/docs/README.md');
+          return;
+        }
         response(request, result, 404, { error: 'Not found' });
         return;
       }
-      const bytes = await readStaticFile(service.sourceRoot, asset.file);
+      rejectSymlinkComponents(path.join(service.sourceRoot, asset.file));
+      const bytes = await readBoundedBytes(service.sourceRoot, asset.file, MAX_STATIC_FILE);
       if (asset.file === 'app/index.html') {
         const nonce = crypto.randomBytes(24).toString('base64url');
         const html = bytes.toString('utf8')
@@ -302,7 +335,10 @@ export async function startHttpServer(service: ProjectService, options: HttpOpti
           .replaceAll('__FOUNDRY_STYLE_NONCE__', nonce);
         response(request, result, 200, html, 'text/html', nonce);
       } else {
-        response(request, result, 200, bytes, asset.contentType);
+        const docsPolicy = asset.file.startsWith('site/dist/')
+          ? documentationPolicy(asset.contentType === 'text/html' ? bytes.toString('utf8') : '')
+          : undefined;
+        response(request, result, 200, bytes, asset.contentType, undefined, docsPolicy);
       }
     } catch (error) {
       if (request.socket.destroyed || result.destroyed || result.writableEnded) return;
@@ -318,16 +354,31 @@ export async function startHttpServer(service: ProjectService, options: HttpOpti
   });
   const address = server.address();
   const port = typeof address === 'object' && address ? address.port : requestedPort;
-  const close = async (): Promise<void> => {
-    await closeProjectRuns();
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+  let closePromise: Promise<void> | undefined;
+  const close = (): Promise<void> => {
+    if (closePromise) return closePromise;
+    const serverClosed = new Promise<void>((resolve) => server.close(() => resolve()));
+    closePromise = (async () => {
+      const confirmed = await closeProjectRuns(service);
+      await serverClosed;
+      if (!confirmed) throw new FoundryError('Worker shutdown could not be confirmed; the saved project requires explicit recovery.');
+    })();
+    return closePromise;
   };
   const url = `http://127.0.0.1:${port}`;
   process.stderr.write(`Foundry typed UI: ${url}\n`);
   if (options.openBrowser) {
-    const command = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-    const child = spawn(command, [url], { detached: true, stdio: 'ignore' });
-    child.unref();
+    if (process.platform === 'win32') {
+      process.stderr.write('Automatic browser launch is unavailable on Windows; open the local URL manually.\n');
+    } else {
+      try {
+        const child = spawn(process.platform === 'darwin' ? 'open' : 'xdg-open', [url], { detached: true, stdio: 'ignore' });
+        child.once('error', () => process.stderr.write('Could not launch a browser; open the local URL manually.\n'));
+        child.unref();
+      } catch {
+        process.stderr.write('Could not launch a browser; open the local URL manually.\n');
+      }
+    }
   }
   return { server, token, close };
 }

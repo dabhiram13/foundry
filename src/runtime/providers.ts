@@ -10,6 +10,7 @@ import {
   atomicJson, atomicWrite, canonicalJson, digest, exists, findProjectRoot, FoundryError, now,
   readJson, within, withProcessLock,
 } from '../core/fs.js';
+import { readBoundedBytes } from '../core/factory-contract.js';
 import { requireRuntimeWorkspace } from '../core/lifecycle.js';
 import { providerEnvironment } from './environment.js';
 
@@ -173,11 +174,18 @@ function builtinRegistry(): Record<string, ProviderAdapter> {
   };
 }
 
-export async function registry(root: string): Promise<Record<string, ProviderAdapter>> {
+export async function registry(root: string, sourceConfiguration?: Uint8Array | null): Promise<Record<string, ProviderAdapter>> {
   const result = builtinRegistry();
   const configPath = within(root, '.foundry/providers.json');
-  if (!(await exists(root, '.foundry/providers.json'))) return result;
-  const document = await readJson<unknown>(configPath);
+  if (sourceConfiguration === null
+    || (sourceConfiguration === undefined && !(await exists(root, '.foundry/providers.json')))) return result;
+  const bytes = sourceConfiguration ?? await readBoundedBytes(root, '.foundry/providers.json', 256 * 1024);
+  let document: unknown;
+  try {
+    document = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+  } catch (error) {
+    throw new FoundryError(`Cannot read JSON ${configPath}: ${(error as Error).message}`, { cause: error });
+  }
   if (typeof document !== 'object' || document === null || Array.isArray(document)
     || Object.keys(document).join(',') !== 'adapters' || !Array.isArray((document as JsonRecord).adapters)) {
     throw new FoundryError('providers.json needs an adapters list');
@@ -198,7 +206,8 @@ export async function registry(root: string): Promise<Record<string, ProviderAda
 function redactor(environment: NodeJS.ProcessEnv, selectedNames: readonly string[] = []): (value: unknown) => unknown {
   const sensitiveKey = /secret|password|passwd|api[_-]?key|authorization|cookie|credential|private[_-]?key|^token$|access[_-]?token|refresh[_-]?token/i;
   const secrets = Object.entries(environment)
-    .filter(([key, value]) => (sensitiveKey.test(key) || selectedNames.includes(key)) && typeof value === 'string' && value.length >= 4)
+    .filter(([key, value]) => typeof value === 'string' && value.length > 0
+      && (selectedNames.includes(key) || (sensitiveKey.test(key) && value.length >= 4)))
     .map(([, value]) => value as string)
     .sort((left, right) => right.length - left.length);
   const clean = (value: unknown, key?: string): unknown => {

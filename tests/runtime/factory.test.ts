@@ -8,7 +8,7 @@ import {
   approveFactory, cancelFactory, configureFactory, initFactory, recoverFactory, reviewFactory, runFactory, statusFactory,
 } from '../../src/core/factory.js';
 import {
-  FACTORY_LOCK, readBoundedBytes, readFactoryState, reviewEvidenceDigests,
+  FACTORY_LOCK, readBoundedBytes, readFactoryState, reviewEvidenceDigests, writeFactoryState,
 } from '../../src/core/factory-contract.js';
 import { installWorkspace } from '../../src/core/install.js';
 import { complete as lifecycleComplete, recover as lifecycleRecover } from '../../src/core/lifecycle.js';
@@ -295,6 +295,44 @@ test('factory completes Research through Ship with approvals, a real check and c
   assert.equal(completed?.status, 'completed');
   assert.deepEqual(completed?.completed_stages, ['research', 'scope', 'design', 'build', 'verify', 'release']);
   assert.equal((await readFile(path.join(root, '.foundry/state/factory/ship.json'), 'utf8')).includes('not_authorized'), true);
+});
+
+test('status offers recovery only for dead controller ownership and never an approval during active work', async () => {
+  const root = await project();
+  await initFactory(root, {
+    name: 'Stale owner status',
+    idea: 'Expose explicit recovery only with stale ownership evidence.',
+    adapter: 'fixture',
+  });
+  await runFactory(root);
+  await runFactory(root);
+  const plan = await reviewFactory(root, 'plan');
+  await approveFactory(root, 'plan', String(plan.revision));
+  await writeFile(path.join(root, 'docs/specs/product.md'),
+    '# Product plan\n\n## Acceptance criteria\n- [AC-001] A changed requirement makes approval stale\n');
+  const running = await readFactoryState(root);
+  assert.ok(running);
+  running.status = 'running';
+  await writeFactoryState(root, running);
+
+  const noOwner = await statusFactory(root);
+  assert.equal(noOwner.status, 'running');
+  assert.deepEqual(noOwner.stale_approvals, ['plan']);
+  assert.equal(noOwner.ready_next_step.action, 'none');
+
+  const ownerFile = path.join(root, FACTORY_LOCK, 'owner.json');
+  await mkdir(path.dirname(ownerFile), { recursive: true });
+  const deadPid = process.pid + 1_000_000;
+  assert.throws(() => process.kill(deadPid, 0), { code: 'ESRCH' });
+  await writeFile(ownerFile, JSON.stringify({ pid: deadPid, token: 'durable-owner-token' }));
+  const staleOwner = await statusFactory(root);
+  assert.equal(staleOwner.status, 'recovery_required');
+  assert.deepEqual(staleOwner.ready_next_step, { action: 'recover', stage: 'design', label: 'Design' });
+
+  await writeFile(ownerFile, JSON.stringify({ pid: process.pid, token: 'live-owner-token' }));
+  const liveOwner = await statusFactory(root);
+  assert.equal(liveOwner.status, 'running');
+  assert.equal(liveOwner.ready_next_step.action, 'none');
 });
 
 test('factory rejects malformed, missing, stale, failing, unverified and blocking reviewer results', async (t) => {

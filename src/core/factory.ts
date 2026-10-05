@@ -13,9 +13,9 @@ import {
 } from './lifecycle.js';
 import {
   FACTORY_CANCEL, FACTORY_CANCEL_LOCK, FACTORY_LOCK, FACTORY_STATE, FACTORY_STAGE_LABELS,
-  FACTORY_CHECKS, FACTORY_STAGES, assertFactoryShipGate, factoryShipSchema, readBoundedText,
+  FACTORY_CHECKS, FACTORY_STAGES, assertFactoryShipGate, factoryShipSchema, readBoundedBytes, readBoundedText,
   readCheckMapping, readFactoryState, reviewEvidenceDigests, roleSettingsSchema, writeFactoryState, type FactoryStage,
-  type FactoryState,
+  type FactoryState, type FactoryStatus,
 } from './factory-contract.js';
 import { approvedCriteria, validateReview } from './review.js';
 import { loadRoles, roleByName } from './roles.js';
@@ -1260,8 +1260,13 @@ export async function configureFactory(rootInput: string, options: FactoryConfig
   });
 }
 
-function nextAction(state: FactoryState): { action: string; stage: FactoryStage | null; label: string | null } {
+function nextAction(state: FactoryState): FactoryStatus['ready_next_step'] {
   if (state.status === 'completed') return { action: 'none', stage: null, label: null };
+  if (state.status === 'running' || state.status === 'shipping') return {
+    action: 'none',
+    stage: state.stage,
+    label: FACTORY_STAGE_LABELS[state.stage],
+  };
   if (state.status === 'awaiting_approval') return {
     action: 'approve',
     stage: state.stage,
@@ -1279,7 +1284,25 @@ function nextAction(state: FactoryState): { action: string; stage: FactoryStage 
   };
 }
 
-export async function statusFactory(rootInput: string): Promise<JsonRecord> {
+async function hasStaleControllerOwner(root: string): Promise<boolean> {
+  try {
+    const bytes = await readBoundedBytes(root, `${FACTORY_LOCK}/owner.json`, 16 * 1024);
+    const owner = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as { pid?: unknown; token?: unknown };
+    if (!Number.isSafeInteger(owner.pid) || Number(owner.pid) <= 0 || typeof owner.token !== 'string' || !owner.token) {
+      return false;
+    }
+    try {
+      process.kill(Number(owner.pid), 0);
+      return false;
+    } catch (error) {
+      return (error as NodeJS.ErrnoException).code === 'ESRCH';
+    }
+  } catch {
+    return false;
+  }
+}
+
+export async function statusFactory(rootInput: string): Promise<FactoryStatus> {
   const root = await requireController(rootInput, 'inspect the TypeScript factory');
   const state = await load(root);
   const current = await documentDigests(root);
@@ -1287,20 +1310,25 @@ export async function statusFactory(rootInput: string): Promise<JsonRecord> {
     .filter((key) => state.documents[key] !== current[key]);
   const stalePlan = Boolean(state.approvals.plan && current.plan !== state.approvals.plan.revision);
   const staleDesign = Boolean(state.approvals.design && current.design !== state.approvals.design.revision);
-  return {
-    ...state,
-    ready_next_step: stalePlan
-      ? { action: 'approve', stage: 'scope', label: 'Plan' }
-      : staleDesign
-        ? { action: 'approve', stage: 'design', label: 'Design' }
-        : nextAction(state),
-    completed_work: state.completed_stages.map((stage) => ({ stage, label: FACTORY_STAGE_LABELS[stage] })),
+  const staleOwner = ['running', 'shipping'].includes(state.status) && await hasStaleControllerOwner(root);
+  const visibleState: FactoryState = staleOwner ? { ...state, status: 'recovery_required' } : state;
+  const staleApprovals: FactoryStatus['stale_approvals'] = [];
+  if (state.approvals.plan && current.plan !== state.approvals.plan.revision) staleApprovals.push('plan');
+  if (state.approvals.design && current.design !== state.approvals.design.revision) staleApprovals.push('design');
+  const status: FactoryStatus = {
+    ...visibleState,
+    ready_next_step: ['running', 'shipping', 'recovery_required'].includes(visibleState.status)
+      ? nextAction(visibleState)
+      : stalePlan
+        ? { action: 'approve', stage: 'scope', label: 'Plan' }
+        : staleDesign
+          ? { action: 'approve', stage: 'design', label: 'Design' }
+          : nextAction(visibleState),
+    completed_work: visibleState.completed_stages.map((stage) => ({ stage, label: FACTORY_STAGE_LABELS[stage] })),
     stale_inputs: stale,
-    stale_approvals: [
-      ...(state.approvals.plan && current.plan !== state.approvals.plan.revision ? ['plan'] : []),
-      ...(state.approvals.design && current.design !== state.approvals.design.revision ? ['design'] : []),
-    ],
+    stale_approvals: staleApprovals,
   };
+  return status;
 }
 
 export async function reviewFactory(rootInput: string, stageInput?: 'plan' | 'design'): Promise<JsonRecord> {

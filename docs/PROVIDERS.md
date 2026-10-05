@@ -56,9 +56,12 @@ approve tools. Typed project setup permits an unconfirmed subscription setting,
 but a run is refused until the owner explicitly confirms. The typed Factory does
 not select API billing. Provider login stays in the provider's own CLI; account
 sign-in/out are not implemented by the typed transports.
-The installer does not initialize Git or start provider work. Before the first
-typed run, initialize and commit the workspace history, complete provider login,
-and confirm subscription consent explicitly where the selected adapter requires it.
+The low-level installer does not initialize Git. The multi-project `typed new`
+service initializes Git for a new empty workspace and records only its ignore
+rules, framework metadata, neutral roles and idea in the initial local commit;
+provider configuration, runtime bundles and state stay untracked or ignored.
+Creation does not start provider work. Before the first typed run, complete
+provider login and confirm subscription consent explicitly where required.
 
 The provider-neutral role catalog retains 28 role IDs and permissions. A typed
 workspace has one primary role per Factory stage; `configure --role

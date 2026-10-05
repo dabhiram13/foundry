@@ -159,6 +159,16 @@ const controllerSchema = z.object({
 }).strict();
 
 export type FactoryState = z.infer<typeof controllerSchema>;
+export interface FactoryStatus extends FactoryState {
+  ready_next_step: {
+    action: 'none' | 'approve' | 'recover' | 'rerun' | 'run';
+    stage: FactoryStage | null;
+    label: string | null;
+  };
+  completed_work: Array<{ stage: FactoryStage; label: string }>;
+  stale_inputs: Array<keyof FactoryState['documents']>;
+  stale_approvals: Array<'plan' | 'design'>;
+}
 export type FactoryApproval = z.infer<typeof approvalSchema>;
 export type FactoryReviewBinding = z.infer<typeof reviewBindingSchema>;
 export type FactoryCheckMapping = z.infer<typeof checkMappingSchema>;

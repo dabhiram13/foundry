@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { copyFile, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { copyFile, mkdtemp, mkdir, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { request as httpRequest } from 'node:http';
@@ -8,7 +10,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { test } from 'node:test';
 import { readFactoryState } from '../../src/core/factory-contract.js';
-import { ProjectService } from '../../src/core/projects.js';
+import { ProjectService, runProjectUntilBoundary } from '../../src/core/projects.js';
+import { closeProjectRuns, startProjectRun } from '../../src/transports/jobs.js';
 import { startHttpServer } from '../../src/transports/http.js';
 
 const sourceRoot = path.resolve('.');
@@ -16,6 +19,23 @@ const nodeBin = path.dirname(process.execPath);
 
 async function temporaryDirectory(prefix: string): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), prefix));
+}
+
+function hostExecutable(name: string): string {
+  const executable = process.env.PATH?.split(path.delimiter)
+    .map((directory) => path.join(directory, name))
+    .find((candidate) => existsSync(candidate));
+  assert.ok(executable, `Required test executable ${name} is not on PATH`);
+  return executable;
+}
+
+async function isolatedToolPath(base: string): Promise<string> {
+  const utilityBin = path.join(base, 'bin');
+  await mkdir(utilityBin);
+  for (const name of ['dirname', 'git']) {
+    await symlink(hostExecutable(name), path.join(utilityBin, name));
+  }
+  return `${nodeBin}${path.delimiter}${utilityBin}`;
 }
 
 async function frameworkFixture(base: string, providerConfiguration?: string): Promise<string> {
@@ -59,6 +79,8 @@ test('project service creates only typed children and reports legacy workspaces 
   });
   assert.equal(created.runtime, 'typescript');
   assert.equal(created.status, 'ready');
+  assert.equal(created.adapter, 'codex');
+  assert.equal(created.billing_mode, 'subscription');
   assert.equal(created.subscription_confirmed, false);
   assert.deepEqual(created.factory_roles, {
     research: 'market-researcher',
@@ -68,8 +90,18 @@ test('project service creates only typed children and reports legacy workspaces 
     verify: 'quality-gate',
     release: 'complete',
   });
-  assert.equal(await readFile(path.join(products, 'typed-notes/.foundry/runtime/foundry.cjs'), 'utf8').then((value) => value.length > 0), true);
-  assert.equal(await readFile(path.join(products, 'typed-notes/.foundry/runtime/foundry-worker.cjs'), 'utf8').then((value) => value.length > 0), true);
+  const initialFiles = spawnSync('git', ['-C', path.join(products, 'typed-notes'), 'ls-files'], { encoding: 'utf8' });
+  assert.equal(initialFiles.status, 0, initialFiles.stderr);
+  assert.deepEqual(initialFiles.stdout.trim().split('\n').sort(), [
+    '.foundry/install.json',
+    '.foundry/project.json',
+    '.foundry/roles.json',
+    '.foundry/runtime.json',
+    '.gitignore',
+    'docs/product/idea.md',
+  ]);
+  const commitCount = spawnSync('git', ['-C', path.join(products, 'typed-notes'), 'rev-list', '--count', 'HEAD'], { encoding: 'utf8' });
+  assert.equal(commitCount.stdout.trim(), '1');
   assert.equal((await readFactoryState(path.join(products, 'typed-notes')))?.provider_task_id, null);
 
   const listed = await service.list();
@@ -89,14 +121,23 @@ test('listing remains useful with malformed and symlinked children and copies va
   const base = await temporaryDirectory('foundry-project-isolation-');
   t.after(() => rm(base, { recursive: true, force: true }));
   const providerConfiguration = JSON.stringify({
-    adapters: [{
-      name: 'fixture',
-      kind: 'agent-runtime',
-      command: [process.execPath, '-e', 'process.stdin.resume()'],
-      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
-      billing_modes: ['local'],
-      environment: ['FIXTURE_TOKEN'],
-    }],
+    adapters: [
+      {
+        name: 'fixture',
+        kind: 'agent-runtime',
+        command: [process.execPath, '-e', 'process.stdin.resume()'],
+        capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'model_selection'],
+        billing_modes: ['local', 'subscription'],
+        environment: ['FIXTURE_TOKEN'],
+      },
+      {
+        name: 'subscription-only',
+        kind: 'agent-runtime',
+        command: [process.execPath, '-e', 'process.stdin.resume()'],
+        capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'model_selection'],
+        billing_modes: ['subscription'],
+      },
+    ],
   }, null, 2);
   const framework = await frameworkFixture(base, providerConfiguration);
 
@@ -111,6 +152,34 @@ test('listing remains useful with malformed and symlinked children and copies va
     await readFile(path.join(products, 'copied-provider/.foundry/providers.json'), 'utf8'),
     providerConfiguration,
   );
+  const productRoot = path.join(products, 'copied-provider');
+  const tracked = spawnSync('git', ['-C', productRoot, 'ls-files'], { encoding: 'utf8' });
+  assert.equal(tracked.status, 0, tracked.stderr);
+  assert.equal(tracked.stdout.includes('.foundry/providers.json'), false);
+  const ignoredProviderConfig = spawnSync('git', ['-C', productRoot, 'check-ignore', '-q', '.foundry/providers.json']);
+  assert.equal(ignoredProviderConfig.status, 0);
+  await assert.rejects(service.configure(String(created.id), {
+    factory_roles: [] as unknown as Record<string, string>,
+  }), /object|role/i);
+  await assert.rejects(service.configure(String(created.id), {
+    confirmed: 'false' as unknown as boolean,
+  }), /boolean/i);
+  assert.equal((await service.status(String(created.id))).billing_mode, 'local');
+  const consented = await service.configure(String(created.id), { billing: 'subscription', confirmed: true });
+  assert.equal(consented.billing_mode, 'subscription');
+  assert.equal(consented.subscription_confirmed, true);
+  const revoked = await service.configure(String(created.id), { confirmed: false });
+  assert.equal(revoked.billing_mode, 'subscription');
+  assert.equal(revoked.subscription_confirmed, false);
+  const rolePreference = await service.configure(String(created.id), {
+    role_settings: { planner: { model: 'role-model' } },
+  });
+  assert.deepEqual(rolePreference.role_settings, { planner: { model: 'role-model' } });
+  const globalPreference = await service.configure(String(created.id), { model: 'global-model' });
+  assert.deepEqual(globalPreference.role_settings, { planner: { model: 'role-model' } });
+  const changedAdapter = await service.configure(String(created.id), { adapter: 'subscription-only' });
+  assert.equal(changedAdapter.billing_mode, 'subscription');
+  assert.equal(changedAdapter.subscription_confirmed, false);
   const malformed = path.join(products, 'malformed');
   await mkdir(path.join(malformed, '.foundry/state/factory'), { recursive: true });
   await copyFile(
@@ -132,11 +201,249 @@ test('listing remains useful with malformed and symlinked children and copies va
   assert.equal(created.adapter, 'fixture');
 });
 
+test('service-created workspace shares Research, exact Plan approval, Design and exact approval across HTTP and MCP', async (t) => {
+  const base = await temporaryDirectory('foundry-cross-transport-');
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const providerScript = [
+    "let input='';",
+    "process.stdin.setEncoding('utf8');",
+    "process.stdin.on('data',chunk=>input+=chunk);",
+    "process.stdin.on('end',()=>{",
+    "const prompt=JSON.parse(input).prompt;",
+    "const fs=require('node:fs');",
+    "const path=require('node:path');",
+    "const write=(file,text)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);};",
+    "if(prompt.includes('current stage is Research'))write('docs/product/research.md','# Research\\n\\nSource: https://example.test/research\\n');",
+    "else if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] The local product has a verified state\\n');",
+    "else if(prompt.includes('current stage is Design'))write('docs/product/design.md','# Design\\n\\nThe verified state is visible to the owner.\\n');",
+    "process.stdout.write(JSON.stringify({type:'session.started',session_id:'cross-transport-fixture'})+'\\n');",
+    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output:{ok:true}})+'\\n');",
+    '});',
+  ].join('');
+  const providerConfiguration = JSON.stringify({
+    adapters: [{
+      name: 'journey-fixture',
+      kind: 'agent-runtime',
+      command: [process.execPath, '-e', providerScript],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
+      billing_modes: ['local'],
+    }],
+  });
+  const framework = await frameworkFixture(base, providerConfiguration);
+  const products = path.join(base, 'products');
+  const service = new ProjectService(framework, products);
+  const created = await service.create({
+    name: 'Cross Transport Journey',
+    idea: 'Verify a locally created product through exact owner approvals.',
+    adapter: 'journey-fixture',
+  });
+  const id = String(created.id);
+  const slug = 'cross-transport-journey';
+  let handle = await startHttpServer(service, { port: 0, openBrowser: false });
+  t.after(async () => handle.close());
+  const isolatedPath = await isolatedToolPath(base);
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [path.join(framework, 'dist/runtime/foundry.cjs'), 'mcp', '--products-dir', products],
+    cwd: framework,
+    env: { PATH: isolatedPath, HOME: base },
+    stderr: 'pipe',
+  });
+  const client = new Client({ name: 'foundry-cross-transport-test', version: '1.0.0' }, { capabilities: {} });
+  await client.connect(transport);
+  t.after(() => client.close());
+
+  const endpoint = (): string => {
+    const address = handle.server.address();
+    assert.ok(address && typeof address !== 'string');
+    return `http://127.0.0.1:${address.port}`;
+  };
+  const headers = (): Record<string, string> => ({
+    'X-Foundry-Token': handle.token,
+    'Content-Type': 'application/json',
+  });
+  const getSnapshot = async (): Promise<{
+    projects: Array<Record<string, unknown>>;
+    jobs: Record<string, { status: string }>;
+  }> => {
+    const response = await fetch(`${endpoint()}/api/snapshot`, { headers: { 'X-Foundry-Token': handle.token } });
+    assert.equal(response.status, 200);
+    return response.json() as Promise<{
+      projects: Array<Record<string, unknown>>;
+      jobs: Record<string, { status: string }>;
+    }>;
+  };
+  const post = async (action: string, data: Record<string, unknown>): Promise<Record<string, unknown>> => {
+    const response = await fetch(`${endpoint()}/api/${action}`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    });
+    const result = await response.json() as Record<string, unknown>;
+    assert.equal(response.status, 200, JSON.stringify(result));
+    return result;
+  };
+  const artifact = async (relative: string): Promise<{ revision: string }> => {
+    const query = new URLSearchParams({ id, path: relative });
+    const response = await fetch(`${endpoint()}/api/artifact?${query}`, {
+      headers: { 'X-Foundry-Token': handle.token },
+    });
+    assert.equal(response.status, 200);
+    return response.json() as Promise<{ revision: string }>;
+  };
+  const waitForBoundary = async (): Promise<Record<string, unknown>> => {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const snapshot = await getSnapshot();
+      const project = snapshot.projects.find((item) => item.id === id);
+      const job = snapshot.jobs[id];
+      if (job?.status !== 'running') {
+        assert.equal(job?.status, 'completed', JSON.stringify(job));
+        assert.ok(project);
+        return project;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    assert.fail('Factory worker did not reach an approval boundary');
+  };
+
+  const firstRun = await post('run', { id });
+  assert.equal(firstRun.status, 'running');
+  const planned = await waitForBoundary();
+  assert.equal(planned.status, 'awaiting_approval');
+  assert.equal(planned.stage, 'scope');
+  assert.equal(planned.billing_mode, 'local');
+  assert.deepEqual(planned.history, [{ stage: 'research', status: 'completed' }]);
+  const mcpPlanned = JSON.parse(toolText((await client.callTool({
+    name: 'foundry_snapshot',
+    arguments: {},
+  })).content)) as { projects: Array<Record<string, unknown>> };
+  const plannedFromMcp = mcpPlanned.projects.find((item) => item.id === id);
+  assert.equal(plannedFromMcp?.status, planned.status);
+  assert.equal(plannedFromMcp?.stage, planned.stage);
+
+  const plan = await artifact('docs/specs/product.md');
+  const staleApproval = await fetch(`${endpoint()}/api/approve`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ id, reviewed_revision: '0'.repeat(64) }),
+  });
+  assert.equal(staleApproval.status, 400);
+  assert.equal((await service.status(id)).status, 'awaiting_approval');
+  const planApproved = await post('approve', { id, reviewed_revision: plan.revision });
+  assert.equal(planApproved.status, 'ready');
+  assert.equal(planApproved.stage, 'design');
+  const designRun = await post('run', { id: slug });
+  assert.equal(designRun.status, 'running');
+  const designed = await waitForBoundary();
+  assert.equal(designed.status, 'awaiting_approval');
+  assert.equal(designed.stage, 'design');
+  assert.deepEqual(designed.history, [
+    { stage: 'research', status: 'completed' },
+    { stage: 'scope', status: 'completed' },
+  ]);
+
+  const design = await artifact('docs/product/design.md');
+  const designApproved = await post('approve', { id, reviewed_revision: design.revision });
+  assert.equal(designApproved.status, 'ready');
+  assert.equal(designApproved.stage, 'build');
+  const mcpApproved = JSON.parse(toolText((await client.callTool({
+    name: 'foundry_snapshot',
+    arguments: {},
+  })).content)) as { projects: Array<Record<string, unknown>> };
+  const approvedFromMcp = mcpApproved.projects.find((item) => item.id === id);
+  assert.equal(approvedFromMcp?.status, designApproved.status);
+  assert.equal(approvedFromMcp?.stage, designApproved.stage);
+  assert.deepEqual(approvedFromMcp?.history, designApproved.history);
+});
+
+test('an explicit background invocation retries a persisted failure through the normal Factory gates', async (t) => {
+  const base = await temporaryDirectory('foundry-retry-boundary-');
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const providerScript = [
+    "let input='';",
+    "process.stdin.setEncoding('utf8');",
+    "process.stdin.on('data',chunk=>input+=chunk);",
+    "process.stdin.on('end',()=>{",
+    "const fs=require('node:fs');",
+    "const path=require('node:path');",
+    "const prompt=JSON.parse(input).prompt;",
+    "const marker='.foundry/state/factory/retry-once';",
+    "let status='completed';",
+    "const write=(file,text)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);};",
+    "if(!fs.existsSync(marker)){write(marker,'failed once');process.stdout.write(JSON.stringify({type:'session.started',session_id:'retry-fixture'})+'\\n');process.exitCode=1;return;}",
+    "else if(prompt.includes('current stage is Research'))write('docs/product/research.md','# Research\\n\\nSource: https://example.test/retry\\n');",
+    "else if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] Retry uses the saved controller\\n');",
+    "process.stdout.write(JSON.stringify({type:'session.started',session_id:'retry-fixture'})+'\\n');",
+    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output:{ok:true}})+'\\n');",
+    '});',
+  ].join('');
+  const framework = await frameworkFixture(base, JSON.stringify({
+    adapters: [{
+      name: 'retry-fixture',
+      kind: 'agent-runtime',
+      command: [process.execPath, '-e', providerScript],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
+      billing_modes: ['local'],
+    }],
+  }));
+  const service = new ProjectService(framework, path.join(base, 'products'));
+  const created = await service.create({
+    name: 'Retry Fixture',
+    idea: 'Retry a failed stage only through Factory.',
+    adapter: 'retry-fixture',
+  });
+  const root = path.join(base, 'products/retry-fixture');
+  const failed = await runProjectUntilBoundary(root);
+  assert.equal(failed.status, 'failed');
+  assert.equal(failed.stage, 'research');
+  const recovered = await service.recover(String(created.id));
+  assert.equal(recovered.status, 'interrupted');
+  const retried = await runProjectUntilBoundary(root);
+  assert.equal(retried.status, 'awaiting_approval');
+  assert.equal(retried.stage, 'scope');
+  assert.deepEqual(retried.completed_stages, ['research']);
+  assert.equal((await service.status(String(created.id))).status, 'awaiting_approval');
+});
+
+test('background workers record an abnormal exit without a message as a terminal failed job', async (t) => {
+  const base = await temporaryDirectory('foundry-worker-exit-');
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const framework = await frameworkFixture(base);
+  const products = path.join(base, 'products');
+  const service = new ProjectService(framework, products);
+  const created = await service.create({
+    name: 'Worker exit',
+    idea: 'An abnormal worker must not remain stuck as running.',
+  });
+  await writeFile(path.join(framework, 'dist/runtime/foundry-worker.cjs'), 'throw new Error("fixture worker failure");\n');
+  try {
+    await startProjectRun(service, String(created.id));
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const job = service.jobSnapshot()[String(created.id)];
+      if (job?.status !== 'running') {
+        assert.equal(job?.status, 'failed');
+        assert.match(job?.error ?? '', /Factory worker exited without a confirmed boundary/);
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      if (attempt === 199) assert.fail('Abnormal worker exit was not observed');
+    }
+  } finally {
+    await closeProjectRuns(service);
+  }
+});
+
 test('typed CLI runs without Python and rejects unknown options', async (t) => {
   const base = await temporaryDirectory('foundry-typed-cli-');
   t.after(() => rm(base, { recursive: true, force: true }));
   const products = path.join(base, 'products');
-  const env: NodeJS.ProcessEnv = { ...process.env, PATH: nodeBin };
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PATH: await isolatedToolPath(base),
+    HOME: base,
+    GIT_CONFIG_GLOBAL: path.join(base, 'gitconfig'),
+    GIT_CONFIG_NOSYSTEM: '1',
+  };
   delete env.PYTHONPATH;
   const help = spawnSync(path.join(sourceRoot, 'foundry'), ['typed', '--help'], {
     cwd: sourceRoot,
@@ -145,13 +452,45 @@ test('typed CLI runs without Python and rejects unknown options', async (t) => {
   });
   assert.equal(help.status, 0, help.stderr);
   assert.match(help.stdout, /new NAME --idea TEXT/);
+  const created = spawnSync(path.join(sourceRoot, 'foundry'), [
+    'typed', 'new', 'CLI Consent', '--idea', 'A service-created project without Python.',
+    '--products-dir', products, '--json',
+  ], { cwd: sourceRoot, encoding: 'utf8', env });
+  assert.equal(created.status, 0, created.stderr);
+  const createdProject = JSON.parse(created.stdout) as { id: string; path: string };
+  const identity = spawnSync('git', ['-C', createdProject.path, 'log', '-1', '--format=%an <%ae>'], {
+    encoding: 'utf8',
+    env,
+  });
+  assert.equal(identity.status, 0, identity.stderr);
+  assert.equal(identity.stdout.trim(), 'Foundry Workspace <foundry@localhost>');
+  const consent = spawnSync(path.join(sourceRoot, 'foundry'), [
+    'typed', 'configure', createdProject.id, '--billing', 'subscription', '--confirmed',
+    '--products-dir', products, '--json',
+  ], { cwd: sourceRoot, encoding: 'utf8', env });
+  assert.equal(consent.status, 0, consent.stderr);
+  let current = await new ProjectService(sourceRoot, products).status(createdProject.id) as Record<string, unknown>;
+  assert.equal(current.subscription_confirmed, true);
+  const preference = spawnSync(path.join(sourceRoot, 'foundry'), [
+    'typed', 'configure', createdProject.id, '--model', 'cli-model', '--products-dir', products, '--json',
+  ], { cwd: sourceRoot, encoding: 'utf8', env });
+  assert.equal(preference.status, 0, preference.stderr);
+  current = await new ProjectService(sourceRoot, products).status(createdProject.id) as Record<string, unknown>;
+  assert.equal(current.subscription_confirmed, true);
+  const revoke = spawnSync(path.join(sourceRoot, 'foundry'), [
+    'typed', 'configure', createdProject.id, '--revoke-consent', '--products-dir', products, '--json',
+  ], { cwd: sourceRoot, encoding: 'utf8', env });
+  assert.equal(revoke.status, 0, revoke.stderr);
+  current = await new ProjectService(sourceRoot, products).status(createdProject.id) as Record<string, unknown>;
+  assert.equal(current.subscription_confirmed, false);
   const listed = spawnSync(path.join(sourceRoot, 'foundry'), ['typed', 'list', '--products-dir', products, '--json'], {
     cwd: sourceRoot,
     encoding: 'utf8',
     env,
   });
   assert.equal(listed.status, 0, listed.stderr);
-  assert.deepEqual(JSON.parse(listed.stdout), []);
+  const listedProjects = JSON.parse(listed.stdout) as Array<{ id: string }>;
+  assert.deepEqual(listedProjects.map((project) => project.id), [createdProject.id]);
   const unknown = spawnSync(path.join(sourceRoot, 'foundry'), ['typed', 'list', '--typo'], {
     cwd: sourceRoot,
     encoding: 'utf8',
@@ -250,6 +589,29 @@ test('loopback HTTP requires local origin and token, exposes explicit API data, 
     body: JSON.stringify({ name: 'Invalid Adapter', idea: 'Reject an unknown adapter.', adapter: 'missing' }),
   });
   assert.equal(invalidAdapter.status, 400);
+  const wrongAdapterType = await request(`${url}/api/create`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ name: 'Wrong Adapter Type', idea: 'Reject malformed input.', adapter: 7 }),
+  });
+  assert.equal(wrongAdapterType.status, 400);
+  const beforeInvalidConfigure = await service.status(String(created.id));
+  const invalidRoles = await request(`${url}/api/configure`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ id: created.id, factory_roles: [] }),
+  });
+  assert.equal(invalidRoles.status, 400);
+  const afterInvalidConfigure = await service.status(String(created.id));
+  assert.equal(afterInvalidConfigure.status, beforeInvalidConfigure.status);
+  assert.deepEqual(afterInvalidConfigure.factory_roles, beforeInvalidConfigure.factory_roles);
+  const invalidConsent = await request(`${url}/api/configure`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ id: created.id, subscription_confirmed: 'false' }),
+  });
+  assert.equal(invalidConsent.status, 400);
+  assert.equal((await service.status(String(created.id))).billing_mode, beforeInvalidConfigure.billing_mode);
   const slowStartedAt = Date.now();
   const slowFailure = await new Promise<Error>((resolve, reject) => {
     const slow = httpRequest(`${url}/api/create`, {
@@ -279,10 +641,19 @@ test('HTTP runs in the background, keeps snapshots responsive, and requires expl
   const base = await temporaryDirectory('foundry-typed-http-jobs-');
   t.after(() => rm(base, { recursive: true, force: true }));
   const hangingProvider = [
-    "process.stdin.resume();",
+    "let input='';",
+    "process.stdin.setEncoding('utf8');",
+    "process.stdin.on('data',chunk=>input+=chunk);",
     "process.stdin.on('end',()=>{",
+    "const fs=require('node:fs');",
+    "const path=require('node:path');",
+    "const prompt=JSON.parse(input).prompt;",
     "process.stdout.write(JSON.stringify({type:'session.started',session_id:'fixture-session'})+'\\n');",
-    'setInterval(()=>{},1000);',
+    "if(!fs.existsSync('allow-retry')){setInterval(()=>{},1000);return;}",
+    "const write=(file,text)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);};",
+    "if(prompt.includes('current stage is Research'))write('docs/product/research.md','# Research\\n\\nSource: https://example.test/recovery\\n');",
+    "else if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] Recovered work resumes explicitly\\n');",
+    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output:{ok:true}})+'\\n');",
     '});',
   ].join('');
   const providerConfiguration = JSON.stringify({
@@ -304,27 +675,6 @@ test('HTTP runs in the background, keeps snapshots responsive, and requires expl
   });
   const projectId = String(project.id);
   const root = path.join(products, 'background-run');
-  for (const args of [
-    ['init', '-q'],
-    ['config', 'user.name', 'Runtime Test'],
-    ['config', 'user.email', 'runtime-test@localhost'],
-    [
-      'add',
-      '.foundry/project.json',
-      '.foundry/install.json',
-      '.foundry/runtime.json',
-      '.foundry/roles.json',
-      '.foundry/providers.json',
-      '.foundry/runtime/project.cjs',
-      '.foundry/runtime/foundry.cjs',
-      '.foundry/runtime/foundry-worker.cjs',
-      'docs/product/idea.md',
-    ],
-    ['commit', '-q', '-m', 'fixture'],
-  ]) {
-    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
-    assert.equal(result.status, 0, result.stderr);
-  }
 
   let handle = await startHttpServer(service, { port: 0, openBrowser: false });
   t.after(async () => handle.close());
@@ -346,6 +696,13 @@ test('HTTP runs in the background, keeps snapshots responsive, and requires expl
   assert.equal(run.status, 200);
   assert.equal((await run.json() as { status: string }).status, 'running');
   assert.ok(Date.now() - runStartedAt < 1_000);
+  const duplicateAlias = await fetch(`${endpoint()}/api/run`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ id: 'background-run' }),
+  });
+  assert.equal(duplicateAlias.status, 400);
+  assert.match(JSON.stringify(await duplicateAlias.json()), /already has a run in progress/);
 
   const productRoot = path.join(products, 'background-run');
   let active = await readFactoryState(productRoot);
@@ -402,15 +759,113 @@ test('HTTP runs in the background, keeps snapshots responsive, and requires expl
   const recoveredProject = await recovered.json() as { status: string; stage: string };
   assert.equal(recoveredProject.status, 'interrupted');
   assert.equal(recoveredProject.stage, 'research');
+  assert.equal((await readFactoryState(root))?.provider_task_id, null);
+
+  await writeFile(path.join(root, 'allow-retry'), 'resume only after explicit recovery');
+  const retry = await fetch(`${endpoint()}/api/run`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ id: projectId }),
+  });
+  assert.equal(retry.status, 200);
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const response = await fetch(`${endpoint()}/api/snapshot`, {
+      headers: { 'X-Foundry-Token': handle.token },
+    });
+    const snapshot = await response.json() as {
+      projects: Array<{ id: string; status: string }>;
+      jobs: Record<string, { status: string }>;
+    };
+    if (snapshot.jobs[projectId]?.status !== 'running') {
+      assert.equal(snapshot.jobs[projectId]?.status, 'completed');
+      assert.equal(snapshot.projects.find((item) => item.id === projectId)?.status, 'awaiting_approval');
+      break;
+    }
+    if (attempt === 199) assert.fail('Explicit recovery retry did not reach the next approval boundary');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+});
+
+test('four worker reservations are enforced and closing one service leaves another service running', async (t) => {
+  const base = await temporaryDirectory('foundry-job-capacity-');
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const hangingProvider = [
+    "process.stdin.resume();",
+    "process.stdin.on('end',()=>{",
+    "process.stdout.write(JSON.stringify({type:'session.started',session_id:'capacity-fixture'})+'\\n');",
+    'setInterval(()=>{},1000);',
+    '});',
+  ].join('');
+  const framework = await frameworkFixture(base, JSON.stringify({
+    adapters: [{
+      name: 'capacity-fixture',
+      kind: 'agent-runtime',
+      command: [process.execPath, '-e', hangingProvider],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
+      billing_modes: ['local'],
+    }],
+  }));
+  const products = path.join(base, 'products');
+  const serviceA = new ProjectService(framework, products);
+  const serviceB = new ProjectService(framework, products);
+  const created = await Promise.all([
+    serviceA.create({ name: 'Capacity A1', idea: 'Hold one worker.', adapter: 'capacity-fixture' }),
+    serviceA.create({ name: 'Capacity A2', idea: 'Hold another worker.', adapter: 'capacity-fixture' }),
+    serviceA.create({ name: 'Capacity A3', idea: 'Hold a third worker.', adapter: 'capacity-fixture' }),
+    serviceB.create({ name: 'Capacity B1', idea: 'Hold a fourth worker.', adapter: 'capacity-fixture' }),
+    serviceB.create({ name: 'Capacity B2', idea: 'Reject a fifth worker.', adapter: 'capacity-fixture' }),
+  ]);
+  let handleA = await startHttpServer(serviceA, { port: 0, openBrowser: false });
+  let handleB = await startHttpServer(serviceB, { port: 0, openBrowser: false });
+  t.after(async () => handleA.close());
+  t.after(async () => handleB.close());
+  const endpoint = (handle: Awaited<ReturnType<typeof startHttpServer>>): string => {
+    const address = handle.server.address();
+    assert.ok(address && typeof address !== 'string');
+    return `http://127.0.0.1:${address.port}`;
+  };
+  const start = async (handle: Awaited<ReturnType<typeof startHttpServer>>, id: string): Promise<Response> => fetch(
+    `${endpoint(handle)}/api/run`,
+    {
+      method: 'POST',
+      headers: { 'X-Foundry-Token': handle.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    },
+  );
+  const ids = created.map((project) => String(project.id));
+  for (const id of ids.slice(0, 3)) assert.equal((await start(handleA, id)).status, 200);
+  assert.equal((await start(handleB, ids[3]!)).status, 200);
+  const excess = await start(handleB, ids[4]!);
+  assert.equal(excess.status, 400);
+  assert.match(JSON.stringify(await excess.json()), /four local Factory worker slots are full/);
+  const waitForActive = async (slug: string): Promise<void> => {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if ((await readFactoryState(path.join(products, slug)))?.provider_task_id) return;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    assert.fail(`Provider task did not start for ${slug}`);
+  };
+  for (const slug of ['capacity-a1', 'capacity-a2', 'capacity-a3', 'capacity-b1']) await waitForActive(slug);
+
+  await handleA.close();
+  const otherSnapshot = await serviceB.snapshot() as {
+    jobs: Record<string, { status: string }>;
+  };
+  assert.equal(otherSnapshot.jobs[ids[3]!]?.status, 'running');
+  assert.equal((await start(handleB, ids[4]!)).status, 200);
+  await waitForActive('capacity-b2');
+  await handleB.close();
+  const closedSnapshot = await serviceB.snapshot() as {
+    jobs: Record<string, { status: string }>;
+  };
+  assert.notEqual(closedSnapshot.jobs[ids[3]!]?.status, 'running');
+  assert.notEqual(closedSnapshot.jobs[ids[4]!]?.status, 'running');
 });
 
 test('stdio MCP subprocess uses the SDK protocol and omits owner-only tools', async (t) => {
   const base = await temporaryDirectory('foundry-typed-mcp-');
   t.after(() => rm(base, { recursive: true, force: true }));
-  const utilityBin = path.join(base, 'bin');
-  await mkdir(utilityBin);
-  await symlink('/usr/bin/dirname', path.join(utilityBin, 'dirname'));
-  const isolatedPath = `${nodeBin}${path.delimiter}${utilityBin}`;
+  const isolatedPath = await isolatedToolPath(base);
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [path.join(sourceRoot, 'dist/runtime/foundry.cjs'), 'mcp', '--products-dir', path.join(base, 'products')],
@@ -452,4 +907,42 @@ test('stdio MCP subprocess uses the SDK protocol and omits owner-only tools', as
   });
   assert.notEqual(created.isError, true);
   assert.match(toolText(created.content), /"runtime":"typescript"/);
+});
+
+test('built docs deep links, Astro and Pagefind assets use bounded documentation CSP', async (t) => {
+  const products = await temporaryDirectory('foundry-typed-docs-products-');
+  t.after(() => rm(products, { recursive: true, force: true }));
+  const handle = await startHttpServer(new ProjectService(sourceRoot, products), { port: 0, openBrowser: false });
+  t.after(() => handle.close());
+  const address = handle.server.address();
+  assert.ok(address && typeof address !== 'string');
+  const base = `http://127.0.0.1:${address.port}`;
+  const page = await fetch(`${base}/docs/architecture/`);
+  assert.equal(page.status, 200);
+  assert.equal(new URL(page.url).pathname, '/docs/architecture/');
+  const html = await page.text();
+  assert.equal(html.includes('/docs/docs/'), false);
+  const policy = page.headers.get('content-security-policy') ?? '';
+  assert.match(policy, /wasm-unsafe-eval/);
+  const inlineTags = [
+    ...html.matchAll(/<(script|style)\b([^>]*)>([\s\S]*?)<\/\1>/gi),
+  ].filter((match) => !/\bsrc\s*=/.test(match[2] ?? ''));
+  assert.ok(inlineTags.length > 0, 'the generated docs page exercises inline content hashes');
+  for (const match of inlineTags) {
+    const hash = createHash('sha256').update(match[3] ?? '').digest('base64');
+    assert.ok(policy.includes(`'sha256-${hash}'`), `documentation CSP is missing the inline ${match[1]} hash`);
+  }
+  const linkedAsset = html.match(/(?:src|href)="(\/(?:_astro|pagefind)\/[^"]+)"/)?.[1];
+  assert.ok(linkedAsset, 'docs page should reference a generated asset namespace');
+  assert.equal((await fetch(new URL(linkedAsset, base))).status, 200);
+
+  const pagefindRoot = path.join(sourceRoot, 'site/dist/pagefind');
+  const pagefindFiles = await readdir(pagefindRoot, { withFileTypes: true });
+  const pagefindFile = pagefindFiles.find((entry) => entry.isFile() && entry.name.endsWith('.js'));
+  assert.ok(pagefindFile, 'Pagefind JavaScript should be present in the built docs');
+  const search = await fetch(`${base}/pagefind/${pagefindFile.name}`);
+  assert.equal(search.status, 200);
+  assert.match(search.headers.get('content-type') ?? '', /javascript/);
+  const duplicated = await fetch(`${base}/docs/docs/architecture/`);
+  assert.equal(duplicated.status, 404);
 });

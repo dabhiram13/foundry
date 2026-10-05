@@ -22,6 +22,13 @@ The default `./foundry` launcher, Python controller/server, browser UI and MCP p
 
 The slice does not port Python launcher/server/MCP behavior, qualify live providers or accounts, or authorize purchases, deployments or publication. Passing local tests is not full migration completion or production qualification.
 
+The separate multi-project `./foundry typed new` service initializes Git for a
+new empty workspace and saves only the safe framework metadata, neutral roles,
+ignore rules and idea in its initial local checkpoint. Provider configuration,
+credentials, runtime bundles and state are not staged. Its local HTTP preview
+serves built documentation from only the `docs`, `_astro` and `pagefind`
+namespaces, with static reads capped at 8 MiB.
+
 ## Try the preview without AI
 
 From the framework checkout, after `npm ci`, use a new disposable directory

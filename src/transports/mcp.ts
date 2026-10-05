@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { ProjectService } from '../core/projects.js';
+import { closeProjectRuns } from './jobs.js';
 import { startProjectRun } from './jobs.js';
 
 type ToolResult = {
@@ -93,5 +94,47 @@ export async function startMcpServer(service: ProjectService): Promise<void> {
     }
   });
   const transport = new StdioServerTransport();
-  await server.connect(transport);
+  await new Promise<void>((resolve, reject) => {
+    let cleanupPromise: Promise<void> | undefined;
+    const cleanup = (): Promise<void> => {
+      if (cleanupPromise) return cleanupPromise;
+      process.removeListener('SIGINT', onSignal);
+      process.removeListener('SIGTERM', onSignal);
+      process.stdin.removeListener('end', onDisconnect);
+      process.stdin.removeListener('close', onDisconnect);
+      cleanupPromise = (async () => {
+        try {
+          const confirmed = await closeProjectRuns(service);
+          await server.close().catch(() => undefined);
+          if (!confirmed) throw new Error('Worker shutdown was not confirmed');
+          resolve();
+        } catch (error) {
+          process.stderr.write('Foundry MCP cleanup could not confirm all worker state.\n');
+          process.exitCode = 1;
+          reject(error);
+        }
+      })();
+      return cleanupPromise;
+    };
+    const onSignal = () => {
+      void cleanup();
+    };
+    const onDisconnect = () => {
+      void cleanup();
+    };
+    void server.connect(transport).then(() => {
+      const previousClose = transport.onclose;
+      transport.onclose = () => {
+        previousClose?.();
+        void cleanup();
+      };
+      process.once('SIGINT', onSignal);
+      process.once('SIGTERM', onSignal);
+      process.stdin.once('end', onDisconnect);
+      process.stdin.once('close', onDisconnect);
+      if (process.stdin.readableEnded || process.stdin.destroyed) void cleanup();
+    }).catch((error: unknown) => {
+      void cleanup().finally(() => reject(error));
+    });
+  });
 }

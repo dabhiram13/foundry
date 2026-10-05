@@ -139,9 +139,11 @@ run, cancel, recover and read listed documents, but cannot configure or approve;
 those owner actions stay in the CLI or authenticated local browser. Provider
 login remains in the provider's own CLI. These shared transports are still an
 opt-in preview, not a replacement for the default Python launcher or its UI.
-New typed workspaces do not start provider work; initialize and commit their Git
-history before the first run. Configure the adapter connection and explicitly
-confirm subscription billing where required.
+New typed workspaces do not start provider work. Creation writes a `.gitignore`
+and makes an initial local Git checkpoint containing only framework metadata,
+neutral roles, the ignore rules and the idea; provider configuration, runtime
+bundles, state and common credential files are excluded. Configure the adapter
+connection and explicitly confirm subscription billing where required.
 
 The typed controller assigns one primary role to each stage. Role-specific
 model/reasoning preferences apply only when that role is assigned to the active

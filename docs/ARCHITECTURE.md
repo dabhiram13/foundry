@@ -29,6 +29,8 @@ configuration or approval tools. The preview does not qualify live providers or
 prove their advertised capabilities are enforced, port the default Python
 launcher, or authorize publication. Those migrations and qualifications remain
 outstanding before any default launcher change.
+The local browser serves only the built docs, `_astro` and Pagefind namespaces;
+static reads are bounded to 8 MiB and use no-follow, nonblocking file opens.
 See the [preview](specs/typed-runtime-preview.md) and
 [full migration scope](specs/typed-foundry.md).
 

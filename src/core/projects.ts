@@ -1,12 +1,13 @@
-import { lstat, mkdir, readdir, readFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import {
   approveFactory, cancelFactory, configureFactory, initFactory, recoverFactory, reviewFactory,
   runFactory, statusFactory, validateFactoryAdapter, type FactoryConfigureOptions,
 } from './factory.js';
 import {
-  FACTORY_STAGE_LABELS, FACTORY_STAGES, readBoundedText, readFactoryState,
-  type FactoryStage, type FactoryState,
+  FACTORY_STAGE_LABELS, FACTORY_STAGES, readBoundedBytes, readBoundedText, readFactoryState,
+  roleSettingsSchema, type FactoryStage, type FactoryState, type FactoryStatus,
 } from './factory-contract.js';
 import {
   atomicWrite, digest, expandUserPath, exists, FoundryError, rejectSymlinkComponents, within,
@@ -68,7 +69,7 @@ export interface ProjectSummary extends JsonRecord {
 interface LocatedProject {
   summary: ProjectSummary;
   root: string;
-  state: FactoryState;
+  state: FactoryState | null;
 }
 
 function safeError(): string {
@@ -94,7 +95,10 @@ function publicAdapter(adapter: ProviderAdapter): JsonRecord {
 }
 
 function factoryRolesToOptions(roles: FactoryRoleMap | undefined): string[] | undefined {
-  if (!roles) return undefined;
+  if (roles === undefined) return undefined;
+  if (!roles || typeof roles !== 'object' || Array.isArray(roles)) {
+    throw new FoundryError('Factory roles must be a stage-to-role object');
+  }
   const values: string[] = [];
   for (const [stage, name] of Object.entries(roles)) {
     if (!FACTORY_STAGES.includes(stage as FactoryStage) || typeof name !== 'string' || !name.trim()) {
@@ -114,45 +118,120 @@ function normalizedPreference(value: string | null | undefined, label: string): 
   return value.trim();
 }
 
-function chooseAdapter(adapters: Record<string, ProviderAdapter>, requested?: string): {
+function chooseAdapter(adapters: Record<string, ProviderAdapter>, requested = 'codex'): {
   adapter: ProviderAdapter;
   billing: 'local' | 'subscription';
 } {
-  const candidates = requested
-    ? [adapters[requested]]
-    : Object.values(adapters).sort((left, right) => left.name.localeCompare(right.name));
-  for (const adapter of candidates) {
-    if (!adapter) {
-      if (requested) throw new FoundryError(`Unknown provider adapter: ${requested}`);
-      continue;
-    }
-    if (adapter.unsupported) {
-      if (requested) throw new FoundryError(adapter.unsupported);
-      continue;
-    }
-    if (adapter.kind !== 'agent-runtime'
-      || !REQUIRED_CAPABILITIES.every((capability) => adapter.capabilities.includes(capability))) {
-      if (requested) throw new FoundryError('Adapter lacks the capabilities required by Factory stages');
-      continue;
-    }
-    if (adapter.billing_modes.includes('local')) return { adapter, billing: 'local' };
-    if (adapter.billing_modes.includes('subscription')) return { adapter, billing: 'subscription' };
-    if (requested) throw new FoundryError('Factory adapters must support local or subscription billing');
+  if (typeof requested !== 'string' || !/^[a-z][a-z0-9_-]{0,63}$/.test(requested)) {
+    throw new FoundryError('Provider adapter must be a registered adapter name');
   }
-  throw new FoundryError('No supported local or subscription Factory adapter is configured');
+  const adapter = adapters[requested];
+  if (!adapter) throw new FoundryError(`Unknown provider adapter: ${requested}`);
+  if (adapter.unsupported) throw new FoundryError(adapter.unsupported);
+  if (adapter.kind !== 'agent-runtime'
+    || !REQUIRED_CAPABILITIES.every((capability) => adapter.capabilities.includes(capability))) {
+    throw new FoundryError('Adapter lacks the capabilities required by Factory stages');
+  }
+  if (adapter.billing_modes.includes('local')) return { adapter, billing: 'local' };
+  if (adapter.billing_modes.includes('subscription')) return { adapter, billing: 'subscription' };
+  throw new FoundryError('Factory adapters must support local or subscription billing');
 }
 
-async function copyProviderConfiguration(source: string, target: string): Promise<void> {
-  const sourcePath = path.join(source, '.foundry/providers.json');
+async function providerConfiguration(source: string): Promise<Buffer | null> {
+  if (!(await exists(source, '.foundry/providers.json'))) return null;
+  return readBoundedBytes(source, '.foundry/providers.json', 256 * 1024);
+}
+
+async function copyProviderConfiguration(target: string, bytes: Buffer | null): Promise<void> {
+  if (bytes) await atomicWrite(target, '.foundry/providers.json', bytes);
+}
+
+function validatedCreateOptions(options: CreateProjectOptions): {
+  name: string;
+  idea: string;
+  slug: string;
+  adapter: string;
+  model: string | undefined;
+  reasoning: string | undefined;
+} {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) {
+    throw new FoundryError('Project creation requires a JSON object');
+  }
+  const unknown = Object.keys(options).find((key) => !['name', 'idea', 'adapter', 'model', 'reasoning'].includes(key));
+  if (unknown) throw new FoundryError(`Unknown project creation field: ${unknown}`);
+  if (typeof options.name !== 'string' || !options.name.trim() || options.name.trim().length > 120
+    || /[\r\n\0]/.test(options.name)) {
+    throw new FoundryError('Project name must be a single line of at most 120 characters');
+  }
+  if (typeof options.idea !== 'string' || !options.idea.trim() || options.idea.includes('\0')
+    || Buffer.byteLength(options.idea, 'utf8') > 64 * 1024) {
+    throw new FoundryError('Project idea must be nonempty and at most 64 KiB');
+  }
+  const name = options.name.trim();
+  const adapter = options.adapter === undefined ? 'codex' : options.adapter;
+  if (typeof adapter !== 'string' || !/^[a-z][a-z0-9_-]{0,63}$/.test(adapter)) {
+    throw new FoundryError('Provider adapter must be a registered adapter name');
+  }
+  return {
+    name,
+    idea: options.idea.trim(),
+    slug: slug(name),
+    adapter,
+    model: normalizedPreference(options.model, 'Project model') || undefined,
+    reasoning: normalizedPreference(options.reasoning, 'Project reasoning') || undefined,
+  };
+}
+
+function requireGit(): void {
+  const result = spawnSync('git', ['--version'], { encoding: 'utf8', timeout: 5_000 });
+  if (result.error || result.status !== 0) {
+    throw new FoundryError('Git is required to create a typed project; install Git before creating the workspace');
+  }
+}
+
+function runGit(target: string, args: string[], extra: string[] = []): void {
+  const result = spawnSync('git', ['-C', target, ...extra, ...args], {
+    encoding: 'utf8',
+    timeout: 15_000,
+    maxBuffer: 1024 * 1024,
+  });
+  if (result.error || result.status !== 0) {
+    const detail = (result.stderr || result.error?.message || 'Git command failed').trim().slice(0, 300);
+    throw new FoundryError(`Initial Git checkpoint is incomplete (${detail})`);
+  }
+}
+
+async function initializeProjectGit(target: string): Promise<void> {
   try {
-    const stats = await lstat(sourcePath);
-    if (stats.isSymbolicLink() || !stats.isFile()) {
-      throw new FoundryError('The source providers.json must be a regular file');
-    }
-    await atomicWrite(target, '.foundry/providers.json', await readFile(sourcePath));
+    await atomicWrite(target, '.gitignore', [
+      '.foundry/state/',
+      '.foundry/providers.json',
+      '.foundry/runtime/',
+      '.env',
+      '.env.*',
+      '!.env.example',
+      '.npmrc',
+      '.secrets/',
+      'credentials.*',
+      'secrets.*',
+      '*.pem',
+      '*.key',
+      'id_rsa',
+      'id_ed25519',
+      '',
+    ].join('\n'));
+    runGit(target, ['init', '-q']);
+    runGit(target, ['add', '--', '.gitignore', '.foundry/project.json', '.foundry/install.json',
+      '.foundry/runtime.json', '.foundry/roles.json', 'docs/product/idea.md']);
+    const authorName = spawnSync('git', ['-C', target, 'config', 'user.name'], { encoding: 'utf8' });
+    const authorEmail = spawnSync('git', ['-C', target, 'config', 'user.email'], { encoding: 'utf8' });
+    const identity: string[] = [];
+    if (authorName.status !== 0 || !authorName.stdout.trim()) identity.push('-c', 'user.name=Foundry Workspace');
+    if (authorEmail.status !== 0 || !authorEmail.stdout.trim()) identity.push('-c', 'user.email=foundry@localhost');
+    runGit(target, ['commit', '-q', '-m', 'Initialize Foundry workspace'], identity);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
-    throw error;
+    const message = error instanceof Error ? error.message : 'Git setup failed';
+    throw new FoundryError(`New workspace setup is incomplete and has been preserved at ${target}; inspect it before retrying. ${message}`, { cause: error });
   }
 }
 
@@ -181,28 +260,21 @@ function stageVerification(state: FactoryState): JsonRecord {
   return { build: { status, tasks } };
 }
 
-function defaultNextStep(state: FactoryState): JsonRecord {
-  if (state.status === 'completed') return { action: 'none', stage: null, label: null };
-  if (state.status === 'awaiting_approval') {
-    return { action: 'approve', stage: state.stage, label: FACTORY_STAGE_LABELS[state.stage] };
-  }
-  if (state.status === 'interrupted' || state.status === 'recovery_required') {
-    return { action: 'recover', stage: state.stage, label: FACTORY_STAGE_LABELS[state.stage] };
-  }
-  return {
-    action: state.status === 'failed' ? 'rerun' : 'run',
-    stage: state.stage,
-    label: FACTORY_STAGE_LABELS[state.stage],
-  };
-}
-
 export async function runProjectUntilBoundary(rootInput: string, maxStages = FACTORY_STAGES.length + 2): Promise<FactoryState> {
   let state = await readFactoryState(rootInput);
   if (!state) throw new FoundryError('Factory is not initialized');
+  const boundary = new Set<FactoryState['status']>([
+    'awaiting_approval', 'completed', 'failed', 'interrupted', 'recovery_required',
+  ]);
   for (let attempt = 0; attempt < maxStages; attempt += 1) {
-    if (['awaiting_approval', 'completed', 'failed', 'interrupted', 'recovery_required'].includes(state.status)) return state;
-    state = await runFactory(rootInput);
-    if (['awaiting_approval', 'completed', 'failed', 'interrupted', 'recovery_required'].includes(state.status)) return state;
+    try {
+      state = await runFactory(rootInput);
+    } catch (error) {
+      const persisted = await readFactoryState(rootInput);
+      if (persisted && boundary.has(persisted.status)) return persisted;
+      throw error;
+    }
+    if (boundary.has(state.status)) return state;
   }
   throw new FoundryError('Factory background run reached its bounded stage limit');
 }
@@ -249,7 +321,7 @@ export class ProjectService {
       if (entry.isSymbolicLink() || !entry.isDirectory()) {
         projects.push({
           root: child,
-          state: null as unknown as FactoryState,
+          state: null,
           summary: {
             id: `unavailable:${entry.name}`,
             slug: entry.name,
@@ -258,6 +330,9 @@ export class ProjectService {
             runtime: 'unavailable',
             status: 'unavailable',
             stage: 'unknown',
+            idea: '',
+            artifacts: [],
+            history: [],
             error: safeError(),
           },
         });
@@ -269,7 +344,7 @@ export class ProjectService {
         if (!marker) {
           projects.push({
             root: child,
-            state: null as unknown as FactoryState,
+            state: null,
             summary: {
               id: `legacy:${entry.name}`,
               slug: entry.name,
@@ -278,6 +353,9 @@ export class ProjectService {
               runtime: 'legacy',
               status: 'legacy',
               stage: 'unknown',
+              idea: '',
+              artifacts: [],
+              history: [],
               error: 'Legacy or unmarked workspace; use the existing Python runtime.',
             },
           });
@@ -301,7 +379,7 @@ export class ProjectService {
       } catch {
         projects.push({
           root: child,
-          state: null as unknown as FactoryState,
+          state: null,
           summary: {
             id: `unavailable:${entry.name}`,
             slug: entry.name,
@@ -310,6 +388,9 @@ export class ProjectService {
             runtime: 'unavailable',
             status: 'unavailable',
             stage: 'unknown',
+            idea: '',
+            artifacts: [],
+            history: [],
             error: safeError(),
           },
         });
@@ -336,42 +417,56 @@ export class ProjectService {
 
   private async view(project: LocatedProject): Promise<JsonRecord> {
     if (project.summary.runtime !== 'typescript') return project.summary;
-    const { root, state } = project;
-    let status: JsonRecord;
+    const { root } = project;
+    let status: FactoryStatus;
     try {
       status = await statusFactory(root);
     } catch {
-      return { ...project.summary, runtime: 'unavailable', status: 'unavailable', error: safeError() };
+      return {
+        ...project.summary,
+        runtime: 'unavailable',
+        status: 'unavailable',
+        idea: '',
+        artifacts: [],
+        history: [],
+        error: safeError(),
+      };
     }
     const artifacts: JsonRecord[] = [];
     for (const [relative, stage] of FACTORY_DOCUMENTS) {
       if (await exists(root, relative)) artifacts.push({ path: relative, stage });
     }
-    const roles = [...new Set(Object.values(state.roles))];
+    const roles = [...new Set(Object.values(status.roles))];
     const result: JsonRecord = {
       ...project.summary,
+      ...status,
+      id: status.workspace_id,
+      slug: project.summary.slug,
+      name: status.name,
+      path: root,
       runtime: 'typescript',
       idea: (await readDocument(root, 'docs/product/idea.md'))?.text ?? '',
-      adapter: state.adapter,
-      model: state.model,
-      reasoning: state.reasoning,
-      subscription_confirmed: state.billing.mode === 'subscription' && state.billing.confirmed,
+      adapter: status.adapter,
+      billing_mode: status.billing.mode,
+      model: status.model,
+      reasoning: status.reasoning,
+      subscription_confirmed: status.billing.mode === 'subscription' && status.billing.confirmed,
       roles,
-      factory_roles: state.roles,
-      role_settings: state.role_settings,
-      stage_verification: stageVerification(state),
+      factory_roles: status.roles,
+      role_settings: status.role_settings,
+      stage_verification: stageVerification(status),
       artifacts,
-      history: [],
-      created_at: state.created_at,
-      updated_at: state.updated_at,
-      error: state.failure?.message,
-      ready_next_step: status.ready_next_step ?? defaultNextStep(state),
-      stale_inputs: status.stale_inputs ?? [],
-      stale_approvals: status.stale_approvals ?? [],
-      approvals: state.approvals,
-      review: state.review,
-      verification_receipt: state.verification_receipt,
-      ship: state.ship,
+      history: status.completed_stages.map((stage) => ({ stage, status: 'completed' })),
+      created_at: status.created_at,
+      updated_at: status.updated_at,
+      error: status.failure?.message,
+      ready_next_step: status.ready_next_step,
+      stale_inputs: status.stale_inputs,
+      stale_approvals: status.stale_approvals,
+      approvals: status.approvals,
+      review: status.review,
+      verification_receipt: status.verification_receipt,
+      ship: status.ship,
     };
     return result;
   }
@@ -446,9 +541,16 @@ export class ProjectService {
   }
 
   async create(options: CreateProjectOptions): Promise<JsonRecord> {
-    if (typeof options.name !== 'string' || !options.name.trim()) throw new FoundryError('Project name is required');
-    if (typeof options.idea !== 'string' || !options.idea.trim()) throw new FoundryError('Project idea is required');
-    const projectSlug = slug(options.name);
+    const validated = validatedCreateOptions(options);
+    const projectSlug = validated.slug;
+    requireGit();
+    const sourceConfiguration = await providerConfiguration(this.sourceRoot);
+    const adapters = await registry(this.sourceRoot, sourceConfiguration);
+    const selected = chooseAdapter(adapters, validated.adapter);
+    await validateFactoryAdapter(this.sourceRoot, selected.adapter.name, {
+      mode: selected.billing,
+      confirmed: false,
+    }, false);
     await this.ensureProductsDir();
     const target = path.join(this.productsDir, projectSlug);
     try {
@@ -458,48 +560,104 @@ export class ProjectService {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
     rejectSymlinkComponents(target);
-    const adapters = await registry(this.sourceRoot);
-    const selected = chooseAdapter(adapters, options.adapter);
-    await validateFactoryAdapter(this.sourceRoot, selected.adapter.name, {
-      mode: selected.billing,
-      confirmed: false,
-    }, false);
-    await installWorkspace(this.sourceRoot, target);
-    await copyProviderConfiguration(this.sourceRoot, target);
-    const initialized = await initFactory(target, {
-      name: options.name,
-      idea: options.idea,
-      adapter: selected.adapter.name,
-      model: options.model == null ? undefined : normalizedPreference(options.model, 'Project model'),
-      reasoning: options.reasoning == null ? undefined : normalizedPreference(options.reasoning, 'Project reasoning'),
-      billing: selected.billing,
-      confirmed: false,
-    });
-    return this.view({
-      root: target,
-      state: initialized,
-      summary: {
-        id: initialized.workspace_id,
-        slug: projectSlug,
-        name: initialized.name,
-        path: target,
-        runtime: 'typescript',
-        status: initialized.status,
-        stage: initialized.stage,
-      },
-    });
+    try {
+      await mkdir(target, { recursive: false, mode: 0o700 });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+        throw new FoundryError('A project with this slug already exists; choose a fresh name', { cause: error });
+      }
+      throw error;
+    }
+    try {
+      await installWorkspace(this.sourceRoot, target);
+      await copyProviderConfiguration(target, sourceConfiguration);
+      const initialized = await initFactory(target, {
+        name: validated.name,
+        idea: validated.idea,
+        adapter: selected.adapter.name,
+        model: validated.model,
+        reasoning: validated.reasoning,
+        billing: selected.billing,
+        confirmed: false,
+      });
+      await initializeProjectGit(target);
+      return this.view({
+        root: target,
+        state: initialized,
+        summary: {
+          id: initialized.workspace_id,
+          slug: projectSlug,
+          name: initialized.name,
+          path: target,
+          runtime: 'typescript',
+          status: initialized.status,
+          stage: initialized.stage,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Workspace setup failed';
+      if (message.startsWith('New workspace setup is incomplete and has been preserved at ')) throw error;
+      throw new FoundryError(`New workspace setup is incomplete and has been preserved at ${target}; inspect it before retrying. ${message}`, { cause: error });
+    }
   }
 
   async configure(identifier: string, options: ConfigureProjectOptions): Promise<JsonRecord> {
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      throw new FoundryError('Project configuration requires a JSON object');
+    }
+    const allowed = new Set(['adapter', 'model', 'reasoning', 'billing', 'confirmed', 'factory_roles', 'role_settings']);
+    const unknown = Object.keys(options).find((key) => !allowed.has(key));
+    if (unknown) throw new FoundryError(`Unknown project configuration field: ${unknown}`);
+    if (options.adapter !== undefined && (typeof options.adapter !== 'string'
+      || !/^[a-z][a-z0-9_-]{0,63}$/.test(options.adapter))) {
+      throw new FoundryError('Provider adapter must be a registered adapter name');
+    }
+    if (options.billing !== undefined && options.billing !== 'local' && options.billing !== 'subscription') {
+      throw new FoundryError('Factory billing must be local or subscription');
+    }
+    if (options.confirmed !== undefined && typeof options.confirmed !== 'boolean') {
+      throw new FoundryError('Subscription consent must be a boolean');
+    }
+    const model = normalizedPreference(options.model, 'Project model');
+    const reasoning = normalizedPreference(options.reasoning, 'Project reasoning');
+    if (options.role_settings !== undefined
+      && (!options.role_settings || typeof options.role_settings !== 'object' || Array.isArray(options.role_settings))) {
+      throw new FoundryError('Role settings must be a role-to-preferences object');
+    }
+    const roles = factoryRolesToOptions(options.factory_roles);
+    const roleSettingsResult = options.role_settings === undefined
+      ? undefined : roleSettingsSchema.safeParse(options.role_settings);
+    if (roleSettingsResult && !roleSettingsResult.success) {
+      throw new FoundryError(`Invalid role settings: ${roleSettingsResult.error.issues.map((issue) => issue.message).join('; ')}`);
+    }
     const project = await this.locate(identifier);
+    const desiredAdapter = options.adapter ?? project.state?.adapter;
+    if (!desiredAdapter || !project.state) throw new FoundryError(safeError());
+    const adapterChanged = desiredAdapter !== project.state.adapter;
+    let billing = options.billing;
+    let confirmed = options.confirmed;
+    if (billing === undefined && options.confirmed === true) billing = 'subscription';
+    if (billing === undefined && adapterChanged) {
+      const selected = chooseAdapter(await registry(project.root), desiredAdapter);
+      billing = selected.billing;
+      confirmed = false;
+    }
+    if (billing === undefined && options.confirmed === false && !adapterChanged
+      && project.state.billing.mode === 'subscription') {
+      billing = 'subscription';
+    }
+    if (billing !== undefined && confirmed === undefined) confirmed = false;
+    if (billing !== 'subscription' && confirmed === true) {
+      throw new FoundryError('Subscription consent requires subscription billing');
+    }
     const factoryOptions: FactoryConfigureOptions = {
       adapter: options.adapter,
-      model: normalizedPreference(options.model, 'Project model'),
-      reasoning: normalizedPreference(options.reasoning, 'Project reasoning'),
-      billing: options.billing,
-      confirmed: options.confirmed === true,
-      roles: factoryRolesToOptions(options.factory_roles),
-      roleSettings: options.role_settings,
+      model,
+      reasoning,
+      billing,
+      confirmed: confirmed === true,
+      roles,
+      roleSettings: roleSettingsResult?.data,
     };
     const state = await configureFactory(project.root, factoryOptions);
     return this.view({ ...project, state });
@@ -513,8 +671,16 @@ export class ProjectService {
 
   async review(identifier: string): Promise<JsonRecord> {
     const project = await this.locate(identifier);
-    const stage = project.state.stage === 'design' ? 'design' : 'plan';
+    if (!project.state) throw new FoundryError(safeError());
+    const status = await statusFactory(project.root);
+    const stage = status.stage === 'design' ? 'design' : 'plan';
     return reviewFactory(project.root, stage);
+  }
+
+  async resolveRunTarget(identifier: string): Promise<{ id: string; path: string }> {
+    const project = await this.locate(identifier);
+    if (!project.state) throw new FoundryError(safeError());
+    return { id: project.state.workspace_id, path: path.resolve(project.root) };
   }
 
   async approve(identifier: string, revision: string): Promise<JsonRecord> {

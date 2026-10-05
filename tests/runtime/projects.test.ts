@@ -397,6 +397,8 @@ test('an explicit background invocation retries a persisted failure through the 
   const failed = await runProjectUntilBoundary(root);
   assert.equal(failed.status, 'failed');
   assert.equal(failed.stage, 'research');
+  assert.deepEqual((await service.status(String(created.id))).ready_next_step, { action: 'recover', stage: 'research', label: 'Research' });
+  await assert.rejects(runProjectUntilBoundary(root), /Recover the unresolved factory stage/);
   const recovered = await service.recover(String(created.id));
   assert.equal(recovered.status, 'interrupted');
   const retried = await runProjectUntilBoundary(root);

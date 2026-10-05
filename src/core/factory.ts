@@ -1273,7 +1273,7 @@ function nextAction(state: FactoryState): FactoryStatus['ready_next_step'] {
     stage: state.stage,
     label: FACTORY_STAGE_LABELS[state.stage],
   };
-  if (state.status === 'interrupted' || state.status === 'recovery_required') return {
+  if (state.status === 'interrupted' || state.status === 'recovery_required' || state.provider_task_id) return {
     action: 'recover',
     stage: state.stage,
     label: FACTORY_STAGE_LABELS[state.stage],

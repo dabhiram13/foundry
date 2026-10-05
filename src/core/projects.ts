@@ -271,7 +271,7 @@ export async function runProjectUntilBoundary(rootInput: string, maxStages = FAC
       state = await runFactory(rootInput);
     } catch (error) {
       const persisted = await readFactoryState(rootInput);
-      if (persisted && boundary.has(persisted.status)) return persisted;
+      if (persisted && boundary.has(persisted.status) && JSON.stringify(persisted) !== JSON.stringify(state)) return persisted;
       throw error;
     }
     if (boundary.has(state.status)) return state;

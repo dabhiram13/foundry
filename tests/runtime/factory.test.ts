@@ -651,6 +651,11 @@ test('checkpoint failure restores only the unchanged tick and preserves owner ed
     assert.ok(failed?.verification_receipt);
     assert.equal(failed?.failure?.code, 'artifact');
     assert.match(failed?.failure?.message ?? '', /checks passed, but the Git checkpoint could not be saved/);
+    assert.equal((await statusFactory(root)).ready_next_step.action, 'recover');
+    await assert.rejects(runFactory(root), /Recover the unresolved factory stage/);
+    await rm(hook);
+    assert.equal((await recoverFactory(root)).status, 'interrupted');
+    assert.equal((await runFactory(root)).stage, 'verify');
   });
   await t.test('owner edits are preserved', async () => {
     const root = await project();

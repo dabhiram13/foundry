@@ -3,7 +3,7 @@ import { chmod, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { execute, providerStatus } from '../../src/runtime/providers.js';
+import { execute, providerStatus, registry } from '../../src/runtime/providers.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -63,6 +63,24 @@ async function project(mode = 'success'): Promise<string> {
 function request(): Record<string, unknown> {
   return { adapter: 'fixture', kind: 'agent-runtime', prompt: 'work', billing: { mode: 'local' }, budget: { max_elapsed_seconds: 2 } };
 }
+
+test('provider registry parse errors retain a cause without exposing malformed configuration', async () => {
+  const root = await project();
+  const secret = 'DUMMY_PROVIDER_CONFIG_SECRET';
+  const configPath = path.join(root, '.foundry/providers.json');
+  await writeFile(configPath, secret);
+  try {
+    await assert.rejects(registry(root), (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /^Cannot read JSON .*\.foundry\/providers\.json$/);
+      assert.equal(error.message.includes(secret), false);
+      assert.ok(error.cause instanceof Error);
+      return true;
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test('subprocess environment is restricted and explicitly selected values stay out of saved output', async () => {
   const key = 'FOUNDRY_ENVIRONMENT_TEST_VALUE';

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { FoundryError } from '../core/fs.js';
+import { projectRunExitCode } from './run-exit-code.js';
 import {
   ProjectService, type ConfigureProjectOptions, type FactoryRoleMap,
 } from '../core/projects.js';
@@ -153,6 +154,7 @@ async function command(arguments_: string[]): Promise<number> {
   }
   const service = new ProjectService(sourceRoot(), parsed.values['products-dir']);
   let result: unknown;
+  let commandExitCode = 0;
   if (commandName === 'new') {
     assertOptions(parsed, ['idea', 'adapter'], [], commandName);
     requirePositional(parsed, 1, commandName);
@@ -193,7 +195,9 @@ async function command(arguments_: string[]): Promise<number> {
   } else if (commandName === 'run') {
     assertOptions(parsed, [], [], commandName);
     requirePositional(parsed, 1, commandName);
-    result = await service.run(parsed.positionals[0]!);
+    const runResult = await service.run(parsed.positionals[0]!);
+    result = runResult;
+    commandExitCode = projectRunExitCode(runResult.status);
   } else if (commandName === 'review') {
     assertOptions(parsed, [], [], commandName);
     requirePositional(parsed, 1, commandName);
@@ -219,7 +223,7 @@ async function command(arguments_: string[]): Promise<number> {
     throw new FoundryError(`Unknown typed command ${commandName}. Use --help.`);
   }
   output(result, json);
-  return 0;
+  return commandExitCode;
 }
 
 export async function main(arguments_ = process.argv.slice(2)): Promise<number> {

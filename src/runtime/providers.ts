@@ -184,7 +184,7 @@ export async function registry(root: string, sourceConfiguration?: Uint8Array | 
   try {
     document = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
   } catch (error) {
-    throw new FoundryError(`Cannot read JSON ${configPath}: ${(error as Error).message}`, { cause: error });
+    throw new FoundryError(`Cannot read JSON ${configPath}`, { cause: error });
   }
   if (typeof document !== 'object' || document === null || Array.isArray(document)
     || Object.keys(document).join(',') !== 'adapters' || !Array.isArray((document as JsonRecord).adapters)) {

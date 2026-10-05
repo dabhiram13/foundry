@@ -11,6 +11,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { test } from 'node:test';
 import { readFactoryState } from '../../src/core/factory-contract.js';
 import { ProjectService, runProjectUntilBoundary } from '../../src/core/projects.js';
+import { projectRunExitCode } from '../../src/cli/run-exit-code.js';
 import { closeProjectRuns, startProjectRun } from '../../src/transports/jobs.js';
 import { startHttpServer } from '../../src/transports/http.js';
 
@@ -507,6 +508,71 @@ test('typed CLI runs without Python and rejects unknown options', async (t) => {
   assert.match(invalidBilling.stderr, /--billing must be local or subscription/);
 });
 
+test('typed CLI prints successful Factory boundaries and maps terminal run statuses to exit codes', async (t) => {
+  const base = await temporaryDirectory('foundry-typed-cli-run-');
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const providerScript = [
+    "let input='';",
+    "process.stdin.setEncoding('utf8');",
+    "process.stdin.on('data',chunk=>input+=chunk);",
+    "process.stdin.on('end',()=>{",
+    "const fs=require('node:fs');",
+    "const path=require('node:path');",
+    "const prompt=JSON.parse(input).prompt;",
+    "const write=(file,text)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);};",
+    "if(prompt.includes('current stage is Research'))write('docs/product/research.md','# Research\\n\\nSource: https://example.test/cli\\n');",
+    "else if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] CLI displays controller boundaries\\n');",
+    "process.stdout.write(JSON.stringify({type:'session.started',session_id:'cli-fixture'})+'\\n');",
+    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output:{ok:true}})+'\\n');",
+    '});',
+  ].join('');
+  const framework = await frameworkFixture(base, JSON.stringify({
+    adapters: [{
+      name: 'cli-fixture',
+      kind: 'agent-runtime',
+      command: [process.execPath, '-e', providerScript],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
+      billing_modes: ['local'],
+    }],
+  }));
+  const products = path.join(base, 'products');
+  const env = {
+    ...process.env,
+    PATH: await isolatedToolPath(base),
+    HOME: base,
+    GIT_CONFIG_GLOBAL: path.join(base, 'gitconfig'),
+    GIT_CONFIG_NOSYSTEM: '1',
+  };
+  const cli = path.join(framework, 'dist/runtime/foundry.cjs');
+  const invoke = (arguments_: string[]) => spawnSync(process.execPath, [
+    cli, ...arguments_, '--products-dir', products, '--json',
+  ], { cwd: framework, encoding: 'utf8', env });
+  const created = invoke([
+    'new', 'CLI Boundary', '--idea', 'Exercise CLI Factory run result handling.', '--adapter', 'cli-fixture',
+  ]);
+  assert.equal(created.status, 0, created.stderr);
+  const project = JSON.parse(created.stdout) as { id: string };
+
+  const research = invoke(['run', project.id]);
+  assert.equal(research.status, 0, research.stderr);
+  const researchState = JSON.parse(research.stdout) as { status: string; stage: string };
+  assert.equal(researchState.status, 'ready');
+  assert.equal(researchState.stage, 'scope');
+
+  const plan = invoke(['run', project.id]);
+  assert.equal(plan.status, 0, plan.stderr);
+  const planState = JSON.parse(plan.stdout) as { status: string; stage: string };
+  assert.equal(planState.status, 'awaiting_approval');
+  assert.equal(planState.stage, 'scope');
+
+  assert.equal(projectRunExitCode('failed'), 1);
+  assert.equal(projectRunExitCode('recovery_required'), 1);
+  assert.equal(projectRunExitCode('interrupted'), 130);
+  for (const status of ['ready', 'awaiting_approval', 'completed']) {
+    assert.equal(projectRunExitCode(status), 0);
+  }
+});
+
 test('loopback HTTP requires local origin and token, exposes explicit API data, and rejects traversal', async (t) => {
   const base = await temporaryDirectory('foundry-typed-http-');
   t.after(() => rm(base, { recursive: true, force: true }));
@@ -909,10 +975,29 @@ test('stdio MCP subprocess uses the SDK protocol and omits owner-only tools', as
   assert.match(toolText(created.content), /"runtime":"typescript"/);
 });
 
-test('built docs deep links, Astro and Pagefind assets use bounded documentation CSP', async (t) => {
-  const products = await temporaryDirectory('foundry-typed-docs-products-');
-  t.after(() => rm(products, { recursive: true, force: true }));
-  const handle = await startHttpServer(new ProjectService(sourceRoot, products), { port: 0, openBrowser: false });
+test('documentation routing and CSP work with synthetic static assets', async (t) => {
+  const baseDirectory = await temporaryDirectory('foundry-typed-docs-products-');
+  t.after(() => rm(baseDirectory, { recursive: true, force: true }));
+  const framework = await frameworkFixture(baseDirectory);
+  const products = path.join(baseDirectory, 'products');
+  const docsDirectory = path.join(framework, 'site/dist/docs/architecture');
+  const astroDirectory = path.join(framework, 'site/dist/_astro');
+  const pagefindDirectory = path.join(framework, 'site/dist/pagefind');
+  await Promise.all([
+    mkdir(docsDirectory, { recursive: true }),
+    mkdir(astroDirectory, { recursive: true }),
+    mkdir(pagefindDirectory, { recursive: true }),
+  ]);
+  await Promise.all([
+    writeFile(path.join(docsDirectory, 'index.html'), [
+      '<!doctype html>',
+      '<html><head><style>body { color: #123; }</style><link rel="stylesheet" href="/_astro/site.css"></head>',
+      '<body><script>window.docsReady = true;</script><script src="/pagefind/pagefind.js"></script></body></html>',
+    ].join('')),
+    writeFile(path.join(astroDirectory, 'site.css'), 'body { color: #123; }'),
+    writeFile(path.join(pagefindDirectory, 'pagefind.js'), 'window.pagefind = true;'),
+  ]);
+  const handle = await startHttpServer(new ProjectService(framework, products), { port: 0, openBrowser: false });
   t.after(() => handle.close());
   const address = handle.server.address();
   assert.ok(address && typeof address !== 'string');
@@ -936,8 +1021,7 @@ test('built docs deep links, Astro and Pagefind assets use bounded documentation
   assert.ok(linkedAsset, 'docs page should reference a generated asset namespace');
   assert.equal((await fetch(new URL(linkedAsset, base))).status, 200);
 
-  const pagefindRoot = path.join(sourceRoot, 'site/dist/pagefind');
-  const pagefindFiles = await readdir(pagefindRoot, { withFileTypes: true });
+  const pagefindFiles = await readdir(pagefindDirectory, { withFileTypes: true });
   const pagefindFile = pagefindFiles.find((entry) => entry.isFile() && entry.name.endsWith('.js'));
   assert.ok(pagefindFile, 'Pagefind JavaScript should be present in the built docs');
   const search = await fetch(`${base}/pagefind/${pagefindFile.name}`);

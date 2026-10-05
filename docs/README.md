@@ -6,7 +6,7 @@ new product is built. Your files and Git history stay in your project.
 
 ## Start here
 
-- [Install the CLI from source and create your first project](GETTING-STARTED.md)
+- [Install the CLI and create your first project](GETTING-STARTED.md)
 - [npm releases and release process](RELEASING.md)
 - [Use the terminal and commands](COMMANDS.md)
 - [Add Foundry to a repository, migrate or recover](RUNTIME.md)

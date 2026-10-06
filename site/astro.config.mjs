@@ -2,11 +2,13 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { unified } from '@astrojs/markdown-remark';
 import links from './remark-links.mjs';
+import focusableTables from './remark-tables.mjs';
 
 export default defineConfig({
+  site: 'https://foundry-two-tan.vercel.app',
   output: 'static',
   trailingSlash: 'always',
-  markdown: { processor: unified({ remarkPlugins: [links] }) },
+  markdown: { processor: unified({ remarkPlugins: [links, focusableTables] }) },
   integrations: [starlight({
     title: 'Foundry docs',
     description: 'Install Foundry, build from your terminal, and keep control of your projects.',
@@ -26,12 +28,12 @@ export default defineConfig({
         { label: 'Connect your AI tool', slug: 'docs/providers' },
         { label: 'Specialist roles & guides', slug: 'docs/catalog' },
         { label: 'Project settings', slug: 'docs/customization' },
-        { label: 'Current limits', slug: 'docs/qualification' },
       ] },
       { label: 'Develop Foundry itself', collapsed: true, items: [
         { label: 'Contributor setup', slug: 'docs/contributing' },
         { label: 'Architecture', slug: 'docs/architecture' },
         { label: 'Tests', slug: 'docs/validation' },
+        { label: 'Provider integration checks', slug: 'docs/qualification' },
         { label: 'Saved-record rules', slug: 'docs/workflow-contracts' },
         { label: 'Release process', slug: 'docs/releasing' },
         { label: 'Documentation website', slug: 'docs/documentation' },

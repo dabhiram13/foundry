@@ -21,7 +21,7 @@ export function ProductWalkthrough() {
         <TabsContent value="idea">
           <div className="walkthrough-status"><span className="status-square" /> Start with one useful job</div>
           <h2>Your idea. A folder of its own.</h2>
-          <p>Tell Foundry what you want to make—for example, a reading list that saves links and tracks what you have read.</p>
+          <p>Describe what you want to make, such as a reading list that saves links and tracks what you have read.</p>
           <p>Foundry creates the project folder. Once you connect Codex and give permission to run, it researches the idea and prepares a plan.</p>
           <p className="walkthrough-caption">Foundry organizes the steps. Your connected AI does the research and coding. You keep control of approvals.</p>
         </TabsContent>
@@ -30,17 +30,17 @@ export function ProductWalkthrough() {
           <h2>Read the plan. Then decide.</h2>
           <p>Foundry pauses for you to read the plan. Approve the scope only when it describes what you want.</p>
           <p>Next, review and approve the design. Product code is not built until both decisions are approved.</p>
-          <p className="walkthrough-caption">Research includes captured sources and supporting quotes, not just links. You still need to judge whether the conclusions make sense.</p>
+          <p className="walkthrough-caption">Review the captured sources and supporting quotes alongside the research findings.</p>
         </TabsContent>
         <TabsContent value="build">
           <div className="walkthrough-status"><span className="status-square" /> Small changes. Real checks.</div>
           <h2>Build it. Check it. Keep it.</h2>
           <p>The AI writes code in small tasks. Foundry runs the project's checks, allows limited repairs and saves completed tasks in Git.</p>
-          <p>Test reviews the results. Ship writes a local summary of the work—it does not put your product online.</p>
+          <p>Test reviews the results. Ship writes a local summary for you to review before deployment.</p>
           <p className="walkthrough-caption">Your code, documents and history stay in your project folder. Failed work stays visible and needs your attention.</p>
         </TabsContent>
       </div>
     </Tabs>
-    <div className="walkthrough-footer"><p>This website explains the process. Your projects run from the terminal.</p><a className="landing-secondary" href="/docs/workflow/">How it works in detail <ArrowUpRight aria-hidden="true" /></a></div>
+    <div className="walkthrough-footer"><p>Research. Plan. Design. Build. Test. Ship.</p><a className="landing-secondary" href="/docs/workflow/">How it works in detail <ArrowUpRight aria-hidden="true" /></a></div>
   </section>;
 }

@@ -1,9 +1,7 @@
 # Install and build your first project
 
-This guide is for **using Foundry**, not developing Foundry itself.
 You need [Node.js 24](https://nodejs.org/en/download) (which includes npm) and
-[Git](https://git-scm.com/downloads). Foundry has been tested on Linux;
-macOS and Windows are not yet verified.
+[Git](https://git-scm.com/downloads).
 
 ## Install Foundry
 
@@ -15,17 +13,16 @@ foundry
 ```
 
 The first installs Foundry. The second opens it. `-g` makes the command
-available from any folder. You do not need a Foundry account, an npm account,
-a source checkout or a website build. Installation does not start AI work.
+available from any folder.
 
 When you see `foundry>`, you are **inside Foundry**. Commands there start with
-`/`. It is a command interface, not a freeform AI chat. Type `/help` for help
+`/`. Type `/help` for help
 or `/exit` to return to your computer's terminal.
 
 ## Connect the AI
 
-Foundry organizes the work; **Codex does the AI work**. Foundry includes a
-connector for Codex, but does not install Codex or provide an AI subscription.
+Foundry organizes the workflow. **Codex performs the AI work** through Foundry's
+built-in connector. Install and sign in to Codex separately.
 
 If you already use Codex with your intended ChatGPT subscription, skip the
 installation below. Otherwise, open another terminal and run:
@@ -63,9 +60,8 @@ Confirm that this project may use your signed-in subscription:
 /configure --billing subscription --confirmed
 ```
 
-This is a one-time permission for the project—not a payment or a new account.
-Only confirm if Codex is signed in to the account you intend to use. Foundry
-cannot independently verify your provider's billing setup.
+This records permission to use your subscription for this project.
+Check that Codex is signed in to the account you intend to use before confirming.
 
 ## Run and approve the work
 
@@ -93,8 +89,8 @@ If you accept what you read, approve it and continue:
 Foundry next prepares the design and pauses again. Use `/review`, read it,
 then `/approve` and `/run` when satisfied. Approval applies to the exact
 document you reviewed in this terminal; changed documents need another review.
-If a plan is wrong, do not approve it—edit the saved document in your editor
-and review it again.
+To change a plan, edit the saved document in your editor and review it again
+before approving.
 
 After both approvals, Foundry builds in small tasks, runs checks and attempts
 limited repairs. It stops if work fails or needs recovery. The final **Ship**
@@ -103,7 +99,7 @@ See [how Foundry works](WORKFLOW.md) for what each stage does.
 
 Use `/stop` to interrupt work, `/projects` to list projects and `/exit` to
 leave. To return later, open `foundry`, then `/use reading-list`. Interrupted
-work may need `/recover` before `/run`; recovery is not a claim that work passed.
+work may need `/recover` before `/run`.
 
 ## Update or uninstall
 
@@ -123,7 +119,7 @@ npm uninstall -g @dabhiram13/foundry
 Uninstalling does not delete your projects. Back up important projects before
 changing versions.
 
-## If something is unclear
+## Troubleshooting and next steps
 
 - **Command not found or permission error:** use a Node version manager or a
   user-writable npm installation; do not retry with `sudo`. See npm's
@@ -133,5 +129,4 @@ changing versions.
 - **Already have a repository?** Follow [existing projects](RUNTIME.md). Those
   commands track and check a change; they do not automatically run the new-product AI workflow.
 - **Want shell commands or scripts instead?** Use the [command reference](COMMANDS.md).
-- **Want to change Foundry itself?** Use [contributor setup](../CONTRIBUTING.md),
-  not additional installation steps from this guide.
+- **Want to change Foundry itself?** Use [contributor setup](../CONTRIBUTING.md).

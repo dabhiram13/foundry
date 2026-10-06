@@ -1,49 +1,17 @@
-# Publish Foundry (maintainers only)
+# Publish Foundry
 
-**Installing or updating Foundry?** Use the [installation guide](GETTING-STARTED.md).
-Nothing on this page is needed for everyday use.
+This guide covers maintainer releases of the Foundry CLI to npm.
 
-Foundry's product **Ship** command writes a local summary; it does not publish
-the product or this framework. Publishing the Foundry CLI is a separate,
-owner-controlled release decision.
-
-## Package and release notes
+## Package
 
 The public package name is [`@dabhiram13/foundry`](https://www.npmjs.com/package/@dabhiram13/foundry).
-Use [Getting started](GETTING-STARTED.md) for installation. Repository version
-metadata is not proof of publication; verify the exact version in npm before
-announcing a release. The examples below use `0.3.0`; substitute the intended
+The examples below use `0.3.0`; substitute the intended
 version for later releases.
 
-## 0.3.0 release contents
+## Publishing access
 
-- Source-backed Research: Foundry reads selected sources, saves snapshots and
-  checks supporting quotations before accepting the report.
-- A clearer first-project guide and install-first landing page, with contributor
-  setup kept separate from everyday use.
-- Updated package attribution, simpler installation instructions and a publicly
-  hosted README banner that works independently of repository access.
-- Runtime cleanup and regression fixes accumulated since 0.2.0.
-
-No new live-provider or platform qualification is claimed. Research still
-depends on provider source discovery; matching quotes is not fact-checking.
-
-- One Node 24 `foundry` executable provides the interactive terminal and
-  explicit commands through the same TypeScript core.
-- Package checks cover the installed CLI, version/help/roles commands, and
-  isolated project creation without Python or provider credentials.
-- The static landing page and documentation site are separate from the CLI
-  tarball.
-- A release does not establish additional provider or platform qualification.
-
-## When npm access is needed
-
-- Installing or updating Foundry needs no npm account or token.
-- Editing code, pushing to GitHub and building the connected Vercel website
-  use their own access, not an npm token.
-- Publishing a new npm version needs the owner's npm publishing access.
-  The owner can sign in locally, or provide a short-lived, package-scoped
-  token for an approved release. Revoke that token when the release is done.
+Publishing requires the owner's npm access. Sign in locally or use a short-lived,
+package-scoped token for the approved release. Revoke temporary tokens afterward.
 
 A GitHub or website update does not update the installed npm package. Publish
 a new version for package changes, including changes to the README shown on
@@ -92,8 +60,8 @@ Do not publish until each item is checked:
    ```
 
    Confirm the version, one executable, and retained fixture/user project data.
-   The package test performs an isolated version of this smoke test without
-   Python. Publishing a tarball does not run the source package's
+   The package test performs an isolated version of this smoke test.
+   Publishing a tarball does not run the source package's
    `prepublishOnly` test hook, so the checks above are mandatory.
 6. The owner authenticates locally with npm, verifies scope ownership and
    publish rights, and confirms the account's 2FA requirements. For example:
@@ -136,10 +104,8 @@ Do not publish until each item is checked:
    ```
 
    Keep the README, landing and Getting started installation commands aligned.
-   Include the npm-ready README in the tested tarball so the package page does
-   not inherit obsolete source-only setup instructions. Check its links and
-   banner on both GitHub and npm; private repository assets are not public image
-   hosting. Announce availability
+   Include the current README in the tested tarball. Check its links and
+   banner on both GitHub and npm. Announce availability
    only after registry verification, then tag the approved source commit as
    `v0.3.0` and publish matching release notes.
 

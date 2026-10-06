@@ -1,18 +1,15 @@
 # Connect your AI tool
 
-Foundry is not an AI model or subscription. It sends tasks to an AI tool you
-have installed and authorized. Each project uses one connection; specialist
-roles do not need separate accounts.
+Foundry sends tasks to an AI tool you have installed and authorized. Each
+project uses one connection shared by its specialist roles.
 
 ## Use Codex
 
-Foundry includes the Codex **connector**, not the Codex program. Install Codex
+Foundry includes a Codex connector. Install Codex
 and sign in using the [first-project guide](GETTING-STARTED.md#connect-the-ai).
-If you use that guided terminal path, you do not need to edit JSON or create an adapter.
 
 The rest of this page explains explicit shell setup and custom connectors for
-advanced users. A connector's presence alone does not prove live reliability;
-see [current limits](QUALIFICATION.md).
+advanced users.
 
 ## Configure consent and selection
 
@@ -35,8 +32,7 @@ values, but this is not an operating-system sandbox.
 
 ## Build a custom connector (advanced)
 
-An adapter is the small integration that translates Foundry requests into
-calls to another AI tool. Adding an API key alone does not create one.
+An adapter translates Foundry requests into calls to another AI tool.
 
 An owner may define additional adapters in `.foundry/providers.json`. Each
 adapter declares its name, kind, command, billing modes, environment variable
@@ -57,8 +53,7 @@ To add an adapter:
    and billing modes.
 3. Add local protocol fixtures for success, malformed output, limits and
    interruption.
-4. Report registration, fixture protocol tests and live qualification
-   separately. Do not infer live support from a passing fixture.
+4. Follow the [integration checklist](QUALIFICATION.md) to test the connection.
 
 ## Register a reviewed local command
 
@@ -163,5 +158,5 @@ environment filtering is not a sandbox, and declared permissions are not proof
 of provider enforcement. Use an externally restricted environment for
 untrusted work.
 
-See [qualification status](QUALIFICATION.md), [runtime operations](RUNTIME.md),
+See the [integration checklist](QUALIFICATION.md), [runtime operations](RUNTIME.md),
 and the repository [security policy](../SECURITY.md).

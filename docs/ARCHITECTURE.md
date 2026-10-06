@@ -27,12 +27,10 @@ documentation are a separate static build.
        provider adapter ───► product repository
 
        Astro / Starlight → static landing + docs
-                           existing Vercel connection
 ```
 
 Foundry controls progression and approval. The provider performs bounded work.
 The product repository contains the application, which can use any stack.
-A successful provider turn or passing check alone does not prove the whole product.
 
 ## One executable, two sizes of work
 
@@ -40,12 +38,10 @@ A successful provider turn or passing check alone does not prove the whole produ
   need exact-revision owner approval. Build makes bounded tasks, runs configured
   checks, attempts limited repairs and saves Git checkpoints.
 - **Repository change:** a scoped `work` run connects a spec to implementation,
-  verification and completion. It does not invent Research, Design or product
-  Ship evidence for a small fix.
+  verification and completion.
 
 Both reuse state, check, provider and recovery contracts. Noninteractive commands
-return errors rather than ask for hidden consent. JSON is output for scripts,
-not a separate API service.
+return errors when required consent is missing. JSON output supports scripts.
 
 ## Distribution boundary
 
@@ -62,14 +58,12 @@ A role contains a name, purpose, instructions and requested permission mode.
 The neutral catalog is validated before dispatch. Stage defaults select roles;
 model preferences are checked against the adapter's declared capabilities.
 
-Roles are reusable policies, not continuously running services or an automatic
-parallel agent swarm. One controller determines handoffs and required results.
+One controller selects role policies, determines handoffs and validates results.
 Read-only reviewers report findings; write-capable implementers repair defects.
 Metadata does not prove that a provider actually enforces requested permissions.
 
-Optional skills and recipes are source material, not extra engines. They cannot
-grant owner approval or change spending rules. There is no automatic third-party
-extension installation or executable package marketplace.
+Contributors can select optional skills and recipes from the reference library.
+The controller retains control of approvals and spending rules.
 
 ## Module map
 
@@ -121,20 +115,5 @@ Cancellation is not successful until cleanup is confirmed. Migration is explicit
 backed up and refuses unsupported or active work. Changing a runtime marker cannot
 turn old approvals into new review evidence. See [migration and recovery](RUNTIME.md).
 
-The boundary is not an OS sandbox. A sufficiently privileged runtime can access
-local files or alter checks. Independently protected acceptance checks and stronger
-execution isolation remain improvements, not guarantees. Live-provider reliability,
-native Windows and performance need separate evidence.
-
-## Design references
-
-| Reference | Useful pattern | Foundry's choice |
-| --- | --- | --- |
-| [OpenCode](https://opencode.ai/docs/agents/) | Primary/specialist roles and planning/build permissions | The controller owns product progression and approvals |
-| [Pi](https://github.com/earendil-works/pi) and [packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md) | Small core with optional skills | Reusable policies, not automatic extension execution |
-| [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent) | Saved sessions and recoverable long-running work | No Python REPL, schedules or recursive agent network |
-| [ReAct](https://react-lm.github.io/) | Alternate decisions, tool actions and observations | Research selects sources, reads actual content and validates a structured synthesis |
-| [NVIDIA OO Agents](https://github.com/NVIDIA-NeMo/labs-OO-Agents) | Typed results and explicit state | Keep those principles in TypeScript; do not add its Python runtime or generated-code REPL |
-
-These are references, not bundled dependencies or qualified Foundry providers.
-Their published benchmarks do not establish Foundry's performance.
+Provider processes run with the permissions granted by the host. Use external
+isolation for untrusted work. See [security and trust](../SECURITY.md).

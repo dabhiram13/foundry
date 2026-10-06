@@ -5,7 +5,7 @@
 # Build software from your terminal.
 
 Start with an idea or an existing project. Foundry helps you plan, write code and
-run checks—with your approval before building a new product.
+run checks, with your approval before building a new product.
 
 **Open source · MIT licensed · Node.js 24 + TypeScript**
 
@@ -14,26 +14,23 @@ run checks—with your approval before building a new product.
 
 ## Install
 
-Requires **Node.js 24**, **npm** and **Git**. No Foundry or npm account needed.
+Requires **Node.js 24**, **npm** and **Git**.
 
 ```sh
 npm install -g @dabhiram13/foundry
 foundry
 ```
 
-Run `foundry` from any directory. Installation does not start AI work.
+Run `foundry` from any directory.
 Use `foundry --help` for commands and `foundry --version` to check your version.
 
 **Next:** follow the [setup guide][getting-started] to connect a provider and
 start a project. The guide also covers updates and uninstalling.
 
-Tested on Linux. macOS and Windows have not been verified.
-
 ## How it works
 
 **Foundry manages the steps. Your connected AI does the AI work. You approve
-the decisions.** Foundry is not a model, an AI subscription or a website you
-must host.
+the decisions.**
 
 For a new product:
 
@@ -54,11 +51,11 @@ See the [command reference][commands] for terminal controls and scripting.
 
 Foundry includes a Codex connector. **Install Codex and sign in separately**;
 the [setup guide][getting-started] walks you through it. Other tools need a [provider adapter][providers]
-and separate live testing; an API key alone does not connect them.
+to connect them.
 
 You confirm subscription use before running AI work. Cloud providers receive the
 prompts and project content sent to them. Foundry is **not a sandbox**. Read the
-[security guide][security] and [tested behavior and limits][validation].
+[security guide][security].
 
 ## Check the framework
 
@@ -69,7 +66,7 @@ npm test
 ```
 
 Runs runtime, package, static-site, tooling, catalog and secret checks with
-local test data—not paid AI. See [architecture][architecture] for the code layout
+local test data. See [architecture][architecture] for the code layout
 and the [release guide][release-guide] for publishing.
 
 ## License

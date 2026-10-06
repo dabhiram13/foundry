@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { gzipSync } from 'node:zlib';
 import { parse } from 'parse5';
 import postcss from 'postcss';
-import { pages, pageUrl, root } from '../site/content-map.mjs';
+import { descriptions, pages, pageUrl, root } from '../site/content-map.mjs';
 
 const output = path.join(root, 'site/dist');
 function walk(node, callback) {
@@ -41,8 +41,8 @@ test('first-project guide separates terminal use from contributor setup', async 
     assert.ok(guide.includes(command), `missing guided command: ${command}`);
   }
   assert.ok(guide.indexOf('## Create a project') < guide.indexOf('## Update or uninstall'));
-  assert.match(guide, /command interface, not a freeform AI chat/);
-  assert.match(guide, /does not install Codex or provide an AI subscription/);
+  assert.match(guide, /Commands there start with\s+`\/`/);
+  assert.match(guide, /Install and sign in to Codex separately/);
   assert.match(guide, /not inside Foundry/);
 });
 
@@ -174,4 +174,112 @@ test('README banner reuses the Foundry wordmark and has a self-contained backgro
   assert.match(readme, /^\[license\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/LICENSE$/m);
   assert.doesNotMatch(readme, /^\[[^\]]+\]: (?!https?:\/\/)\S+/m);
   assert.doesNotMatch(readme, /\]\((?!https?:\/\/|#)[^)]+\)/);
+});
+
+test('public pages have unique descriptions, production canonicals and share metadata', async () => {
+  const seenDescriptions = new Set();
+  const seenTitles = new Set();
+  for (const url of ['/', ...[...pages.values()].map(pageUrl)]) {
+    const tree = parse(await readFile(path.join(output, url, 'index.html'), 'utf8'));
+    const metadata = new Map();
+    const canonicals = [];
+    let title;
+    walk(tree, node => {
+      if (node.tagName === 'title') title = textContent(node);
+      if (node.tagName === 'meta') metadata.set(attr(node, 'name') ?? attr(node, 'property'), attr(node, 'content'));
+      if (node.tagName === 'link' && attr(node, 'rel') === 'canonical') canonicals.push(attr(node, 'href'));
+    });
+    assert.deepEqual(canonicals, [`https://foundry-two-tan.vercel.app${url}`], url);
+    assert.ok(title && !seenTitles.has(title), `${url}: unique title`);
+    seenTitles.add(title);
+    const description = metadata.get('description');
+    assert.ok(description?.length >= 50 && description.length <= 180, `${url}: concise description`);
+    assert.ok(!seenDescriptions.has(description), `${url}: unique description`);
+    seenDescriptions.add(description);
+    assert.equal(metadata.get('og:description'), description, url);
+    assert.equal(metadata.get('og:title'), url === '/' ? title : title.replace(/ \| Foundry docs$/, ''), url);
+    assert.equal(metadata.get('og:url'), canonicals[0], url);
+    assert.ok(!metadata.get('robots')?.includes('noindex'), url);
+    if (url !== '/') {
+      const slug = [...pages.values()].find(slug => pageUrl(slug) === url);
+      assert.equal(description, descriptions[slug]);
+    }
+  }
+});
+
+test('sitemap and robots expose every public page at the production origin', async () => {
+  const origin = 'https://foundry-two-tan.vercel.app';
+  const robots = await readFile(path.join(output, 'robots.txt'), 'utf8');
+  assert.equal(robots, `User-agent: *\nAllow: /\nSitemap: ${origin}/sitemap-index.xml\n`);
+  const index = await readFile(path.join(output, 'sitemap-index.xml'), 'utf8');
+  const sitemaps = [...index.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, url]) => new URL(url));
+  assert.ok(sitemaps.length);
+  let xml = '';
+  for (const url of sitemaps) {
+    assert.equal(url.origin, origin);
+    xml += await readFile(path.join(output, url.pathname), 'utf8');
+  }
+  const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, url]) => url);
+  for (const url of ['/', ...[...pages.values()].map(pageUrl)]) assert.ok(urls.includes(origin + url), url);
+  assert.ok(urls.every(url => url.startsWith(origin + '/') && !url.includes('/404')));
+});
+
+test('landing structured data describes the visible application without invented ratings', async () => {
+  const tree = parse(await readFile(path.join(output, 'index.html'), 'utf8'));
+  const data = [];
+  walk(tree, node => {
+    if (node.tagName === 'script' && attr(node, 'type') === 'application/ld+json') data.push(JSON.parse(textContent(node)));
+  });
+  assert.equal(data.length, 1);
+  assert.equal(data[0]['@type'], 'SoftwareApplication');
+  assert.equal(data[0].name, 'Foundry');
+  assert.equal(data[0].downloadUrl, 'https://www.npmjs.com/package/@dabhiram13/foundry');
+  assert.equal(data[0].aggregateRating, undefined);
+});
+
+test('public copy uses ordinary punctuation and excludes conversational status notes', async () => {
+  for (const source of ['README.md', ...pages.keys()]) {
+    const markdown = await readFile(path.join(root, source), 'utf8');
+    assert.doesNotMatch(markdown, /[\u2013\u2014]/, source);
+    assert.doesNotMatch(markdown, /macOS and Windows.*verified|No new live-provider|No Python REPL|not a running agent swarm/, source);
+  }
+  for (const url of ['/', ...[...pages.values()].map(pageUrl)]) {
+    const tree = parse(await readFile(path.join(output, url, 'index.html'), 'utf8'));
+    walk(tree, node => {
+      if (node.tagName === 'main' || node.tagName === 'title') assert.doesNotMatch(textContent(node), /[\u2013\u2014]/, url);
+    });
+  }
+});
+
+test('docs pagination retains labeled previous and next destinations', async () => {
+  for (const slug of pages.values()) {
+    const tree = parse(await readFile(path.join(output, pageUrl(slug), 'index.html'), 'utf8'));
+    const links = [];
+    walk(tree, node => {
+      if (node.tagName === 'a' && ['prev', 'next'].includes(attr(node, 'rel'))) links.push(node);
+    });
+    assert.ok(links.length >= 1 && links.length <= 2, slug);
+    for (const link of links) {
+      assert.ok(textContent(link).trim(), slug);
+      assert.notEqual(attr(link, 'href'), pageUrl(slug), slug);
+    }
+  }
+  const css = await readFile(path.join(root, 'site/src/styles/docs.css'), 'utf8');
+  assert.match(css, /\.pagination-links a\s*\{[^}]*min-height: 44px/s);
+  assert.match(css, /\.pagination-links \.link-title\s*\{[^}]*font-size: \.9375rem/s);
+});
+
+test('documentation tables remain semantic and keyboard-focusable for horizontal scrolling', async () => {
+  let tables = 0;
+  for (const slug of pages.values()) {
+    const tree = parse(await readFile(path.join(output, pageUrl(slug), 'index.html'), 'utf8'));
+    walk(tree, node => {
+      if (node.tagName !== 'table') return;
+      tables++;
+      assert.equal(attr(node, 'tabindex'), '0', slug);
+      assert.equal(attr(node, 'role'), undefined, `${slug}: keep native table semantics`);
+      assert.ok(node.childNodes.some(child => child.tagName === 'thead'), slug);
+    });
+  }
+  assert.ok(tables > 0);
 });

@@ -11,20 +11,18 @@ You decide what to approve.** Install it using the [first-project guide](GETTING
 | AI provider | Reads the supplied context and uses its tools to research, plan or change code. Codex is the built-in connection; it must be installed and signed in separately. |
 | Your project | Holds the code, documents, Git history and private progress records on your computer. Cloud AI still receives the prompts and project content sent to it. |
 
-The specialist names describe **instructions for different jobs**, not six
-independently running AI services. They share the project's provider connection;
-you do not need an account or API key for each role.
+Specialist roles supply instructions for each job and share the project's
+provider connection.
 
 ## What it is built with
 
 The npm package is a prebuilt **Node.js 24 program written in TypeScript**.
 Running `foundry` opens its terminal interface. Longer shell commands call the
-same code, rather than a second product. The core manages saved progress,
+same core. It manages saved progress,
 provider requests, checks and Git checkpoints.
 
 The website is a separate **Astro/Starlight static site**, with React components
-on the landing page. It only serves pages; it is not a project dashboard or a
-server the CLI needs. There is no Python service or Foundry-hosted AI model.
+on the landing page.
 See the [code layout](ARCHITECTURE.md) if you want to develop Foundry itself.
 
 ## New product
@@ -45,8 +43,7 @@ Your idea → Research → Plan → Your approval → Design → Your approval
 
 Each explicit `foundry run PROJECT` performs one stage. Interactive `/run`
 continues until an approval, completion or failure boundary. Status reflects
-saved stage, tasks, provider work, checks and review findings rather than
-invented token progress.
+the saved stage, tasks, provider work, checks and review findings.
 
 ## Research
 
@@ -80,10 +77,8 @@ are private records under `.foundry/state/factory/research/`. Cancellation keeps
 available partial records and does not advance the stage; recovery and retry are
 explicit. Retry selects and reads sources again rather than trusting partial work.
 
-This is a bounded tool-and-observation loop, not an autonomous web crawler. Search
-still depends on the provider's tools. No extra AI account or research API key is
-required by Foundry; [provider access](PROVIDERS.md) and live qualification remain
-separate.
+Source discovery uses the provider's tools. Research uses the same
+[provider connection](PROVIDERS.md) as the other stages.
 
 ## Scoped repository work
 
@@ -109,8 +104,7 @@ does not become a pass because a later command returned successfully.
 ## Roles and review
 
 The neutral role catalog supplies instructions and permission requests to
-providers. Roles are policies, not a running agent swarm. A model response does
-not grant approval or change the project's billing and check rules. Read-only
+providers. The owner controls approvals, billing and check rules. Read-only
 review reports findings; owners or authorized implementers decide and repair.
 
 See [saved workflow contracts](WORKFLOW-CONTRACTS.md),

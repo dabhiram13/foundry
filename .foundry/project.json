@@ -15,7 +15,7 @@
       "cwd": ".",
       "timeout": 240,
       "required": true,
-      "inputs": ["site/src", "site/assets", "site/astro.config.mjs", "site/content-map.mjs", "site/remark-links.mjs", "docs", "scripts/prepare_site.mjs", "tests/site.test.mjs", "tsconfig.json", "README.md", "CONTRIBUTING.md", "SECURITY.md", "THIRD_PARTY_NOTICES.md", "package.json", "package-lock.json"]
+      "inputs": ["site/src", "site/assets", "site/astro.config.mjs", "site/content-map.mjs", "site/remark-links.mjs", "site/remark-tables.mjs", "docs", "scripts/prepare_site.mjs", "tests/site.test.mjs", "tsconfig.json", "README.md", "CONTRIBUTING.md", "SECURITY.md", "THIRD_PARTY_NOTICES.md", "package.json", "package-lock.json"]
     },
     {
       "name": "tooling",

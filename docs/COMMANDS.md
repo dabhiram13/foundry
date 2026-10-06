@@ -94,8 +94,7 @@ foundry work workflow guide|context|gate|record|feedback [OPTIONS]
 ```
 
 `verify` and `complete` return a meaningful result in human or JSON mode and
-preserve nested task, check, review and active-run state. These commands do not
-fabricate product Research, Design, or Ship evidence.
+preserve nested task, check, review and active-run state.
 
 ## Provider operations
 

@@ -1,4 +1,4 @@
-# Validation and limits
+# Testing Foundry
 
 Framework verification uses Node 24, local fixtures, and static site checks. It
 does not run paid AI or contact provider accounts.
@@ -17,23 +17,17 @@ The standard aggregate is `npm test`. It runs each of these groups once:
 
 CI uses the same Node-only runtime and static checks with pinned actions. The
 package test builds and installs a local candidate tarball globally with normal
-npm script handling
-outside the checkout; it checks the one public bin, version
+npm script handling outside the checkout. It checks the public bin, version
 command, excluded files and installed assets, then uninstalls it without
 removing the fixture project. The `prepack` hook builds the runtime for a normal
-`npm pack`. Package verification never
-publishes to npm.
+`npm pack`.
 
 Research fixtures cover source limits, public-address checks, redirects,
-cancellation, snapshot changes and matching quotations. Network responses in
-these tests are controlled fixtures, not live search or source-quality evidence.
+cancellation, snapshot changes and matching quotations. Network responses use
+controlled fixtures.
 
-## What results mean
+## Test an integration
 
-Local fixtures verify contracts and deterministic behavior only. They do not
-qualify live provider inference, payment behavior, external services or
-deployment. A successful local Ship summary is not publication. Product
-acceptance still requires the product's own relevant behavior and accessibility
-checks.
-
-Current qualification boundaries are listed in [qualification status](QUALIFICATION.md).
+Use the [provider integration checklist](QUALIFICATION.md) to test an adapter
+with an authorized account. Keep fixture and live results separate, with
+reproducible commands and the versions tested.

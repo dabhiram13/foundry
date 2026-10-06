@@ -53,5 +53,33 @@ h1, h2, h3 { letter-spacing: -.035em; font-weight: 600; }
 site-search dialog { box-shadow: none; }
 site-search dialog::backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; }
 .expressive-code .frame { border-radius: 4px !important; }
+.pagination-links {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+}
+.pagination-links a {
+  min-width: 0;
+  min-height: 44px;
+  padding: .625rem .875rem;
+  gap: .625rem;
+  border-radius: .375rem;
+  box-shadow: none;
+  font-size: .75rem;
+  line-height: 1.4;
+}
+.pagination-links a:hover { background: var(--sl-color-gray-6); }
+.pagination-links a > span { min-width: 0; }
+.pagination-links .link-title {
+  display: inline-block;
+  font-size: .9375rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.pagination-links svg { width: 1rem; height: 1rem; }
+.pagination-links [rel='next'] { grid-column: 2; }
+@media (max-width: 30rem) {
+  .pagination-links { grid-template-columns: minmax(0, 1fr); }
+  .pagination-links [rel='next'] { grid-column: 1; }
+}
 @media (max-width: 50rem) { :root { --sl-text-h1: 2.1rem; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

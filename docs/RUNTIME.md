@@ -4,7 +4,6 @@ Foundry's runtime is one Node 24 executable. [Install it with npm](GETTING-START
 then use `init` for a clean repository or the explicit migration flow for a
 legacy workspace.
 
-This is the **existing-repository path**, not more setup for a new project.
 `init` adds Foundry's local files; it does not start AI work. The `work` commands
 track a change you or a coding tool implement, then run configured checks.
 For the guided AI product workflow, use [your first project](GETTING-STARTED.md).
@@ -12,9 +11,7 @@ For the guided AI product workflow, use [your first project](GETTING-STARTED.md)
 ## Project directories
 
 New product workspaces default to `~/.foundry/products`. `--products-dir PATH`
-selects a different owner-controlled location. The previous package-adjacent
-`../products` directory is never moved, copied or deleted automatically; point
-`--products-dir` at it if you want to continue using it.
+selects another location, including a directory used by an earlier installation.
 
 ## Initialize a repository
 
@@ -64,9 +61,7 @@ remain unchanged.
 
 When an import matches a legacy Factory registry record, it also needs the
 `flock` utility plus `sh` and `cat` to coordinate with that old controller's
-locks. Linux checks exercise this path. Do not assume these utilities are
-available on macOS or Windows; migration refuses to proceed if it cannot check
-the shared locks. Ordinary new projects do not need this legacy lock utility.
+locks. Migration refuses to proceed if it cannot check the shared locks.
 
 ## Stop, status and recovery
 

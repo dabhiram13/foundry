@@ -7,7 +7,6 @@ commands to change settings; do not edit private runtime state to alter behavior
 
 The default for new product workspaces is `~/.foundry/products`. Set
 `--products-dir PATH` on supported product commands to use another directory.
-Foundry never silently moves the older `../products` directory.
 
 ## Product and provider settings
 

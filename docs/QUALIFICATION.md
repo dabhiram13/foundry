@@ -1,30 +1,31 @@
-# Qualification status
+# Check a provider integration
 
-Registration, local protocol tests and live qualification are different claims.
-Foundry does not treat an adapter entry or passing fixture as proof that an
-external runtime works reliably or enforces the requested permissions.
+Use this checklist when adding or changing a [provider adapter](PROVIDERS.md).
+Run protocol tests locally, then test the connection with an authorized account.
 
-## Current boundaries
+## Local protocol checks
 
-- Codex is registered as the built-in agent-runtime adapter. A live inference
-  and billing qualification requires a separately authorized account and run;
-  ordinary checks do not make provider calls.
-- Local fixtures exercise protocol, cancellation, schema validation and
-  redaction without credentials. Fixture success is not live-provider evidence.
-- Research source collection and matching quotes are checked locally. They do
-  not establish source truth, market demand or live-provider research quality.
-  Search depends on the provider's available tools; Foundry has no search API.
-- Node 24 runtime and package checks provide local Linux evidence, not platform
-  qualification. macOS and native Windows behavior are unqualified.
-- Local package checks do not establish npm scope ownership or registry
-  availability. Each release also needs a separate registry installation check;
-  neither check establishes live-provider support.
-- Migration fixtures cover supported workspace shapes. The framework cannot
-  discover arbitrary controllers outside its known registries; old product
-  approvals and completion are nonresumable and not transferred.
-- Declared process permissions and filtered environment variables are not an OS
-  sandbox. Untrusted code needs external isolation.
+- Validate structured output and reject malformed or oversized results.
+- Exercise cancellation, timeouts and recovery.
+- Check that credentials are filtered from output and saved records.
+- Confirm required capabilities and permission modes are handled correctly.
 
-An owner-authorized qualification plan must identify the exact provider or
-platform, permitted billing, observable acceptance criteria, and recovery
-boundary before using live accounts or paid inference.
+Use isolated projects and fixture adapters for these checks. See the
+[test guide](VALIDATION.md) for repository commands.
+
+## Live connection checks
+
+Agree on the account, permitted billing, usage budget and acceptance criteria
+before starting a live run. Then use a disposable project to check:
+
+1. Authentication and model selection.
+2. Research source discovery and a report with supporting quotes.
+3. Plan and Design approval pauses.
+4. A small Build task, its checks and Git checkpoint.
+5. Cancellation and recovery from an interrupted task.
+6. Test review and the final local Ship summary.
+
+Record the provider and CLI versions, operating system, commands, results and
+failures. Keep live results separate from fixture results so contributors can
+reproduce each test. Follow the [security guide](../SECURITY.md) when granting
+providers access to files or commands.

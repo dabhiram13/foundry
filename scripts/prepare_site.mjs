@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import tailwindcss from '@tailwindcss/postcss';
 import postcss from 'postcss';
-import { pages, root } from '../site/content-map.mjs';
+import { descriptions, pages, root } from '../site/content-map.mjs';
 
 const content = path.join(root, 'site/src/content/docs/docs');
 await rm(content, { recursive: true, force: true });
@@ -15,7 +15,8 @@ for (const [source, slug] of pages) {
   if (!heading) throw new Error(`${source} needs a top-level title`);
   const title = heading[1];
   const body = markdown.replace(/^# .+\r?\n/m, '');
-  const frontmatter = `---\ntitle: ${JSON.stringify(title)}\neditUrl: ${JSON.stringify(`https://github.com/dabhiram13/foundry/edit/main/${source}`)}\n---\n`;
+  if (!descriptions[slug]) throw new Error(`${source} needs a page description`);
+  const frontmatter = `---\ntitle: ${JSON.stringify(title)}\ndescription: ${JSON.stringify(descriptions[slug])}\neditUrl: ${JSON.stringify(`https://github.com/dabhiram13/foundry/edit/main/${source}`)}\n---\n`;
   await writeFile(path.join(content, `${slug}.md`), frontmatter + body);
 }
 const publicDir = path.join(root, 'site/public');

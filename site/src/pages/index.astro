@@ -1,5 +1,19 @@
 ---
 import landing from '../../.generated/landing.html?raw';
+const title = 'Foundry - AI-assisted software development CLI';
+const description = 'Build software from your terminal with Foundry. Connect Codex, research an idea, approve a plan and build in small tasks with checks and Git checkpoints.';
+const canonical = new URL('/', Astro.site).href;
+const application = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Foundry',
+  url: canonical,
+  description,
+  applicationCategory: 'DeveloperApplication',
+  softwareRequirements: 'Node.js 24, npm and Git',
+  license: 'https://opensource.org/license/mit',
+  downloadUrl: 'https://www.npmjs.com/package/@dabhiram13/foundry',
+};
 ---
 <!doctype html>
 <html lang="en">
@@ -7,8 +21,15 @@ import landing from '../../.generated/landing.html?raw';
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#101010" />
-    <meta name="description" content="Build software from your terminal. Start with an idea or an existing project. Plan, write code and run checks with Foundry." />
-    <title>Foundry — build software from your terminal</title>
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json" set:html={JSON.stringify(application)} />
     <link rel="icon" href="/assets/foundry-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/style.css" />
     <script is:inline src="/public.js" defer></script>

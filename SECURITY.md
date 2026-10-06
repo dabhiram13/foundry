@@ -16,8 +16,6 @@ the privileges granted by the runtime and the host.
   configuration before running it. Cancellation cannot undo an external action.
 - Billing consent, owner approval, publication and deployment authority are
   separate. A local pass or Ship summary does not authorize external effects.
-- The public site is static and does not expose project state or a workspace
-  server.
 - Research reads selected public HTTPS URLs in the controller, outside the
   provider sandbox. Destination servers see the requested URL and connection;
   do not place secrets in URLs. The reader rejects non-public addresses, pins
@@ -37,5 +35,4 @@ private project content or a working exploit**. Do not post sensitive details in
 a public issue while arranging disclosure.
 
 Include the affected revision, supported platform, expected boundary and a minimal
-safe reproduction. Never include live secrets. No response-time guarantee or
-third-party security certification is claimed.
+safe reproduction. Never include live secrets.

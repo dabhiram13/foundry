@@ -1,8 +1,7 @@
 # Public site component sources
 
-The only Foundry UI shipped to visitors is the static public landing and
-documentation site. Shared landing controls live in `site/src/landing`; the
-site does not ship an interactive product workspace or app component library.
+The landing page uses React components in `site/src/landing`. Documentation
+uses Astro/Starlight, with shared styles in `site/src/styles/docs.css`.
 
 The retained controls adapt Animate UI patterns in
 `site/src/landing/components/ui/animate-ui.tsx` under the license in
@@ -10,5 +9,3 @@ The retained controls adapt Animate UI patterns in
 `site/assets/licenses/shadcn-ui.txt`. Shared styles are in
 `site/src/landing/controls.css`. Third-party fonts and asset attribution remain
 beside the assets and in `THIRD_PARTY_NOTICES.md`.
-
-Superseded application research remains in Git history, not the current docs.

@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowRight, ArrowUpRight, Check, Code, GitBranch, LayoutTemplate, ListChecks, Search, ShieldCheck, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MotionToggle, useStudioMotion } from './studio-motion';
+import { useStudioMotion } from './studio-motion';
 import { CopyButton, Disclosure } from './ui/animate-ui';
 import { ProductWalkthrough } from './product-walkthrough';
 
@@ -92,6 +92,6 @@ export function Landing() {
       </section>
     </main>
 
-    <footer className="landing-footer"><div className="landing-shell"><div className="landing-footer-top"><p>Build software.<br /><span>Keep the code.</span></p><nav aria-label="Resources"><a href={`${docs}/getting-started/`}>Get started</a><a href={`${docs}/`}>Documentation</a><a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a></nav><MotionToggle /></div><img className="landing-wordmark" src="/assets/foundry-wordmark.svg" alt="Foundry" width="164" height="28" /><div className="landing-footer-bottom"><span>Open source.</span><span>Runs on your computer.</span></div></div></footer>
+    <footer className="landing-footer"><div className="landing-shell"><div className="landing-footer-top"><p>Build software.<br /><span>Keep the code.</span></p><nav aria-label="Resources"><a href={`${docs}/getting-started/`}>Get started</a><a href={`${docs}/`}>Documentation</a><a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a></nav></div><img className="landing-wordmark" src="/assets/foundry-wordmark.svg" alt="Foundry" width="164" height="28" /><div className="landing-footer-bottom"><span>Open source.</span><span>Runs on your computer.</span></div></div></footer>
   </div>;
 }

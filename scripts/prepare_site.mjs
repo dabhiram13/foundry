@@ -16,7 +16,7 @@ for (const [source, slug] of pages) {
   const title = heading[1];
   const body = markdown.replace(/^# .+\r?\n/m, '');
   if (!descriptions[slug]) throw new Error(`${source} needs a page description`);
-  const frontmatter = `---\ntitle: ${JSON.stringify(title)}\ndescription: ${JSON.stringify(descriptions[slug])}\neditUrl: ${JSON.stringify(`https://github.com/dabhiram13/foundry/edit/main/${source}`)}\n---\n`;
+  const frontmatter = `---\ntitle: ${JSON.stringify(title)}\ndescription: ${JSON.stringify(descriptions[slug])}\neditUrl: false\n---\n`;
   await writeFile(path.join(content, `${slug}.md`), frontmatter + body);
 }
 const publicDir = path.join(root, 'site/public');

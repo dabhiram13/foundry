@@ -80,7 +80,8 @@ test('every canonical documentation source produces a searchable linked page', a
       if (href === `https://github.com/dabhiram13/foundry/edit/main/${source}`) editLink = true;
     });
     assert.equal(headings, 1, `${source}: one page title`);
-    assert.ok(editLink, `${source}: edit the original source, not generated copies`);
+    assert.equal(editLink, false, `${source}: no public page-edit control`);
+    assert.doesNotMatch(html, /Edit page|Edit this page|github\.com\/[^"\s]+\/edit\//);
     assert.match(html, /pagefind|Search/);
     await checkLocalLinks(tree, pageUrl(slug));
   }
@@ -132,6 +133,33 @@ test('landing CSS compiles utilities, local styles and font assets', async () =>
   const fonts = [];
   css.walkAtRules('font-face', rule => rule.walkDecls('src', declaration => fonts.push(declaration.value)));
   assert.ok(fonts.some(value => value.includes('/assets/inter-latin-wght-normal.woff2')));
+});
+
+test('landing follows device motion preferences without a separate toggle', async () => {
+  const html = await readFile(path.join(output, 'index.html'), 'utf8');
+  const script = await readFile(path.join(output, 'public.js'), 'utf8');
+  const css = await readFile(path.join(output, 'style.css'), 'utf8');
+  for (const content of [html, script, css]) {
+    assert.doesNotMatch(content, /Quiet motion|motion-toggle|motion-switch|foundry\.motion/);
+  }
+  assert.match(script, /prefers-reduced-motion/);
+  assert.match(css, /prefers-reduced-motion/);
+});
+
+test('mobile menu uses a compact icon inside an accessible touch target', async () => {
+  const css = await readFile(path.join(root, 'site/src/styles/docs.css'), 'utf8');
+  assert.match(css, /--sl-menu-button-size: 2\.75rem/);
+  assert.match(css, /\.sl-menu-button\s*\{[^}]*background: transparent/s);
+  assert.match(css, /\.sl-menu-button svg\s*\{[^}]*width: 1\.25rem; height: 1\.25rem/s);
+  for (const slug of pages.values()) {
+    const tree = parse(await readFile(path.join(output, pageUrl(slug), 'index.html'), 'utf8'));
+    let menu;
+    walk(tree, node => {
+      if (node.tagName === 'button' && attr(node, 'popovertarget') === 'starlight__sidebar') menu = node;
+    });
+    assert.ok(menu, slug);
+    assert.ok(textContent(menu).trim(), `${slug}: named menu button`);
+  }
 });
 
 test('landing groups six specialist roles with decorative icons and a catalog link', async () => {

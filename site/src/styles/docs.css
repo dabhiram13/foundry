@@ -48,8 +48,18 @@ h1, h2, h3 { letter-spacing: -.035em; font-weight: 600; }
 .sl-markdown-content th { font-weight: 600; }
 :focus-visible { outline: 2px solid var(--sl-color-gray-2); outline-offset: 3px; }
 [aria-current='page'], [aria-current='page']:hover { background: var(--sl-color-gray-6); color: var(--sl-color-white); font-weight: 600; }
-.sl-menu-button { background: var(--sl-color-gray-6); color: var(--sl-color-white); border: 1px solid var(--sl-color-gray-5); border-radius: 6px; box-shadow: none; }
-.sl-menu-button:has(~ :popover-open) { background: var(--sl-color-gray-5); }
+.sl-menu-button {
+  align-items: center;
+  justify-content: center;
+  padding: .75rem;
+  background: transparent;
+  color: var(--sl-color-white);
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+}
+.sl-menu-button svg { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+.sl-menu-button:hover, .sl-menu-button:has(~ :popover-open) { background: var(--sl-color-gray-6); }
 site-search dialog { box-shadow: none; }
 site-search dialog::backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; }
 .expressive-code .frame { border-radius: 4px !important; }

@@ -146,7 +146,3 @@
 @media (max-width: 767px) {
  [data-slot=button][data-size] { min-height: 44px; min-width: 44px; }
 }
-.motion-switch { width: 30px; height: 18px; flex-shrink: 0; padding: 2px; border: 1px solid var(--foundry-control-border); border-radius: 12px; cursor: pointer; background: var(--foundry-muted); }
-.motion-switch-thumb { display: block; width: 12px; height: 12px; border-radius: 50%; background: var(--foundry-secondary); transition: transform var(--motion-feedback); }
-.motion-switch[data-state=checked] { background: var(--foundry-primary); }
-.motion-switch[data-state=checked] .motion-switch-thumb { transform: translateX(12px); background: var(--foundry-canvas); }

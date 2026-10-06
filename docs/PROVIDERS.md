@@ -13,6 +13,38 @@ advanced users.
 
 ## Configure consent and selection
 
+Inspect a connection before running it:
+
+```sh
+foundry providers PROJECT
+```
+
+This reports each adapter's built-in or project configuration source, configuration
+hash, declared capabilities and executable availability. It checks files and PATH
+without launching the tool or contacting an account. `authentication: not_checked`
+means you still need to sign in separately. An available executable is not a
+successful login or a guarantee that its script arguments are valid. A missing
+executable blocks a product run before its stage starts; you can still create and
+configure the project before installing the tool.
+
+### Inspect a saved handoff
+
+```sh
+foundry provider status --project /path/to/project
+```
+
+Each new attempt records the exact wire input's SHA-256, byte count and 256 KiB
+limit. Product stages also record their stage, role revision and upstream document
+paths and hashes. Existing task records provide settings, budgets, results and
+event-log references. These fields let you compare what Foundry sent across attempts
+without saving another copy of the raw prompt or source documents.
+
+The metadata describes Foundry's handoff, not every file the external AI runtime
+later reads. It is not a complete session replay. Earlier records remain readable
+without the new optional fields.
+
+### Select a connection
+
 Configure a project without launching a provider:
 
 ```sh

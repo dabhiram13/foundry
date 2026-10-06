@@ -23,7 +23,7 @@ import { collectResearchSources, renderResearchReport, selectionOutputSchema, re
 import { context as workflowContext, gate as workflowGate, record as workflowRecord } from './workflow.js';
 import {
   cancel as cancelProvider, execute as executeProvider, providerStatus, reconcile as reconcileProvider,
-  registry,
+  registry, requireAdapterExecutable,
 } from '../runtime/providers.js';
 
 const IDEA = 'docs/product/idea.md';
@@ -364,28 +364,31 @@ async function providerRequest(
   stage: FactoryStage,
   prompt: string,
   readOnly: boolean,
-): Promise<JsonRecord> {
+): Promise<{ request: JsonRecord; role: { name: string; sha256: string } }> {
   const role = await roleByName(root, state.roles[stage]);
   const roleSettings = state.role_settings[state.roles[stage]];
   return {
-    adapter: state.adapter,
-    kind: state.kind,
-    prompt: stagePrompt(stage, state, role, prompt),
-    required_capabilities: [...REQUIRED_CAPABILITIES],
-    permissions: { sandbox: readOnly ? 'read-only' : 'workspace-write' },
-    model: roleSettings?.model ?? state.model,
-    reasoning: roleSettings?.reasoning ?? state.reasoning,
-    billing: {
-      mode: state.billing.mode,
-      confirmed: state.billing.confirmed,
-      allow_api: false,
-      acknowledge_posthoc_cost: false,
-    },
-    budget: {
-      max_attempts: 1,
-      max_concurrency: 1,
-      max_elapsed_seconds: 600,
-      max_api_dollars: 0,
+    role: { name: role.name, sha256: digestJson(role) },
+    request: {
+      adapter: state.adapter,
+      kind: state.kind,
+      prompt: stagePrompt(stage, state, role, prompt),
+      required_capabilities: [...REQUIRED_CAPABILITIES],
+      permissions: { sandbox: readOnly ? 'read-only' : 'workspace-write' },
+      model: roleSettings?.model ?? state.model,
+      reasoning: roleSettings?.reasoning ?? state.reasoning,
+      billing: {
+        mode: state.billing.mode,
+        confirmed: state.billing.confirmed,
+        allow_api: false,
+        acknowledge_posthoc_cost: false,
+      },
+      budget: {
+        max_attempts: 1,
+        max_concurrency: 1,
+        max_elapsed_seconds: 600,
+        max_api_dollars: 0,
+      },
     },
   };
 }
@@ -634,10 +637,11 @@ async function runProvider(
     await freezeWorkflowCriteria(root, state);
   }
   const upstream = captured ?? await captureUpstream(root, stage);
-  const request = await providerRequest(root, state, stage, prompt, readOnly);
+  const { request, role } = await providerRequest(root, state, stage, prompt, readOnly);
   if (outputSchema) request.output_schema = outputSchema;
   let startedId: string | null = null;
   const result = await executeProvider(root, request, undefined, {
+    handoff: { stage, role: role.name, role_sha256: role.sha256, inputs: upstream },
     onStarted: async (taskId: string) => {
       startedId = taskId;
       state.provider_task_id = taskId;
@@ -1481,6 +1485,7 @@ export async function runFactory(rootInput: string): Promise<FactoryState> {
     await selectedAdapter(root, state.adapter, state.model, state.reasoning, state.billing, true, state.role_settings);
     if (await reconcileDocuments(root, state)) await save(root, state);
     ensureNoPendingApproval(state);
+    if (state.stage !== 'release') await requireAdapterExecutable(root, state.adapter);
     if (state.failure?.code === 'mapping') {
       throw new FoundryError('Factory check mapping changed after Build freeze; restore the frozen mapping before retrying');
     }

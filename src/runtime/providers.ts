@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
-import { appendFile, readFile, readdir, rm } from 'node:fs/promises';
+import { constants, existsSync } from 'node:fs';
+import { access, appendFile, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -66,11 +66,27 @@ const attemptUsageSchema = z.object({
   api_dollars: z.number().nonnegative().nullable(),
 }).strict();
 
+const handoffSchema = z.object({
+  stage: z.string().regex(/^[a-z_-]{1,32}$/),
+  role: z.string().regex(/^[a-z0-9_-]{1,128}$/),
+  role_sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  inputs: z.record(z.string().min(1).max(1024).refine(value =>
+    !path.isAbsolute(value) && !value.includes('\\') && !value.includes('\0')
+    && !value.split('/').includes('..')), z.string().regex(/^[0-9a-f]{64}$/))
+    .refine(value => Object.keys(value).length <= 32),
+}).strict();
+
 const savedAttemptSchema = z.object({
   number: z.number().int().positive(),
   started_at: z.string().min(1),
   status: z.enum(ATTEMPT_STATUSES),
   prompt_digest: z.string().regex(/^[0-9a-f]{64}$/),
+  handoff: handoffSchema.optional(),
+  input: z.object({
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    bytes: z.number().int().nonnegative().max(256 * 1024),
+    limit_bytes: z.literal(256 * 1024),
+  }).strict().optional(),
   terminal_count: z.number().int().nonnegative(),
   requested_model: z.string().min(1).nullable().optional(),
   resolved_model: z.string().min(1).nullable().optional(),
@@ -151,6 +167,7 @@ export function savedTaskStatus(value: unknown): SavedTaskStatus {
 type JsonRecord = Record<string, unknown>;
 export interface ExecuteOptions {
   onStarted?: (taskId: string) => Promise<void> | void;
+  handoff?: z.infer<typeof handoffSchema>;
 }
 
 const STATE = '.foundry/state/providers';
@@ -207,6 +224,51 @@ export async function registry(root: string, sourceConfiguration?: Uint8Array | 
     result[parsed.data.name] = { ...parsed.data, protocol: 'marketcraft-jsonl-v1' };
   }
   return result;
+}
+
+export async function inspectAdapter(root: string, adapter: ProviderAdapter): Promise<JsonRecord> {
+  const command = adapter.command[0] ?? '';
+  const environment = providerEnvironment(adapter, 'local');
+  const directories = command.includes('/') || command.includes('\\')
+    ? [''] : (environment.PATH ?? (process.platform === 'win32' ? '' : '/usr/bin:/bin')).split(path.delimiter);
+  const extensions = process.platform === 'win32' && !path.extname(command) ? ['', '.exe', '.com'] : [''];
+  let available = false;
+  if (!adapter.unsupported && command && !/\.(cmd|bat)$/i.test(process.platform === 'win32' ? command : '')) {
+    for (const directory of directories) {
+      for (const extension of extensions) {
+        const candidate = path.resolve(root, directory, command + extension);
+        try {
+          if (!(await stat(candidate)).isFile()) continue;
+          await access(candidate, process.platform === 'win32' ? constants.F_OK : constants.X_OK);
+          available = true;
+          break;
+        } catch (error) {
+          if (!['ENOENT', 'ENOTDIR', 'EACCES', 'EPERM'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
+        }
+      }
+      if (available) break;
+    }
+  }
+  return {
+    source: ['codex', 'chatgpt'].includes(adapter.name) ? 'builtin' : '.foundry/providers.json',
+    name: adapter.name,
+    kind: adapter.kind,
+    capabilities: adapter.capabilities,
+    billing_modes: adapter.billing_modes,
+    ...(adapter.unsupported ? { unsupported: adapter.unsupported } : {}),
+    adapter_sha256: digest(canonicalJson(adapter)),
+    executable: path.basename(command),
+    availability: adapter.unsupported ? 'unsupported' : available ? 'available' : 'missing',
+    authentication: 'not_checked',
+  };
+}
+
+export async function requireAdapterExecutable(root: string, name: string): Promise<void> {
+  const adapter = (await registry(root))[name];
+  if (!adapter) throw new FoundryError(`Unknown provider adapter: ${name}`);
+  if ((await inspectAdapter(root, adapter)).availability !== 'available') {
+    throw new FoundryError(`Provider ${name} executable is unavailable. Install it or correct its configured command, then inspect foundry providers.`);
+  }
 }
 
 function redactor(environment: NodeJS.ProcessEnv, selectedNames: readonly string[] = []): (value: unknown) => unknown {
@@ -460,6 +522,8 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
     attempt.error = { code: 'input_limit', message: 'Provider input exceeded bounded evidence limits' };
     return 'unknown';
   }
+  attempt.input = { sha256: digest(payload), bytes: payload.length, limit_bytes: MAX_INPUT };
+  await withRegistryLock(root, async () => saveTask(root, task));
   const elapsedLimit = Number((settings.budget as JsonRecord).max_elapsed_seconds) - Number(task.elapsed_seconds ?? 0);
   if (elapsedLimit <= 0) {
     attempt.error = { code: 'elapsed_budget_exhausted', message: 'Elapsed budget exhausted' };
@@ -814,6 +878,7 @@ export async function execute(
 ): Promise<JsonRecord> {
   const root = await requireRuntimeWorkspace(rootInput, 'run a provider task');
   const request = requestSchema.parse(rawRequest);
+  const handoff = options.handoff === undefined ? undefined : handoffSchema.parse(options.handoff);
   const { adapter, settings } = await prepare(root, request);
   const identifier = taskId ?? randomUUID();
   taskPath(root, identifier);
@@ -853,6 +918,7 @@ export async function execute(
       attempt = {
         number: attempts.length + 1, started_at: now(), status: 'running',
         prompt_digest: digest(request.prompt), terminal_count: 0,
+        ...(handoff ? { handoff } : {}),
         requested_model: settings.model, resolved_model: null,
         usage: { input_tokens: null, output_tokens: null, api_dollars: null },
         api_reservation_dollars: (settings.billing as JsonRecord).reservation_dollars ?? 0,

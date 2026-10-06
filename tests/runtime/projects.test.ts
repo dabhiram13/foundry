@@ -144,6 +144,11 @@ test('listing remains useful with malformed and symlinked children and copies va
     providerConfiguration,
   );
   const productRoot = path.join(products, 'copied-provider');
+  const listedAdapter = (await service.providers(String(created.id))).find(adapter => adapter.name === 'fixture');
+  assert.equal(listedAdapter?.source, '.foundry/providers.json');
+  assert.equal(listedAdapter?.availability, 'available');
+  assert.equal(listedAdapter?.authentication, 'not_checked');
+  assert.equal(listedAdapter?.command, undefined);
   const tracked = spawnSync('git', ['-C', productRoot, 'ls-files'], { encoding: 'utf8' });
   assert.equal(tracked.status, 0, tracked.stderr);
   assert.equal(tracked.stdout.includes('.foundry/providers.json'), false);

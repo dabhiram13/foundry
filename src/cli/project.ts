@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { FoundryError, normalizeLocalPath, within } from '../core/fs.js';
 import { complete, pauseOrResume, recover, start, status, verify } from '../core/lifecycle.js';
 import { context, gate, guide, record } from '../core/workflow.js';
-import { cancel, execute, providerStatus, registry, reconcile } from '../runtime/providers.js';
+import { cancel, execute, inspectAdapter, providerStatus, registry, reconcile } from '../runtime/providers.js';
 import { writeResult } from './output.js';
 
 type Options = Record<string, string | boolean | string[]>;
@@ -239,7 +239,9 @@ async function providersCommand(arguments_: string[]): Promise<number> {
   const { positional, options } = parse(arguments_, spec);
   const root = rootOption(options);
   if (!requested) {
-    output(await registry(root), options.json === true);
+    const adapters = await registry(root);
+    output(Object.fromEntries(await Promise.all(Object.entries(adapters)
+      .map(async ([name, adapter]) => [name, await inspectAdapter(root, adapter)]))), options.json === true);
     return 0;
   }
   if (requested === 'status') {

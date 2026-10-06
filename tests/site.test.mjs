@@ -197,7 +197,17 @@ test('README banner reuses the Foundry wordmark and has a self-contained backgro
   walk(parse(readme), node => {
     if (node.tagName === 'img') images.push(attr(node, 'src'));
   });
-  assert.deepEqual(images, ['https://foundry-two-tan.vercel.app/assets/foundry-banner.svg']);
+  assert.equal(images[0], 'https://foundry-two-tan.vercel.app/assets/foundry-banner.svg');
+  assert.equal(images.length, 6);
+  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  for (const [name, value] of [['ci', 'checks'], ['npm', `v${manifest.version}`], ['node', manifest.engines.node.replaceAll('<', '&lt;').replaceAll('>', '&gt;')], ['license', manifest.license], ['docs', 'read']]) {
+    const url = `https://foundry-two-tan.vercel.app/assets/badge-${name}.svg`;
+    assert.ok(images.includes(url));
+    const badge = await readFile(path.join(output, new URL(url).pathname), 'utf8');
+    assert.ok(badge.includes(value));
+    assert.match(badge, /role="img" aria-label=/);
+    assert.doesNotMatch(badge, /<script|<image|<foreignObject|passing/);
+  }
   assert.equal(await readFile(path.join(output, new URL(images[0]).pathname), 'utf8'), banner);
   assert.match(readme, /^\[license\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/LICENSE$/m);
   assert.doesNotMatch(readme, /^\[[^\]]+\]: (?!https?:\/\/)\S+/m);

@@ -2,12 +2,18 @@
   <img src="https://foundry-two-tan.vercel.app/assets/foundry-banner.svg" alt="Foundry" width="960" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/dabhiram13/foundry/actions/workflows/verify.yml"><img src="https://foundry-two-tan.vercel.app/assets/badge-ci.svg" alt="CI checks" /></a>
+  <a href="https://www.npmjs.com/package/@dabhiram13/foundry"><img src="https://foundry-two-tan.vercel.app/assets/badge-npm.svg" alt="npm version" /></a>
+  <a href="https://nodejs.org/en/download"><img src="https://foundry-two-tan.vercel.app/assets/badge-node.svg" alt="Node.js requirements" /></a>
+  <a href="https://github.com/dabhiram13/foundry/blob/main/LICENSE"><img src="https://foundry-two-tan.vercel.app/assets/badge-license.svg" alt="MIT license" /></a>
+  <a href="https://foundry-two-tan.vercel.app/docs/"><img src="https://foundry-two-tan.vercel.app/assets/badge-docs.svg" alt="Read the documentation" /></a>
+</p>
+
 # Build software from your terminal.
 
 Start with an idea or an existing project. Foundry helps you plan, write code and
 run checks, with your approval before building a new product.
-
-**Open source · MIT licensed · Node.js 24 + TypeScript**
 
 [Website][website] · [Docs][documentation-index] · [npm][npm-package] ·
 [Contribute][contributing]
@@ -40,7 +46,8 @@ Research → Plan → Design → Build → Test → Ship
 
 - **You approve the plan and design** before building starts.
 - **Specialist roles focus on each step:** research, planning, design, coding and review.
-- **Work happens in small tasks**, with checks, limited repair attempts and Git checkpoints.
+- **Work happens in small tasks**, with checks, evidence-led repairs and Git checkpoints.
+- **Each AI handoff is traceable**, with input hashes, role details and saved results.
 
 Your code and history stay in your project. You can stop and recover work when
 needed. **Ship writes a local summary; it does not publish or deploy.**
@@ -52,6 +59,9 @@ See the [command reference][commands] for terminal controls and scripting.
 Foundry includes a Codex connector. **Install Codex and sign in separately**;
 the [setup guide][getting-started] walks you through it. Other tools need a [provider adapter][providers]
 to connect them.
+
+Run `foundry providers` to inspect installed commands, declared capabilities and
+configuration sources. Inside a project, use `foundry providers .`.
 
 You confirm subscription use before running AI work. Cloud providers receive the
 prompts and project content sent to them. Foundry is **not a sandbox**. Read the

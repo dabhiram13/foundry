@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -310,6 +310,34 @@ test('Research rejects URL-only output, unavailable sources, invented quotes and
     assert.equal(state?.stage, 'research');
     assert.equal(state?.completed_stages.includes('research'), false);
     assert.equal(state?.status, 'failed');
+  }
+});
+
+test('Factory rejects a missing executable before changing state and records successful handoffs', async t => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initFactory(root, { name: 'Readiness', idea: 'Build a local product with verified behavior.', adapter: 'fixture' });
+  const configPath = path.join(root, '.foundry/providers.json');
+  const original = await readFile(configPath, 'utf8');
+  const invalid = JSON.parse(original);
+  invalid.adapters[0].command = ['/nonexistent/foundry-provider'];
+  await writeFile(configPath, JSON.stringify(invalid));
+  const before = await readFile(path.join(root, '.foundry/state/factory/controller.json'), 'utf8');
+  await assert.rejects(runFactory(root), /executable is unavailable/);
+  assert.equal(await readFile(path.join(root, '.foundry/state/factory/controller.json'), 'utf8'), before);
+  await writeFile(configPath, original);
+  await runFactory(root);
+  const taskDirectory = path.join(root, '.foundry/state/providers/tasks');
+  const files = await readdir(taskDirectory);
+  assert.equal(files.length, 2);
+  for (const file of files) {
+    const task = JSON.parse(await readFile(path.join(taskDirectory, file), 'utf8'));
+    const attempt = task.attempts[0];
+    assert.equal(attempt.handoff.stage, 'research');
+    assert.equal(attempt.handoff.role, 'market-researcher');
+    assert.match(attempt.handoff.role_sha256, /^[a-f0-9]{64}$/);
+    assert.equal(attempt.handoff.inputs['docs/product/idea.md'], digest(await readFile(path.join(root, 'docs/product/idea.md'))));
+    assert.ok(attempt.input.bytes > 0 && attempt.input.bytes <= attempt.input.limit_bytes);
   }
 });
 

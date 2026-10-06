@@ -24,6 +24,23 @@ const generated = path.join(root, 'site/.generated');
 await mkdir(generated, { recursive: true });
 await rm(path.join(publicDir, 'assets'), { recursive: true, force: true });
 await cp(path.join(root, 'site/assets'), path.join(publicDir, 'assets'), { recursive: true });
+const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+const badges = [
+  ['ci', 'CI', 'checks', '#2563eb'],
+  ['npm', 'npm', `v${manifest.version}`, '#2563eb'],
+  ['node', 'node', manifest.engines.node, '#357a38'],
+  ['license', 'license', manifest.license, '#357a38'],
+  ['docs', 'docs', 'read', '#2563eb'],
+];
+const escapeXml = value => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[char]);
+for (const [name, label, value, color] of badges) {
+  const left = label.length * 7 + 18;
+  const right = value.length * 7 + 18;
+  const title = escapeXml(`${label}: ${value}`);
+  await writeFile(path.join(publicDir, 'assets', `badge-${name}.svg`), `<svg xmlns="http://www.w3.org/2000/svg" width="${left + right}" height="24" role="img" aria-label="${title}">
+<title>${title}</title><rect width="${left + right}" height="24" rx="3" fill="${color}"/><path d="M3 0H${left}V24H3Q0 24 0 21V3Q0 0 3 0" fill="#454545"/>
+<g fill="#fff" text-anchor="middle" font-family="DejaVu Sans Mono,monospace" font-size="12"><text x="${left / 2}" y="16">${escapeXml(label)}</text><text x="${left + right / 2}" y="16">${escapeXml(value)}</text></g></svg>\n`);
+}
 await rm(path.join(publicDir, 'docs/images'), { recursive: true, force: true });
 const cssInput = path.join(root, 'site/src/landing/globals.css');
 const cssOutput = path.join(publicDir, 'style.css');

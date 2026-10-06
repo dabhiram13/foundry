@@ -3,7 +3,8 @@ import { chmod, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { execute, providerStatus, registry } from '../../src/runtime/providers.js';
+import { execute, inspectAdapter, providerStatus, registry } from '../../src/runtime/providers.js';
+import { digest } from '../../src/core/fs.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -63,6 +64,57 @@ async function project(mode = 'success'): Promise<string> {
 function request(): Record<string, unknown> {
   return { adapter: 'fixture', kind: 'agent-runtime', prompt: 'work', billing: { mode: 'local' }, budget: { max_elapsed_seconds: 2 } };
 }
+
+test('provider inspection reports origin and executable access without launching commands', async () => {
+  const root = await project();
+  const adapters = await registry(root);
+  const adapter = adapters.fixture!;
+  const result = await inspectAdapter(root, adapter);
+  assert.equal(result.availability, 'available');
+  assert.equal(result.authentication, 'not_checked');
+  assert.equal(result.source, '.foundry/providers.json');
+  assert.match(String(result.adapter_sha256), /^[a-f0-9]{64}$/);
+  assert.equal((await inspectAdapter(root, adapters.chatgpt!)).availability, 'unsupported');
+  assert.equal((await inspectAdapter(root, adapters.codex!)).source, 'builtin');
+  const marker = path.join(root, 'executed');
+  await writeFile(path.join(root, 'inspect-only'), `#!/bin/sh\ntouch ${JSON.stringify(marker)}\n`);
+  const local = { ...adapter, command: ['./inspect-only'] };
+  assert.equal((await inspectAdapter(root, local)).availability, 'missing');
+  await chmod(path.join(root, 'inspect-only'), 0o700);
+  assert.equal((await inspectAdapter(root, local)).availability, 'available');
+  await assert.rejects(readFile(marker), { code: 'ENOENT' });
+  assert.equal((await inspectAdapter(root, { ...adapter, command: [root] })).availability, 'missing');
+  assert.equal((await inspectAdapter(root, { ...adapter, command: ['foundry-nonexistent-executable'] })).availability, 'missing');
+  assert.equal((await inspectAdapter(root, { ...adapter, command: ['node'] })).availability, 'available');
+  assert.equal(JSON.stringify(result).includes('fake.mjs'), false);
+});
+
+test('provider attempts retain bounded handoff metadata and exact input digests without raw prompts', async () => {
+  const root = await project();
+  await writeFile(path.join(root, 'fake.mjs'), `import fs from 'node:fs';let parts=[];process.stdin.on('data',chunk=>parts.push(chunk));process.stdin.on('end',()=>{fs.writeFileSync('input.bin',Buffer.concat(parts));console.log(JSON.stringify({type:'session.started',session_id:'fixture-session'}));console.log(JSON.stringify({type:'result',status:'completed',output:{ok:true}}));});`);
+  const handoff = { stage: 'research', role: 'market-researcher', role_sha256: 'b'.repeat(64), inputs: { 'docs/product/idea.md': 'c'.repeat(64) } };
+  const result = await execute(root, { ...request(), prompt: 'private customer idea, café' }, undefined, { handoff });
+  assert.equal(result.status, 'completed');
+  const attempt = (result.attempts as JsonRecord[])[0]!;
+  const bytes = await readFile(path.join(root, 'input.bin'));
+  assert.deepEqual(attempt.input, { sha256: digest(bytes), bytes: bytes.length, limit_bytes: 256 * 1024 });
+  assert.deepEqual(attempt.handoff, handoff);
+  const savedPath = path.join(root, '.foundry/state/providers/tasks', `${String(result.task_id)}.json`);
+  const savedText = await readFile(savedPath, 'utf8');
+  assert.equal(savedText.includes('private customer idea'), false);
+  assert.deepEqual((await providerStatus(root, String(result.task_id)) as JsonRecord).attempts, result.attempts);
+  const old = JSON.parse(savedText);
+  delete old.attempts[0].input;
+  delete old.attempts[0].handoff;
+  await writeFile(savedPath, JSON.stringify(old));
+  assert.equal((await providerStatus(root, String(result.task_id)) as JsonRecord).status, 'completed');
+  for (const invalid of [
+    { ...handoff, inputs: { '../outside': 'c'.repeat(64) } },
+    { ...handoff, role_sha256: 'invalid' },
+    { ...handoff, inputs: Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`docs/${i}`, 'c'.repeat(64)])) },
+  ]) await assert.rejects(execute(root, request(), undefined, { handoff: invalid }));
+  assert.equal((await readdir(path.dirname(savedPath))).length, 1);
+});
 
 test('provider registry parse errors retain a cause without exposing malformed configuration', async () => {
   const root = await project();

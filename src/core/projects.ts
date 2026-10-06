@@ -15,7 +15,7 @@ import {
 import { installWorkspace } from './install.js';
 import { readRuntimeMarker } from './lifecycle.js';
 import { loadRoles } from './roles.js';
-import { registry, type ProviderAdapter } from '../runtime/providers.js';
+import { inspectAdapter, registry, type ProviderAdapter } from '../runtime/providers.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -99,16 +99,6 @@ function slug(name: string): string {
     throw new FoundryError('Project name must produce a lowercase slug with at most 80 characters');
   }
   return value;
-}
-
-function publicAdapter(adapter: ProviderAdapter): JsonRecord {
-  return {
-    name: adapter.name,
-    kind: adapter.kind,
-    capabilities: adapter.capabilities,
-    billing_modes: adapter.billing_modes,
-    ...(adapter.unsupported ? { unsupported: adapter.unsupported } : {}),
-  };
 }
 
 function factoryRolesToOptions(roles: FactoryRoleMap | undefined): string[] | undefined {
@@ -671,7 +661,7 @@ export class ProjectService {
 
   async providers(identifier?: string): Promise<JsonRecord[]> {
     const root = identifier ? (await this.locate(identifier)).root : this.sourceRoot;
-    return Object.values(await registry(root)).map(publicAdapter);
+    return Promise.all(Object.values(await registry(root)).map(adapter => inspectAdapter(root, adapter)));
   }
 
   async artifact(identifier: string, relative: string): Promise<JsonRecord> {

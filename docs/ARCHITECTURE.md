@@ -1,6 +1,6 @@
 # Inside Foundry
 
-Foundry is one terminal-first TypeScript framework on Node.js 24. The interactive
+Foundry is one terminal-first TypeScript framework on Node.js 24 or newer. The interactive
 terminal and explicit commands use the same core. The landing page and
 documentation are a separate static build.
 

@@ -1,6 +1,6 @@
 # Contributing to Foundry
 
-Foundry is a Node 24 framework. Changes should work from a clean checkout without
+Foundry is a Node 24+ framework. Changes should work from a clean checkout without
 private accounts or paid inference. Read [the setup guide](docs/GETTING-STARTED.md),
 [architecture](docs/ARCHITECTURE.md), and [working agreements](AGENTS.md).
 

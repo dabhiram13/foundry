@@ -16,7 +16,7 @@ provider connection.
 
 ## What it is built with
 
-The npm package is a prebuilt **Node.js 24 program written in TypeScript**.
+The npm package is a prebuilt **Node.js 24+ program written in TypeScript**.
 Running `foundry` opens its terminal interface. Longer shell commands call the
 same core. It manages saved progress,
 provider requests, checks and Git checkpoints.

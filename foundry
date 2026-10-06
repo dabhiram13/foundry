@@ -8,8 +8,8 @@ const root = path.resolve(__dirname);
 const bundle = path.join(root, 'dist', 'runtime', 'foundry.cjs');
 const major = Number(process.versions.node.split('.')[0]);
 
-if (major !== 24) {
-  process.stderr.write(`Foundry requires Node 24 (found ${process.versions.node}).\n`);
+if (major < 24) {
+  process.stderr.write(`Foundry requires Node 24 or newer (found ${process.versions.node}).\n`);
   process.exitCode = 2;
 } else if (!fs.existsSync(bundle)) {
   process.stderr.write('The Foundry runtime bundle is missing. Run npm ci && npm run build:runtime, then retry.\n');

@@ -404,8 +404,8 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
 }
 
 export async function main(arguments_ = process.argv.slice(2)): Promise<number> {
-  if (Number(process.versions.node.split('.')[0]) !== 24) {
-    throw new FoundryError(`Foundry requires Node 24 (found ${process.versions.node}).`);
+  if (Number(process.versions.node.split('.')[0]) < 24) {
+    throw new FoundryError(`Foundry requires Node 24 or newer (found ${process.versions.node}).`);
   }
   if (!arguments_.length && process.stdin.isTTY) {
     return runTerminal({

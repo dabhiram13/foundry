@@ -1,6 +1,6 @@
 # Foundry
 
-Foundry is one TypeScript framework on Node 24. Its interactive terminal and
+Foundry is one TypeScript framework on Node 24 or newer. Its interactive terminal and
 explicit commands use the same core. The public website is static. Product owners
 make product, provider, spending, and release decisions.
 

@@ -1,6 +1,6 @@
 # Existing repositories and recovery
 
-Foundry's runtime is one Node 24 executable. [Install it with npm](GETTING-STARTED.md#install-foundry),
+Foundry's runtime is one Node 24+ executable. [Install it with npm](GETTING-STARTED.md#install-foundry),
 then use `init` for a clean repository or the explicit migration flow for a
 legacy workspace.
 

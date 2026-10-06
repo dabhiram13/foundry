@@ -39,6 +39,7 @@ test('linked CLI runs by name outside the checkout and can be unlinked', async (
     npm_config_audit: 'false',
     npm_config_fund: 'false',
     npm_config_ignore_scripts: 'false',
+    npm_config_engine_strict: 'true',
   };
   run('npm', ['link'], { cwd: root, env });
   const help = run('foundry', ['--help'], { cwd: home, env });
@@ -74,6 +75,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     npm_config_audit: 'false',
     npm_config_fund: 'false',
     npm_config_ignore_scripts: 'false',
+    npm_config_engine_strict: 'true',
   };
   for (const executable of ['python', 'python3']) {
     assert.equal(
@@ -120,6 +122,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   const installedRoot = path.join(prefix, 'lib/node_modules/@dabhiram13/foundry');
   const metadata = JSON.parse(await readFile(path.join(installedRoot, 'package.json'), 'utf8'));
   assert.notEqual(metadata.private, true);
+  assert.equal(metadata.engines.node, '>=24.0.0');
   assert.equal(metadata.license, 'MIT');
   assert.deepEqual(metadata.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/' });
   assert.equal(metadata.repository.url, 'git+https://github.com/dabhiram13/foundry.git');

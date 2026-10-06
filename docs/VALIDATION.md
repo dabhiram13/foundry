@@ -1,6 +1,6 @@
 # Testing Foundry
 
-Framework verification uses Node 24, local fixtures, and static site checks. It
+Framework verification uses Node 24 and 25, local fixtures, and static site checks. It
 does not run paid AI or contact provider accounts.
 
 ## Required project gates

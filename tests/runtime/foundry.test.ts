@@ -21,6 +21,31 @@ function runCli(arguments_: string[], home: string) {
   });
 }
 
+test('both CLI entry points accept Node 24 and newer and reject older versions', () => {
+  for (const entry of [executable, path.join(sourceRoot, 'foundry')]) {
+    for (const version of ['22.23.3', '23.11.0', '24.0.0', '24.19.0', '25.2.1', '26.0.0']) {
+      const result = spawnSync(process.execPath, ['-e', `
+        Object.defineProperty(process.versions, 'node', { value: ${JSON.stringify(version)} });
+        process.argv = [process.execPath, ${JSON.stringify(entry)}, '--help'];
+        require(${JSON.stringify(entry)});
+      `], {
+        cwd: sourceRoot,
+        encoding: 'utf8',
+        env: { ...process.env, FOUNDRY_LAUNCHER: '1' },
+      });
+      assert.equal(result.error, undefined);
+      if (Number(version.split('.')[0]) >= 24) {
+        assert.equal(result.status, 0, `${entry} on ${version}: ${result.stderr}`);
+        assert.match(result.stdout, /Foundry terminal-first runtime/);
+      } else {
+        assert.equal(result.status, 2);
+        assert.match(result.stderr, /Foundry requires Node 24 or newer/);
+        assert.ok(result.stderr.includes(version));
+      }
+    }
+  }
+});
+
 test('CLI review prints the exact revision and document, JSON stays clean, and stale approval is refused', async (t) => {
   const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-cli-review-'));
   t.after(() => rm(base, { recursive: true, force: true }));

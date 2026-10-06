@@ -1,6 +1,6 @@
 # Install and build your first project
 
-You need [Node.js 24](https://nodejs.org/en/download) (which includes npm) and
+You need [Node.js 24 or newer](https://nodejs.org/en/download) (which includes npm) and
 [Git](https://git-scm.com/downloads).
 
 ## Install Foundry

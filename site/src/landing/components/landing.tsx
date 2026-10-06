@@ -48,13 +48,13 @@ export function Landing() {
           <Button size="lg" onClick={() => goTo('landing-install')}>Get started <ArrowDown aria-hidden="true" /></Button>
           <a className="landing-secondary" href={`${docs}/`}>Read the docs <ArrowUpRight aria-hidden="true" /></a>
         </div>
-        <p className="landing-local-note">Node.js 24 + Git <span aria-hidden="true">·</span> Choose your AI provider</p>
+        <p className="landing-local-note">Node.js 24+ and Git <span aria-hidden="true">·</span> Choose your AI provider</p>
       </section>
 
       <section className="landing-shell landing-setup" id="landing-start" tabIndex={-1} aria-labelledby="start-title">
         <div className="landing-section-heading"><h2 id="start-title">Install it.<br />Then open Foundry.</h2><p>Install with npm and open Foundry from your terminal.</p><a href={`${docs}/getting-started/`}>Start your first project <ArrowUpRight aria-hidden="true" /></a></div>
         <div className="landing-install" id="landing-install" tabIndex={-1} aria-labelledby="install-title">
-          <div className="install-heading"><h3 id="install-title"><Terminal aria-hidden="true" /> Install and open</h3><span>Node.js 24 + Git</span></div>
+          <div className="install-heading"><h3 id="install-title"><Terminal aria-hidden="true" /> Install and open</h3><span>Node.js 24+ and Git</span></div>
           <pre aria-label="Installation commands"><code>{install}</code></pre>
           <div className="install-copy"><CopyButton content={install} label="Copy commands" /><span>The first installs. The second opens.</span></div>
           <div className="install-note"><p>Run <code>foundry</code> from any folder.</p><p>Choose a <strong>compatible AI provider</strong> for your project. Install its runtime and authorize access separately.</p><a href={`${docs}/getting-started/`}>Connect your AI and create a project <ArrowUpRight aria-hidden="true" /></a></div>

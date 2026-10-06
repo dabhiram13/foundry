@@ -20,7 +20,7 @@ run checks, with your approval before building a new product.
 
 ## Install
 
-Requires **Node.js 24**, **npm** and **Git**.
+Requires **Node.js 24 or newer**, **npm** and **Git**.
 
 ```sh
 npm install -g @dabhiram13/foundry

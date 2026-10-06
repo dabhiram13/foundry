@@ -1051,6 +1051,7 @@ test('installed single-bin runtime bootstraps and ships two product-changing tas
   const invoke = (...args: string[]): JsonRecord => {
     const result = spawnSync(process.execPath, [cli, ...args, '--products-dir', products, '--json'], {
       cwd: root, encoding: 'utf8',
+      env: { ...process.env, FOUNDRY_SOURCE_ROOT: root },
     });
     assert.equal(result.status, 0, result.stderr);
     return JSON.parse(result.stdout) as JsonRecord;

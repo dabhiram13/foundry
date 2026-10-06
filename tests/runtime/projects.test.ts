@@ -451,7 +451,7 @@ test('Node CLI prints successful Factory boundaries and maps terminal run status
   const cli = path.join(framework, 'dist/runtime/foundry.cjs');
   const invoke = (arguments_: string[]) => spawnSync(process.execPath, [
     cli, ...arguments_, '--products-dir', products, '--json',
-  ], { cwd: framework, encoding: 'utf8', env });
+  ], { cwd: framework, encoding: 'utf8', env: { ...env, FOUNDRY_SOURCE_ROOT: framework } });
   const created = invoke([
     'new', 'CLI Boundary', '--idea', 'Exercise CLI Factory run result handling.', '--adapter', 'cli-fixture',
   ]);

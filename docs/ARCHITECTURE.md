@@ -1,9 +1,8 @@
 # Inside Foundry
 
 Foundry is one terminal-first TypeScript framework on Node.js 24. The interactive
-terminal and explicit commands use the same core. There is no browser workspace,
-HTTP workspace server, MCP bridge or alternative Python controller in the shipped
-runtime. The landing page and documentation are a separate static build.
+terminal and explicit commands use the same core. The landing page and
+documentation are a separate static build.
 
 ## The boundaries
 
@@ -80,6 +79,7 @@ extension installation or executable package marketplace.
 | `src/core/projects.ts` | Shared project operations |
 | `src/core/factory.ts` | Six-stage coordination, task/check/repair loop, review and Ship |
 | `src/core/factory-contract.ts` | Validated state and artifact contracts |
+| `src/core/research.ts` | Bounded source reading, snapshots and quotation validation |
 | `src/core/lifecycle.ts` | Scoped runs, checks, receipts and completion |
 | `src/core/workflow.ts` | Criteria, evidence, decisions and handoff records |
 | `src/core/install.ts` | Managed files, conflicts and recoverable installation |
@@ -133,6 +133,8 @@ native Windows and performance need separate evidence.
 | [OpenCode](https://opencode.ai/docs/agents/) | Primary/specialist roles and planning/build permissions | The controller owns product progression and approvals |
 | [Pi](https://github.com/earendil-works/pi) and [packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md) | Small core with optional skills | Reusable policies, not automatic extension execution |
 | [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent) | Saved sessions and recoverable long-running work | No Python REPL, schedules or recursive agent network |
+| [ReAct](https://react-lm.github.io/) | Alternate decisions, tool actions and observations | Research selects sources, reads actual content and validates a structured synthesis |
+| [NVIDIA OO Agents](https://github.com/NVIDIA-NeMo/labs-OO-Agents) | Typed results and explicit state | Keep those principles in TypeScript; do not add its Python runtime or generated-code REPL |
 
 These are references, not bundled dependencies or qualified Foundry providers.
 Their published benchmarks do not establish Foundry's performance.

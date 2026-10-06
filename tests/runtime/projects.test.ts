@@ -12,6 +12,9 @@ import { closeProjectRuns, isProjectRunActive, startProjectRun } from '../../src
 
 const sourceRoot = path.resolve('.');
 const nodeBin = path.dirname(process.execPath);
+const researchFixture = `let output={ok:true};
+if(prompt.includes('Research source selection.'))output={sources:[{kind:'local',location:'docs/product/idea.md'}]};
+else if(prompt.includes('Research synthesis.'))output={summary:'Local owner input.',findings:[{claim:'The owner describes the product.',source:'S1',quote:fs.readFileSync('docs/product/idea.md','utf8').trim()}],limitations:['No external market research.']};`;
 
 async function temporaryDirectory(prefix: string): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), prefix));
@@ -114,7 +117,7 @@ test('listing remains useful with malformed and symlinked children and copies va
         name: 'fixture',
         kind: 'agent-runtime',
         command: [process.execPath, '-e', 'process.stdin.resume()'],
-        capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'model_selection'],
+        capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'model_selection', 'structured_output'],
         billing_modes: ['local', 'subscription'],
         environment: ['FIXTURE_TOKEN'],
       },
@@ -122,7 +125,7 @@ test('listing remains useful with malformed and symlinked children and copies va
         name: 'subscription-only',
         kind: 'agent-runtime',
         command: [process.execPath, '-e', 'process.stdin.resume()'],
-        capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'model_selection'],
+        capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'model_selection', 'structured_output'],
         billing_modes: ['subscription'],
       },
     ],
@@ -201,11 +204,11 @@ test('service-created workspace shares Research, exact Plan approval, Design and
     "const fs=require('node:fs');",
     "const path=require('node:path');",
     "const write=(file,text)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);};",
-    "if(prompt.includes('current stage is Research'))write('docs/product/research.md','# Research\\n\\nSource: https://example.test/research\\n');",
-    "else if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] The local product has a verified state\\n');",
+    researchFixture,
+    "if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] The local product has a verified state\\n');",
     "else if(prompt.includes('current stage is Design'))write('docs/product/design.md','# Design\\n\\nThe verified state is visible to the owner.\\n');",
     "process.stdout.write(JSON.stringify({type:'session.started',session_id:'cross-transport-fixture'})+'\\n');",
-    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output:{ok:true}})+'\\n');",
+    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output})+'\\n');",
     '});',
   ].join('');
   const providerConfiguration = JSON.stringify({
@@ -213,7 +216,7 @@ test('service-created workspace shares Research, exact Plan approval, Design and
       name: 'journey-fixture',
       kind: 'agent-runtime',
       command: [process.execPath, '-e', providerScript],
-      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'structured_output'],
       billing_modes: ['local'],
     }],
   });
@@ -272,10 +275,10 @@ test('an explicit background invocation retries a persisted failure through the 
     "let status='completed';",
     "const write=(file,text)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);};",
     "if(!fs.existsSync(marker)){write(marker,'failed once');process.stdout.write(JSON.stringify({type:'session.started',session_id:'retry-fixture'})+'\\n');process.exitCode=1;return;}",
-    "else if(prompt.includes('current stage is Research'))write('docs/product/research.md','# Research\\n\\nSource: https://example.test/retry\\n');",
-    "else if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] Retry uses the saved controller\\n');",
+    researchFixture,
+    "if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] Retry uses the saved controller\\n');",
     "process.stdout.write(JSON.stringify({type:'session.started',session_id:'retry-fixture'})+'\\n');",
-    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output:{ok:true}})+'\\n');",
+    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output})+'\\n');",
     '});',
   ].join('');
   const framework = await frameworkFixture(base, JSON.stringify({
@@ -283,7 +286,7 @@ test('an explicit background invocation retries a persisted failure through the 
       name: 'retry-fixture',
       kind: 'agent-runtime',
       command: [process.execPath, '-e', providerScript],
-      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'structured_output'],
       billing_modes: ['local'],
     }],
   }));
@@ -422,10 +425,10 @@ test('Node CLI prints successful Factory boundaries and maps terminal run status
     "const path=require('node:path');",
     "const prompt=JSON.parse(input).prompt;",
     "const write=(file,text)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);};",
-    "if(prompt.includes('current stage is Research'))write('docs/product/research.md','# Research\\n\\nSource: https://example.test/cli\\n');",
-    "else if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] CLI displays controller boundaries\\n');",
+    researchFixture,
+    "if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] CLI displays controller boundaries\\n');",
     "process.stdout.write(JSON.stringify({type:'session.started',session_id:'cli-fixture'})+'\\n');",
-    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output:{ok:true}})+'\\n');",
+    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output})+'\\n');",
     '});',
   ].join('');
   const framework = await frameworkFixture(base, JSON.stringify({
@@ -433,7 +436,7 @@ test('Node CLI prints successful Factory boundaries and maps terminal run status
       name: 'cli-fixture',
       kind: 'agent-runtime',
       command: [process.execPath, '-e', providerScript],
-      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'structured_output'],
       billing_modes: ['local'],
     }],
   }));
@@ -489,9 +492,9 @@ test('terminal worker cancellation requires recovery after restart before a retr
     "process.stdout.write(JSON.stringify({type:'session.started',session_id:'fixture-session'})+'\\n');",
     "if(!fs.existsSync('allow-retry')){setInterval(()=>{},1000);return;}",
     "const write=(file,text)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);};",
-    "if(prompt.includes('current stage is Research'))write('docs/product/research.md','# Research\\n\\nSource: https://example.test/recovery\\n');",
-    "else if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] Recovered work resumes explicitly\\n');",
-    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output:{ok:true}})+'\\n');",
+    researchFixture,
+    "if(prompt.includes('current stage is Plan'))write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] Recovered work resumes explicitly\\n');",
+    "process.stdout.write(JSON.stringify({type:'result',status:'completed',output})+'\\n');",
     '});',
   ].join('');
   const providerConfiguration = JSON.stringify({
@@ -499,7 +502,7 @@ test('terminal worker cancellation requires recovery after restart before a retr
       name: 'hanging-fixture',
       kind: 'agent-runtime',
       command: [process.execPath, '-e', hangingProvider],
-      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'structured_output'],
       billing_modes: ['local'],
     }],
   });
@@ -577,7 +580,7 @@ test('four worker reservations are enforced and closing one service leaves anoth
       name: 'capacity-fixture',
       kind: 'agent-runtime',
       command: [process.execPath, '-e', hangingProvider],
-      capabilities: ['tools', 'jsonl', 'cancel', 'permissions'],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'structured_output'],
       billing_modes: ['local'],
     }],
   }));

@@ -5,10 +5,8 @@ using them. Project-specific state belongs under `.foundry/state`; it is private
 runtime data, not an editable substitute for the project documents. Never
 hand-edit state or receipts.
 
-The structured workflow ledger remains at `docs/project/marketcraft.json` for
-persisted-record compatibility and is managed through `foundry work workflow`.
-The `marketcraft-jsonl-v1` provider protocol is also a legacy compatibility ID;
-neither name selects or launches a Python runtime.
+Use `foundry work workflow` to manage the evidence ledger. Its existing filename,
+`docs/project/marketcraft.json`, is retained so saved projects remain readable.
 
 ## Exact approvals
 
@@ -37,6 +35,5 @@ backs up supported files, and writes its runtime marker last. Recovery validates
 the source, trusted backup and unchanged preserved owner data before finishing.
 Unknown state is not treated as successful completion.
 
-The legacy Python Factory registry is archived where supported but is not
-resumable, and legacy approvals/completion are not transferred. See
+Imported product history is not resumed as a new approval or completion. See
 [migration](RUNTIME.md) for supported inputs and discovery limits.

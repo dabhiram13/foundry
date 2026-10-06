@@ -18,6 +18,15 @@ the privileges granted by the runtime and the host.
   separate. A local pass or Ship summary does not authorize external effects.
 - The public site is static and does not expose project state or a workspace
   server.
+- Research reads selected public HTTPS URLs in the controller, outside the
+  provider sandbox. Destination servers see the requested URL and connection;
+  do not place secrets in URLs. The reader rejects non-public addresses, pins
+  DNS results, rechecks redirects and bounds response size/time. It sends no
+  cookies or authorization and executes no page scripts. This reader does not
+  restrict other network tools available to a provider.
+- Source pages are untrusted input. Matching quotes and snapshot hashes do not
+  establish factual truth or a tamper-proof audit trail against a privileged
+  process. Keep stronger host isolation and independent review for untrusted work.
 
 ## Reporting a vulnerability
 

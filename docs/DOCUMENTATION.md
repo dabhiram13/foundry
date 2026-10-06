@@ -1,8 +1,7 @@
 # The documentation website
 
 The public site is a static Astro/Starlight landing page and searchable
-documentation. It does not include the former workspace app, project state,
-provider accounts, or a local HTTP service.
+documentation. It does not store project state or connect provider accounts.
 
 ## Sources and build
 
@@ -15,6 +14,11 @@ source Markdown and components under `site/src/landing`, not generated pages in
 The one-time CSS build uses Tailwind's official PostCSS plugin, without the
 Tailwind CLI's unused file-watching dependencies. Tailwind stays pinned to the
 same version as its plugin.
+
+The scoped `@expressive-code/core` override uses `postcss-nested` 7.0.2 to resolve
+a vulnerable selector parser to patched 7.1.6. Remove it once Expressive Code's
+own dependency range supports the patched parser. Site checks and generated-CSS
+comparison cover this compatibility change; audit is not suppressed.
 
 Run the site checks from the repository root:
 

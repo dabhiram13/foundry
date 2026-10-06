@@ -1,8 +1,8 @@
 # Install and start a project
 
-Foundry runs on Node.js 24 and npm. It does not need Python, a browser service or
-a Foundry account. Git is required for product checkpoints. Provider requirements
-are separate, and no provider runs during installation or help.
+Foundry needs Node.js 24, npm and Git. No Foundry account is required.
+Connect your own AI provider when you are ready to run work; installation and
+help do not start AI calls.
 
 ## Install Foundry
 

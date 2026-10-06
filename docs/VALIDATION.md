@@ -1,7 +1,7 @@
 # Validation and limits
 
 Framework verification uses Node 24, local fixtures, and static site checks. It
-does not run paid AI, contact provider accounts, or test a browser workspace.
+does not run paid AI or contact provider accounts.
 
 ## Required project gates
 
@@ -18,12 +18,15 @@ The standard aggregate is `npm test`. It runs each of these groups once:
 CI uses the same Node-only runtime and static checks with pinned actions. The
 package test builds and installs a local candidate tarball globally with normal
 npm script handling (not `--ignore-scripts`)
-outside the checkout with Python absent; it checks the one public bin, version
+outside the checkout; it checks the one public bin, version
 command, excluded files and installed assets, then uninstalls it without
 removing the fixture project. The `prepack` hook builds the runtime for a normal
 `npm pack`; `--ignore-scripts` skips that hook. Package verification never
-publishes to npm. Framework browser, Python and MCP test paths have been removed,
-not silently skipped.
+publishes to npm.
+
+Research fixtures cover source limits, public-address checks, redirects,
+cancellation, snapshot changes and matching quotations. Network responses in
+these tests are controlled fixtures, not live search or source-quality evidence.
 
 ## What results mean
 

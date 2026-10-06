@@ -1,8 +1,11 @@
 # Third-party notices
 
 Foundry is distributed under the MIT License in `LICENSE`. Runtime dependency
-notices are retained with the package. In particular, the bundled Zod runtime
-includes the complete MIT notice in `licenses/Zod-MIT.txt`.
+notices are retained with the package and embedded in each copied runtime:
+
+- Zod: `licenses/Zod-MIT.txt`.
+- parse5, used to read research pages without running scripts: `licenses/parse5-MIT.txt`.
+- entities, used by parse5: `licenses/entities-BSD.txt`.
 
 The neutral role kit and vendored skill libraries retain their source and
 license records beside their files. `library/provenance.json` records the

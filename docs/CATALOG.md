@@ -8,8 +8,7 @@ independent execution engine.
 The repository also retains vendor skills and recipes as optional reference
 material. They are not downloaded, automatically installed, or executed as
 plugins. Read their source and license before adopting a practice; copy or adapt
-only material that the project owner has selected. No removed Python skill
-installer or browser/MCP integration is available.
+only material that the project owner has selected.
 
 `node scripts/check_catalog.mjs` checks the active skill inventory, native role
 TOML, provenance references, explicit-invocation policy, and minimum retained

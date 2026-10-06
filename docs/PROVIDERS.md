@@ -47,9 +47,6 @@ To add an adapter:
 4. Report registration, fixture protocol tests and live qualification
    separately. Do not infer live support from a passing fixture.
 
-The stable protocol identifier `marketcraft-jsonl-v1` is retained where needed
-for existing records; it is a legacy wire identifier, not a second runtime.
-
 ## Register a reviewed local command
 
 For example, a narrow local model command can be registered as:
@@ -81,12 +78,19 @@ values and secrets must not be stored in this file. A small base environment
 `codex` and `chatgpt` are reserved names.
 
 A `bounded-model` returns one narrow result; it cannot run the product stages.
-Those need an `agent-runtime` with `tools`, `jsonl`, `cancel` and `permissions`.
-Test-stage structured review also needs `structured_output`. Add `resume`,
+Those need an `agent-runtime` with `tools`, `jsonl`, `cancel`, `permissions` and
+`structured_output` for research handoffs. Add `resume`,
 `model_selection` or `reasoning_selection` only when actually implemented.
 An API-only adapter can use the lower-level provider commands with explicit
 API authorization; product-stage configuration currently accepts only local or
 subscription billing.
+
+Research uses two bounded provider turns: choose sources, then interpret the
+content collected by Foundry. Both request read-only provider permissions.
+Foundry itself reads the selected public HTTPS pages or local project documents;
+these reads are outside the provider's sandbox. Search/discovery still depends
+on the provider's tools. No search account, browser or extra model is installed
+automatically. See [research limits](WORKFLOW.md#research).
 
 For a new product, owner-reviewed adapters in the framework's
 `.foundry/providers.json` are copied during `foundry new --adapter NAME`.

@@ -1,6 +1,6 @@
 ---
 name: foundry-rate-limit
-description: Run the Foundry rate-limit workflow explicitly in Codex.
+description: Run the Foundry rate-limit workflow explicitly with the project's selected provider.
 ---
 
 # Rate Limit

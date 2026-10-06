@@ -1,6 +1,6 @@
 ---
 name: foundry-seo
-description: Run the Foundry seo workflow explicitly in Codex.
+description: Run the Foundry seo workflow explicitly with the project's selected provider.
 ---
 
 # Seo

@@ -1,6 +1,6 @@
 ---
 name: foundry-enhance
-description: Run the Foundry enhance workflow explicitly in Codex.
+description: Run the Foundry enhance workflow explicitly with the project's selected provider.
 ---
 
 # Enhance

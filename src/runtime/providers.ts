@@ -22,11 +22,12 @@ const adapterSchema = z.object({
   command: z.array(z.string().min(1).refine((part) => !part.includes('\0'))).min(1),
   capabilities: z.array(z.enum(CAPABILITIES)).min(1),
   billing_modes: z.array(z.enum(BILLING_MODES)).min(1),
+  protocol: z.enum(['foundry-jsonl-v1', 'marketcraft-jsonl-v1', 'codex-jsonl']).optional(),
   environment: z.array(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/)).max(64)
     .refine(names => new Set(names).size === names.length, 'Environment names must be unique').optional(),
 }).strict();
 const requestSchema = z.object({
-  adapter: z.string().min(1).default('codex'),
+  adapter: z.string().min(1),
   kind: z.string().optional(),
   prompt: z.string().min(1).refine((prompt) => prompt.trim().length > 0),
   required_capabilities: z.array(z.string()).default([]),
@@ -49,7 +50,7 @@ const requestSchema = z.object({
   }).passthrough().default({ max_attempts: 1, max_concurrency: 1, max_elapsed_seconds: 300, max_api_dollars: 0 }),
 }).passthrough();
 
-export type ProviderAdapter = z.infer<typeof adapterSchema> & {
+export type ProviderAdapter = Omit<z.infer<typeof adapterSchema>, 'protocol'> & {
   protocol: string;
   unsupported?: string;
 };
@@ -221,7 +222,7 @@ export async function registry(root: string, sourceConfiguration?: Uint8Array | 
       && parsed.data.capabilities.some((capability) => ['tools', 'browser', 'permissions', 'resume'].includes(capability))) {
       throw new FoundryError('A bounded-model adapter cannot advertise agent session/tools/permissions');
     }
-    result[parsed.data.name] = { ...parsed.data, protocol: 'marketcraft-jsonl-v1' };
+    result[parsed.data.name] = { ...parsed.data, protocol: parsed.data.protocol ?? 'marketcraft-jsonl-v1' };
   }
   return result;
 }
@@ -403,7 +404,7 @@ async function prepare(root: string, request: ProviderRequest): Promise<{ adapte
     throw new FoundryError('Invalid required_capabilities');
   }
   const required = new Set([...request.required_capabilities, 'jsonl', 'cancel']);
-  const permissions = request.permissions ?? (adapter.name === 'codex' ? { sandbox: 'read-only' } : null);
+  const permissions = request.permissions ?? (adapter.protocol === 'codex-jsonl' ? { sandbox: 'read-only' } : null);
   if (permissions) required.add('permissions');
   if (request.output_schema) required.add('structured_output');
   for (const capability of required) {
@@ -482,7 +483,7 @@ function eventFromLine(line: string): JsonRecord | null {
 }
 
 function commandFor(adapter: ProviderAdapter, settings: JsonRecord, schemaPath: string | null, sessionId: string | null): string[] {
-  if (adapter.name === 'codex') {
+  if (adapter.protocol === 'codex-jsonl') {
     const permissions = settings.permissions as JsonRecord;
     const command = [...adapter.command, 'exec'];
     if (sessionId) command.push('resume');
@@ -511,10 +512,10 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
     await atomicJson(root, schemaPath, request.output_schema);
   }
   const command = commandFor(adapter, settings, schemaPath ? within(root, schemaPath) : null, typeof task.session_id === 'string' ? task.session_id : null);
-  const payload = adapter.name === 'codex'
+  const payload = adapter.protocol === 'codex-jsonl'
     ? Buffer.from(request.prompt)
     : Buffer.from(JSON.stringify({
-      protocol: 'marketcraft-jsonl-v1', ...request, permissions: settings.permissions,
+      protocol: adapter.protocol, ...request, permissions: settings.permissions,
       task_id: taskId, attempt: attemptNumber, operation: task.session_id ? 'resume' : 'start',
       session_id: task.session_id ?? null,
     }));
@@ -632,27 +633,27 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
         attempt.resolved_model = parsed.model;
       }
     }
-    if (adapter.name === 'codex' && parsed.type === 'item.completed') {
+    if (adapter.protocol === 'codex-jsonl' && parsed.type === 'item.completed') {
       const item = parsed.item;
       if (typeof item === 'object' && item !== null && (item as JsonRecord).type === 'agent_message') {
         attempt.output = (item as JsonRecord).text;
       }
     }
-    const terminal = adapter.name === 'codex' ? parsed.type === 'turn.completed' : parsed.type === 'result';
+    const terminal = adapter.protocol === 'codex-jsonl' ? parsed.type === 'turn.completed' : parsed.type === 'result';
     if (terminal) {
       terminalCount += 1;
       if (terminalCount > 1) {
         fail('unknown', { code: 'duplicate_completion', message: 'Provider emitted more than one completion event' });
         return;
       }
-      if (adapter.name !== 'codex' && typeof parsed.status !== 'string') {
+      if (adapter.protocol !== 'codex-jsonl' && typeof parsed.status !== 'string') {
         fail('unknown', { code: 'invalid_terminal', message: 'Provider completion event needs a status string' });
         return;
       }
-      attempt.terminal_status = adapter.name === 'codex' ? 'completed' : parsed.status as string;
-      if (adapter.name !== 'codex' && 'output' in parsed) attempt.output = parsed.output;
+      attempt.terminal_status = adapter.protocol === 'codex-jsonl' ? 'completed' : parsed.status as string;
+      if (adapter.protocol !== 'codex-jsonl' && 'output' in parsed) attempt.output = parsed.output;
       const usage = parsed.usage;
-      if (typeof usage === 'object' && usage !== null && (adapter.name === 'codex' || (usage as JsonRecord).reliable === true)) {
+      if (typeof usage === 'object' && usage !== null && (adapter.protocol === 'codex-jsonl' || (usage as JsonRecord).reliable === true)) {
         const typed = usage as JsonRecord;
         try {
           for (const field of ['input_tokens', 'output_tokens']) {
@@ -801,7 +802,7 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
       outcome = stopping ?? 'unknown';
     } else if (request.output_schema) {
       try {
-        if (adapter.name === 'codex' && typeof attempt.output === 'string') attempt.output = JSON.parse(attempt.output);
+        if (adapter.protocol === 'codex-jsonl' && typeof attempt.output === 'string') attempt.output = JSON.parse(attempt.output);
         validateSchema(request.output_schema, attempt.output);
         outcome = 'completed';
       } catch (error) {
@@ -877,6 +878,9 @@ export async function execute(
   options: ExecuteOptions = {},
 ): Promise<JsonRecord> {
   const root = await requireRuntimeWorkspace(rootInput, 'run a provider task');
+  if (rawRequest && typeof rawRequest === 'object' && !('adapter' in rawRequest)) {
+    throw new FoundryError('Choose a provider with an explicit adapter in the request');
+  }
   const request = requestSchema.parse(rawRequest);
   const handoff = options.handoff === undefined ? undefined : handoffSchema.parse(options.handoff);
   const { adapter, settings } = await prepare(root, request);

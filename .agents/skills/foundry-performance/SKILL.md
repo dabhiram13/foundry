@@ -1,6 +1,6 @@
 ---
 name: foundry-performance
-description: Run the Foundry performance workflow explicitly in Codex.
+description: Run the Foundry performance workflow explicitly with the project's selected provider.
 ---
 
 # Performance

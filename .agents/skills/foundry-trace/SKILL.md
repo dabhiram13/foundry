@@ -1,6 +1,6 @@
 ---
 name: foundry-trace
-description: Run the Foundry trace workflow explicitly in Codex.
+description: Run the Foundry trace workflow explicitly with the project's selected provider.
 ---
 
 # Trace

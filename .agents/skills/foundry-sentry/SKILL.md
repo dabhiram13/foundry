@@ -1,6 +1,6 @@
 ---
 name: foundry-sentry
-description: Run the Foundry sentry workflow explicitly in Codex.
+description: Run the Foundry sentry workflow explicitly with the project's selected provider.
 ---
 
 # Sentry

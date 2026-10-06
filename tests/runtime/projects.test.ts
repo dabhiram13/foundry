@@ -11,6 +11,40 @@ import { projectRunExitCode } from '../../src/cli/run-exit-code.js';
 import { closeProjectRuns, isProjectRunActive, startProjectRun } from '../../src/runtime/jobs.js';
 
 const sourceRoot = path.resolve('.');
+
+test('projects require explicit provider selection and accept a reviewed registry outside the installation', async (t) => {
+  const base = await temporaryDirectory('foundry-provider-selection-');
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const products = path.join(base, 'products');
+  const service = new ProjectService(sourceRoot, products);
+  const options = { name: 'Neutral Project', idea: 'Use an owner-selected provider.' };
+  await assert.rejects(service.create(options), /Choose a provider with --adapter NAME/);
+  assert.equal(existsSync(products), false);
+  const providers = path.join(base, 'providers.json');
+  const configuration = JSON.stringify({ adapters: [{
+    name: 'owner-runtime', kind: 'agent-runtime', protocol: 'foundry-jsonl-v1',
+    command: [process.execPath, '-e', 'throw new Error("Inspection must not execute");'],
+    capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'structured_output', 'model_selection'],
+    billing_modes: ['local'],
+  }] });
+  await writeFile(providers, configuration);
+  const inspected = (await service.providers(undefined, providers)).find(adapter => adapter.name === 'owner-runtime');
+  assert.equal(inspected?.source, providers);
+  assert.equal(inspected?.availability, 'available');
+  const created = await service.create({ ...options, providers, adapter: 'owner-runtime', model: 'owner/model-v7' });
+  assert.equal(created.adapter, 'owner-runtime');
+  assert.equal(created.model, 'owner/model-v7');
+  assert.equal(await readFile(path.join(String(created.path), '.foundry/providers.json'), 'utf8'), configuration);
+  await assert.rejects(service.providers(String(created.id), providers), /uses its own provider configuration/);
+  await writeFile(providers, 'not JSON');
+  await assert.rejects(service.create({ ...options, name: 'Invalid', providers, adapter: 'owner-runtime' }), /Cannot read JSON/);
+  assert.equal(existsSync(path.join(products, 'invalid')), false);
+  await writeFile(providers, ' '.repeat(256 * 1024 + 1));
+  await assert.rejects(service.providers(undefined, providers), /limit|large|exceed/i);
+  await rm(providers);
+  await assert.rejects(service.providers(undefined, providers));
+  assert.equal((await service.status(String(created.id))).adapter, 'owner-runtime');
+});
 const nodeBin = path.dirname(process.execPath);
 const researchFixture = `let output={ok:true};
 if(prompt.includes('Research source selection.'))output={sources:[{kind:'local',location:'docs/product/idea.md'}]};
@@ -102,7 +136,7 @@ test('project service creates Node workspaces and reports legacy workspaces with
   assert.equal(listed[0]?.id, 'legacy:older-app');
   await assert.rejects(service.status('older-app'), /legacy or unmarked/i);
   await assert.rejects(service.status('../outside'), /safe child workspace/);
-  await assert.rejects(service.create({ name: 'Typed Notes', idea: 'Do not overwrite.' }), /already exists/);
+  await assert.rejects(service.create({ name: 'Typed Notes', idea: 'Do not overwrite.', adapter: 'codex' }), /already exists/);
   await assert.rejects(service.run(String(created.id)), /explicit confirmation/);
   assert.equal((await service.status(String(created.id))).status, 'ready');
   assert.deepEqual(await readFile(path.join(legacy, '.foundry/project.json'), 'utf8'), '{"name":"old app","checks":[]}\n');
@@ -220,18 +254,22 @@ test('service-created workspace shares Research, exact Plan approval, Design and
     adapters: [{
       name: 'journey-fixture',
       kind: 'agent-runtime',
+      protocol: 'foundry-jsonl-v1',
       command: [process.execPath, '-e', providerScript],
       capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'structured_output'],
       billing_modes: ['local'],
     }],
   });
-  const framework = await frameworkFixture(base, providerConfiguration);
+  const framework = await frameworkFixture(base);
+  const registryFile = path.join(base, 'providers.json');
+  await writeFile(registryFile, providerConfiguration);
   const products = path.join(base, 'products');
   const service = new ProjectService(framework, products);
   const created = await service.create({
     name: 'Service Journey',
     idea: 'Verify a locally created product through exact owner approvals.',
     adapter: 'journey-fixture',
+    providers: registryFile,
   });
   const id = String(created.id);
   const researched = await service.run(id);
@@ -325,6 +363,7 @@ test('background workers record an abnormal exit without a message as a terminal
   const created = await service.create({
     name: 'Worker exit',
     idea: 'An abnormal worker must not remain stuck as running.',
+    adapter: 'codex',
   });
   await writeFile(path.join(framework, 'dist/runtime/foundry-worker.cjs'), 'throw new Error("fixture worker failure");\n');
   try {
@@ -365,6 +404,7 @@ test('Node CLI runs without Python and rejects unknown options', async (t) => {
   assert.match(help.stdout, /new NAME --idea TEXT/);
   const created = spawnSync(path.join(sourceRoot, 'foundry'), [
     'new', 'CLI Consent', '--idea', 'A service-created project without Python.',
+    '--adapter', 'codex',
     '--products-dir', products, '--json',
   ], { cwd: sourceRoot, encoding: 'utf8', env });
   assert.equal(created.status, 0, created.stderr);

@@ -10,22 +10,28 @@ The default for new product workspaces is `~/.foundry/products`. Set
 
 ## Product and provider settings
 
-`foundry new NAME --idea TEXT` creates the initial product documents without
+`foundry new NAME --idea TEXT --adapter PROVIDER` creates the initial product documents without
 starting a provider. `foundry configure PROJECT` selects an adapter, billing
 mode, explicit consent and stage roles:
 
 ```sh
 foundry configure PROJECT \
-  --adapter codex \
+  --adapter PROVIDER \
   --billing subscription \
   --confirmed \
   --role build=implementer
 ```
 
-Omit an option to retain its saved value. `--revoke-consent` removes stored
+Replace `PROVIDER` with a registered adapter name. Omit an option to retain its saved value. `--revoke-consent` removes stored
 billing consent. A provider registry at `.foundry/providers.json` is optional
 owner configuration; no credentials are bundled or silently discovered from
 untrusted project files.
+
+Use `foundry providers --providers FILE` to inspect an owner-reviewed registry,
+then pass the same `--providers FILE` to `foundry new`. The new project saves
+its own copy, so package updates do not replace that configuration.
+Use `--model MODEL` and `--reasoning VALUE` when supported by the adapter.
+Model names and reasoning values belong to the provider, not Foundry.
 
 ## Checks and content
 

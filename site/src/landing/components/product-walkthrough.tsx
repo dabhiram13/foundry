@@ -22,7 +22,7 @@ export function ProductWalkthrough() {
           <div className="walkthrough-status"><span className="status-square" /> Start with one useful job</div>
           <h2>Your idea. A folder of its own.</h2>
           <p>Describe what you want to make, such as a reading list that saves links and tracks what you have read.</p>
-          <p>Foundry creates the project folder. Once you connect Codex and give permission to run, it researches the idea and prepares a plan.</p>
+          <p>Foundry creates the project folder. Once you select a provider and authorize it to run, it researches the idea and prepares a plan.</p>
           <p className="walkthrough-caption">Foundry organizes the steps. Your connected AI does the research and coding. You keep control of approvals.</p>
         </TabsContent>
         <TabsContent value="review">

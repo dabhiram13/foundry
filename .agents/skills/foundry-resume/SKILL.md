@@ -1,6 +1,6 @@
 ---
 name: foundry-resume
-description: Run the Foundry resume workflow explicitly in Codex.
+description: Run the Foundry resume workflow explicitly with the project's selected provider.
 ---
 
 # Resume

@@ -14,6 +14,7 @@ test('providers receive runtime basics, not unrelated credentials or process inj
 
 test('Codex API credentials require the separately validated API billing route', () => {
   const source = { OPENAI_API_KEY: 'first', CODEX_API_KEY: 'second', CODEX_HOME: '/local/codex' };
-  assert.deepEqual(providerEnvironment({ name: 'codex' }, 'subscription', source), { CODEX_HOME: source.CODEX_HOME });
-  assert.deepEqual(providerEnvironment({ name: 'codex' }, 'api', source), source);
+  assert.deepEqual(providerEnvironment({ name: 'codex', protocol: 'codex-jsonl' }, 'subscription', source), { CODEX_HOME: source.CODEX_HOME });
+  assert.deepEqual(providerEnvironment({ name: 'codex', protocol: 'codex-jsonl' }, 'api', source), source);
+  assert.deepEqual(providerEnvironment({ name: 'team-runtime', protocol: 'codex-jsonl' }, 'subscription', source), { CODEX_HOME: source.CODEX_HOME });
 });

@@ -1,6 +1,6 @@
 ---
 name: foundry-schema-sync
-description: Run the Foundry schema-sync workflow explicitly in Codex.
+description: Run the Foundry schema-sync workflow explicitly with the project's selected provider.
 ---
 
 # Schema Sync

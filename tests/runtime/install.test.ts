@@ -42,6 +42,7 @@ test('installed runtime is copied and usable without Python', async () => {
   assert.equal(noConsent.status, 2, noConsent.stderr);
   assert.match(noConsent.stderr, /API billing requires explicit consent/);
   await writeFile(path.join(target, '.foundry/provider-request.json'), JSON.stringify({
+    adapter: 'codex',
     prompt: 'test',
     billing: { mode: 'api', allow_api: true },
   }));

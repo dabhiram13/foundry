@@ -59,6 +59,7 @@ export interface CreateProjectOptions {
   name: string;
   idea: string;
   adapter?: string;
+  providers?: string;
   model?: string | null;
   reasoning?: string | null;
 }
@@ -125,7 +126,7 @@ function normalizedPreference(value: string | null | undefined, label: string): 
   return value.trim();
 }
 
-function chooseAdapter(adapters: Record<string, ProviderAdapter>, requested = 'codex'): {
+function chooseAdapter(adapters: Record<string, ProviderAdapter>, requested: string): {
   adapter: ProviderAdapter;
   billing: 'local' | 'subscription';
 } {
@@ -144,7 +145,12 @@ function chooseAdapter(adapters: Record<string, ProviderAdapter>, requested = 'c
   throw new FoundryError('Factory adapters must support local or subscription billing');
 }
 
-async function providerConfiguration(source: string): Promise<Buffer | null> {
+async function providerConfiguration(source: string, file?: string): Promise<Buffer | null> {
+  if (file !== undefined) {
+    if (typeof file !== 'string' || !file.trim()) throw new FoundryError('Provider configuration requires a file path');
+    const selected = path.resolve(expandUserPath(file));
+    return readBoundedBytes(path.dirname(selected), path.basename(selected), 256 * 1024);
+  }
   if (!(await exists(source, '.foundry/providers.json'))) return null;
   return readBoundedBytes(source, '.foundry/providers.json', 256 * 1024);
 }
@@ -164,7 +170,7 @@ function validatedCreateOptions(options: CreateProjectOptions): {
   if (!options || typeof options !== 'object' || Array.isArray(options)) {
     throw new FoundryError('Project creation requires a JSON object');
   }
-  const unknown = Object.keys(options).find((key) => !['name', 'idea', 'adapter', 'model', 'reasoning'].includes(key));
+  const unknown = Object.keys(options).find((key) => !['name', 'idea', 'adapter', 'providers', 'model', 'reasoning'].includes(key));
   if (unknown) throw new FoundryError(`Unknown project creation field: ${unknown}`);
   if (typeof options.name !== 'string' || !options.name.trim() || options.name.trim().length > 120
     || /[\r\n\0]/.test(options.name)) {
@@ -175,7 +181,8 @@ function validatedCreateOptions(options: CreateProjectOptions): {
     throw new FoundryError('Project idea must be nonempty and at most 64 KiB');
   }
   const name = options.name.trim();
-  const adapter = options.adapter === undefined ? 'codex' : options.adapter;
+  const adapter = options.adapter;
+  if (adapter === undefined) throw new FoundryError('Choose a provider with --adapter NAME. Use foundry providers to list adapters.');
   if (typeof adapter !== 'string' || !/^[a-z][a-z0-9_-]{0,63}$/.test(adapter)) {
     throw new FoundryError('Provider adapter must be a registered adapter name');
   }
@@ -495,13 +502,13 @@ export class ProjectService {
     const validated = validatedCreateOptions(options);
     const projectSlug = validated.slug;
     requireGit();
-    const sourceConfiguration = await providerConfiguration(this.sourceRoot);
+    const sourceConfiguration = await providerConfiguration(this.sourceRoot, options.providers);
     const adapters = await registry(this.sourceRoot, sourceConfiguration);
     const selected = chooseAdapter(adapters, validated.adapter);
     await validateFactoryAdapter(this.sourceRoot, selected.adapter.name, {
       mode: selected.billing,
       confirmed: false,
-    }, false);
+    }, false, sourceConfiguration);
     await this.ensureProductsDir();
     const target = path.join(this.productsDir, projectSlug);
     try {
@@ -659,9 +666,17 @@ export class ProjectService {
     return this.view({ ...project, state });
   }
 
-  async providers(identifier?: string): Promise<JsonRecord[]> {
+  async providers(identifier?: string, providersFile?: string): Promise<JsonRecord[]> {
+    if (identifier && providersFile !== undefined) throw new FoundryError('A saved project uses its own provider configuration; omit --providers');
     const root = identifier ? (await this.locate(identifier)).root : this.sourceRoot;
-    return Promise.all(Object.values(await registry(root)).map(adapter => inspectAdapter(root, adapter)));
+    const configuration = await providerConfiguration(root, providersFile);
+    return Promise.all(Object.values(await registry(root, configuration)).map(async adapter => {
+      const inspected = await inspectAdapter(root, adapter);
+      if (providersFile !== undefined && inspected.source !== 'builtin') {
+        inspected.source = path.resolve(expandUserPath(providersFile));
+      }
+      return inspected;
+    }));
   }
 
   async artifact(identifier: string, relative: string): Promise<JsonRecord> {

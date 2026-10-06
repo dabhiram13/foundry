@@ -1,6 +1,6 @@
 ---
 name: foundry-deep-interview
-description: Run the Foundry deep-interview workflow explicitly in Codex.
+description: Run the Foundry deep-interview workflow explicitly with the project's selected provider.
 ---
 
 # Deep Interview

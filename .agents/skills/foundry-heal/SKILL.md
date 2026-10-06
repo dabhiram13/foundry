@@ -1,6 +1,6 @@
 ---
 name: foundry-heal
-description: Run the Foundry heal workflow explicitly in Codex.
+description: Run the Foundry heal workflow explicitly with the project's selected provider.
 ---
 
 # Heal

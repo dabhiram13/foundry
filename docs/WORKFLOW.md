@@ -8,7 +8,7 @@ You decide what to approve.** Install it using the [first-project guide](GETTING
 | Part | What it does |
 | --- | --- |
 | Foundry | Creates project folders, chooses stage instructions, calls the provider, saves results, runs checks and waits for approval. |
-| AI provider | Reads the supplied context and uses its tools to research, plan or change code. Codex is the built-in connection; it must be installed and signed in separately. |
+| AI provider | Reads the supplied context and uses its tools to research, plan or change code. You choose the adapter and model, and authorize its runtime separately. |
 | Your project | Holds the code, documents, Git history and private progress records on your computer. Cloud AI still receives the prompts and project content sent to it. |
 
 Specialist roles supply instructions for each job and share the project's

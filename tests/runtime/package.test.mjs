@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -163,6 +163,28 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.match(help.stdout, /Foundry terminal-first runtime/);
   assert.doesNotMatch(help.stdout, /\b(?:typed|mcp|http|python)\b/i);
   assert.ok(run(executable, ['roles'], { cwd: prefix, env }).stdout.trim());
+
+  const registryFile = path.join(home, 'providers.json');
+  await writeFile(registryFile, JSON.stringify({ adapters: [{
+    name: 'package-agent', kind: 'agent-runtime', protocol: 'foundry-jsonl-v1',
+    command: [process.execPath, '-e', 'throw new Error("Setup must not execute providers");'],
+    capabilities: ['jsonl', 'tools', 'cancel', 'permissions', 'structured_output', 'model_selection'],
+    billing_modes: ['local'],
+  }] }));
+  const external = JSON.parse(run(executable, ['providers', '--providers', registryFile, '--json'], { cwd: home, env }).stdout);
+  assert.equal(external.find(adapter => adapter.name === 'package-agent').availability, 'available');
+  const neutral = JSON.parse(run(executable, [
+    'new', 'Neutral package', '--idea', 'Use a selected adapter.', '--adapter', 'package-agent',
+    '--providers', registryFile, '--model', 'owner/model-v7', '--json',
+  ], { cwd: home, env }).stdout);
+  assert.equal(neutral.adapter, 'package-agent');
+  assert.equal(neutral.model, 'owner/model-v7');
+  assert.equal(neutral.billing_mode, 'local');
+  assert.ok(existsSync(path.join(neutral.path, '.foundry/providers.json')));
+  const noAdapter = spawnSync(executable, ['new', 'No adapter', '--idea', 'Missing selection'], { cwd: home, env, encoding: 'utf8' });
+  assert.equal(noAdapter.status, 2);
+  assert.match(noAdapter.stderr, /Choose a provider/);
+  assert.equal(existsSync(path.join(home, '.foundry/products/no-adapter')), false);
 
   const created = run(executable, [
     'new',

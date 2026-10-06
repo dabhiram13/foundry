@@ -32,7 +32,7 @@ The terminal accepts slash commands, not shell input:
 | --- | --- |
 | `/help` | Show available terminal commands |
 | `/projects` | List saved projects |
-| `/new NAME --idea TEXT` | Create a project explicitly |
+| `/new NAME --idea TEXT --adapter NAME` | Create a project with the chosen provider |
 | `/use ID_OR_SLUG` | Select a project |
 | `/run` | Continue until an approval, completion or failure boundary |
 | `/review` | Print the pending document and its exact revision |
@@ -50,7 +50,8 @@ options to provide an idea. Input remains responsive while a run is active.
 ## Product commands
 
 ```text
-foundry new NAME --idea TEXT [--adapter NAME] [--products-dir DIR]
+foundry new NAME --idea TEXT --adapter NAME [--providers FILE] [--products-dir DIR]
+  [--model MODEL] [--reasoning VALUE]
 foundry list [--products-dir DIR]
 foundry status PROJECT
 foundry configure PROJECT [--adapter NAME] [--billing local|subscription]
@@ -62,12 +63,17 @@ foundry stop PROJECT
 foundry recover PROJECT
 foundry roles
 foundry providers [PROJECT]
+foundry providers --providers FILE
 ```
 
 Each explicit `run PROJECT` performs one stage. Approval requires the exact
 revision printed for the pending Plan or Design; do not shorten or substitute it.
 `--confirmed` is explicit billing consent. No command silently enables API
 billing. `--json` produces structured output rather than interactive prompts.
+
+New projects require an explicit adapter. Existing projects retain their saved
+provider and model settings. `--providers FILE` reads a reviewed registry for
+inspection or new-project creation; it cannot override a saved project's registry.
 
 ## Installation and migration
 

@@ -1,6 +1,6 @@
 ---
 name: foundry-setup
-description: Run the Foundry setup workflow explicitly in Codex.
+description: Run the Foundry setup workflow explicitly with the project's selected provider.
 ---
 
 # Setup

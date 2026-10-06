@@ -65,6 +65,68 @@ function request(): Record<string, unknown> {
   return { adapter: 'fixture', kind: 'agent-runtime', prompt: 'work', billing: { mode: 'local' }, budget: { max_elapsed_seconds: 2 } };
 }
 
+test('requests require an adapter rather than silently selecting a provider', async (t) => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const { adapter: _adapter, ...missingAdapter } = request();
+  await assert.rejects(execute(root, missingAdapter), /adapter/);
+  await assert.rejects(readdir(path.join(root, '.foundry/state/providers/tasks')));
+});
+
+test('neutral protocol forwards provider-defined models for independently named adapters', async (t) => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const configuration = JSON.parse(await readFile(path.join(root, '.foundry/providers.json'), 'utf8'));
+  const original = configuration.adapters[0];
+  configuration.adapters = ['first-provider', 'second-provider'].map(name => ({
+    ...original, name, protocol: 'foundry-jsonl-v1',
+  }));
+  await writeFile(path.join(root, '.foundry/providers.json'), JSON.stringify(configuration));
+  await writeFile(path.join(root, 'fake.mjs'), `
+    let input = ''; process.stdin.on('data', part => input += part);
+    process.stdin.on('end', () => {
+      const request = JSON.parse(input);
+      console.log(JSON.stringify({ type: 'session.started', session_id: 'neutral-session', model: request.model }));
+      console.log(JSON.stringify({ type: 'result', status: 'completed', output: request }));
+    });
+  `);
+  for (const adapter of ['first-provider', 'second-provider']) {
+    const result = await execute(root, { ...request(), adapter, model: `${adapter}/model-v7`, reasoning: 'provider-depth' });
+    assert.equal(result.status, 'completed');
+    const attempt = (result.attempts as JsonRecord[])[0]!;
+    const input = attempt.output as JsonRecord;
+    assert.equal(input.protocol, 'foundry-jsonl-v1');
+    assert.equal(input.adapter, adapter);
+    assert.equal(input.model, `${adapter}/model-v7`);
+    assert.equal(input.reasoning, 'provider-depth');
+    assert.equal(result.resolved_model, input.model);
+  }
+});
+
+test('bundled wire behavior follows protocol rather than a reserved adapter name', async (t) => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const configuration = JSON.parse(await readFile(path.join(root, '.foundry/providers.json'), 'utf8'));
+  configuration.adapters[0].name = 'team-runtime';
+  configuration.adapters[0].protocol = 'codex-jsonl';
+  await writeFile(path.join(root, '.foundry/providers.json'), JSON.stringify(configuration));
+  await writeFile(path.join(root, 'fake.mjs'), `
+    let input = ''; process.stdin.on('data', part => input += part);
+    process.stdin.on('end', () => {
+      console.log(JSON.stringify({ type: 'thread.started', thread_id: 'team-session' }));
+      console.log(JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify({ prompt: input, args: process.argv.slice(2) }) } }));
+      console.log(JSON.stringify({ type: 'turn.completed', usage: { input_tokens: 1, output_tokens: 2 } }));
+    });
+  `);
+  const result = await execute(root, { ...request(), adapter: 'team-runtime', model: 'provider-model', output_schema: { type: 'object' } });
+  assert.equal(result.status, 'completed');
+  const output = (result.attempts as JsonRecord[])[0]!.output as JsonRecord;
+  assert.equal(output.prompt, 'work');
+  assert.ok((output.args as string[]).includes('--model'));
+  assert.ok((output.args as string[]).includes('provider-model'));
+  assert.ok((output.args as string[]).includes('read-only'));
+});
+
 test('provider inspection reports origin and executable access without launching commands', async () => {
   const root = await project();
   const adapters = await registry(root);
@@ -299,7 +361,7 @@ test('provider runner requires explicit subscription or API billing consent', as
   const root = await project();
   await assert.rejects(execute(root, { ...request(), adapter: 'codex', billing: { mode: 'subscription' } }), /explicit confirmation/);
   await assert.rejects(execute(root, { ...request(), adapter: 'codex', billing: { mode: 'api', allow_api: true } }), /explicit consent/);
-  await assert.rejects(execute(root, { prompt: 'work', billing: { mode: 'api', allow_api: true } }), /explicit consent/);
+  await assert.rejects(execute(root, { adapter: 'codex', prompt: 'work', billing: { mode: 'api', allow_api: true } }), /explicit consent/);
 });
 
 test('provider runner honors cancellation through its owned process group', async () => {

@@ -25,7 +25,7 @@ npm run build:runtime
 These commands use the checkout directly. `./foundry` does not create an
 installed command; everyday users install `@dabhiram13/foundry` from npm.
 Run `./foundry` in a terminal for slash
-commands, or use explicit commands such as `./foundry new NAME --idea TEXT`,
+commands, or use explicit commands such as `./foundry new NAME --idea TEXT --adapter NAME`,
 `./foundry run PROJECT`, `./foundry review PROJECT`, and
 `./foundry approve PROJECT --revision HASH`.
 For website work, `npm run build` also builds the static landing page and docs.

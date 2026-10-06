@@ -4,19 +4,19 @@ const BASE_ENVIRONMENT = [
 ];
 
 export function providerEnvironment(
-  adapter: { name: string; environment?: readonly string[] },
+  adapter: { name: string; protocol?: string; environment?: readonly string[] },
   billing: string,
   source: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   const names = new Set([...BASE_ENVIRONMENT, ...(adapter.environment ?? [])]);
-  if (adapter.name === 'codex') {
+  if (adapter.protocol === 'codex-jsonl') {
     names.add('CODEX_HOME');
     if (billing === 'api') {
       names.add('OPENAI_API_KEY');
       names.add('CODEX_API_KEY');
     }
   }
-  if (adapter.name === 'codex' && billing !== 'api') {
+  if (adapter.protocol === 'codex-jsonl' && billing !== 'api') {
     names.delete('OPENAI_API_KEY');
     names.delete('CODEX_API_KEY');
   }

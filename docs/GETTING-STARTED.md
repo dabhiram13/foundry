@@ -21,47 +21,49 @@ or `/exit` to return to your computer's terminal.
 
 ## Connect the AI
 
-Foundry organizes the workflow. **Codex performs the AI work** through Foundry's
-built-in connector. Install and sign in to Codex separately.
+Foundry organizes the workflow. **Your selected AI provider performs the AI
+work.** A provider adapter connects that tool to Foundry.
 
-If you already use Codex with your intended ChatGPT subscription, skip the
-installation below. Otherwise, open another terminal and run:
+Inside Foundry, list the available connections:
 
-```sh
-npm install -g @openai/codex
-codex
+```text
+/providers
 ```
 
-Follow [OpenAI's sign-in instructions](https://developers.openai.com/codex/auth/)
-and choose your subscription account. Close Codex after signing in, then
-return to Foundry. Your provider's usage limits still apply. Do not paste
-passwords or API keys into Foundry commands or project files.
+Choose an adapter that supports project work. Install its runtime and follow
+the provider's sign-in instructions in another terminal. The
+[provider guide](PROVIDERS.md) covers the bundled connection and adding others.
+An installed executable still needs the right account access. Keep passwords
+and API keys out of Foundry commands and project files.
 
-The standard Foundry project flow uses subscription or local providers, not
-API-key billing. Other providers require a working connector; see
-[provider setup](PROVIDERS.md).
+Project workflows use local or subscription-backed adapters. An arbitrary AI
+CLI or API key needs a compatible adapter before Foundry can use it.
 
 ## Create a project
 
 Inside Foundry, type these commands one at a time:
 
 ```text
-/new reading-list --idea "Save links and mark them read"
+/new reading-list --idea "Save links and mark them read" --adapter PROVIDER
 /use reading-list
 ```
 
-`--idea` supplies your description. Replace the name and description with your
-own idea. `/new` creates a project folder; `/use` selects it. Neither starts AI.
+Replace `PROVIDER` with the adapter name from `/providers`. `--idea` supplies
+your description. `/new` creates a project folder; `/use` selects it. Neither starts AI.
 New projects are saved under `~/.foundry/products` in your home folder.
 
-Confirm that this project may use your signed-in subscription:
+For a subscription-backed adapter, confirm that this project may use your account:
 
 ```text
 /configure --billing subscription --confirmed
 ```
 
 This records permission to use your subscription for this project.
-Check that Codex is signed in to the account you intend to use before confirming.
+Check that your provider is signed in to the account you intend to use before
+confirming. Local adapters do not need subscription consent.
+
+Foundry leaves model selection to the provider unless you set `--model MODEL`
+when creating or configuring a project. Use a model name supported by that adapter.
 
 ## Run and approve the work
 

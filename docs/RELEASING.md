@@ -5,7 +5,7 @@ This guide covers maintainer releases of the Foundry CLI to npm.
 ## Package
 
 The public package name is [`@dabhiram13/foundry`](https://www.npmjs.com/package/@dabhiram13/foundry).
-The examples below use `0.4.1`; substitute the intended
+The examples below use `0.5.0`; substitute the intended
 version for later releases.
 
 ## Publishing access
@@ -48,7 +48,7 @@ Do not publish until each item is checked:
 
    ```sh
    PREFIX="$(mktemp -d)"
-   TARBALL="./release-artifacts/dabhiram13-foundry-0.4.1.tgz"
+   TARBALL="./release-artifacts/dabhiram13-foundry-0.5.0.tgz"
    npm install -g --prefix "$PREFIX" "$TARBALL"
    (
      cd "$HOME"
@@ -78,7 +78,7 @@ Do not publish until each item is checked:
    scope may the owner publish it explicitly:
 
    ```sh
-   npm publish ./release-artifacts/dabhiram13-foundry-0.4.1.tgz \
+   npm publish ./release-artifacts/dabhiram13-foundry-0.5.0.tgz \
      --access public \
      --registry=https://registry.npmjs.org/
    ```
@@ -91,9 +91,9 @@ Do not publish until each item is checked:
    prefix and repeat the version/help/roles checks:
 
    ```sh
-   npm view @dabhiram13/foundry@0.4.1 version dist.tarball
+   npm view @dabhiram13/foundry@0.5.0 version dist.tarball
    PREFIX="$(mktemp -d)"
-   npm install -g --prefix "$PREFIX" @dabhiram13/foundry@0.4.1
+   npm install -g --prefix "$PREFIX" @dabhiram13/foundry@0.5.0
    (
      cd "$HOME"
      PATH="$PREFIX/bin:$PATH" foundry --version
@@ -107,7 +107,7 @@ Do not publish until each item is checked:
    Include the current README in the tested tarball. Check its links and
    banner on both GitHub and npm. Announce availability
    only after registry verification, then tag the approved source commit as
-   `v0.4.1` and publish matching release notes.
+   `v0.5.0` and publish matching release notes.
 
 ## Recovery and rollback
 

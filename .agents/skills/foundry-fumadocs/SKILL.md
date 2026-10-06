@@ -1,6 +1,6 @@
 ---
 name: foundry-fumadocs
-description: Run the Foundry fumadocs workflow explicitly in Codex.
+description: Run the Foundry fumadocs workflow explicitly with the project's selected provider.
 ---
 
 # Fumadocs

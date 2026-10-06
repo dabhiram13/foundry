@@ -1,6 +1,6 @@
 ---
 name: foundry-blog
-description: Run the Foundry blog workflow explicitly in Codex.
+description: Run the Foundry blog workflow explicitly with the project's selected provider.
 ---
 
 # Blog

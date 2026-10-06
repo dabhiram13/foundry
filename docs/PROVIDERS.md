@@ -3,13 +3,17 @@
 Foundry sends tasks to an AI tool you have installed and authorized. Each
 project uses one connection shared by its specialist roles.
 
-## Use Codex
+## Choose a provider and model
 
-Foundry includes a Codex connector. Install Codex
-and sign in using the [first-project guide](GETTING-STARTED.md#connect-the-ai).
+Foundry uses adapters rather than a fixed model or AI vendor. Each adapter
+connects a runtime and declares the operations it supports. List connections
+with `foundry providers`, then choose one with `--adapter NAME` when creating
+a project. Foundry does not silently choose a provider or switch to another one.
 
-The rest of this page explains explicit shell setup and custom connectors for
-advanced users.
+Use `--model MODEL` or `--reasoning VALUE` on `foundry new` or `foundry configure`
+when the adapter supports those settings. Values are passed to the provider;
+Foundry has no fixed model list. Omit them to use the runtime's own defaults.
+Existing projects keep their saved provider and model preferences.
 
 ## Configure consent and selection
 
@@ -48,7 +52,7 @@ without the new optional fields.
 Configure a project without launching a provider:
 
 ```sh
-foundry configure PROJECT --adapter codex --billing subscription --confirmed
+foundry configure PROJECT --adapter NAME --billing subscription --confirmed
 ```
 
 The `--confirmed` flag records explicit subscription consent. API billing is
@@ -56,9 +60,8 @@ never selected silently; API execution requires a command/request that
 explicitly enables it and acknowledges its billing conditions. Local fixture
 providers are intended for tests and do not incur external inference.
 
-Codex is resolved from `PATH`, or from the explicitly selected
-`FOUNDRY_CODEX=/absolute/path/to/codex`. Authenticate that executable through
-its official provider instructions. Do not paste credentials into product
+Replace `NAME` with a registered adapter. Authenticate its runtime through
+the provider's official instructions. Do not paste credentials into product
 documents. Foundry filters child-process environment and redacts reported
 values, but this is not an operating-system sandbox.
 
@@ -89,33 +92,41 @@ To add an adapter:
 
 ## Register a reviewed local command
 
-For example, a narrow local model command can be registered as:
+For project work, a reviewed agent runtime can be registered as:
 
 ```json
 {
   "adapters": [{
-    "name": "local-classifier",
-    "kind": "bounded-model",
+    "name": "my-agent",
+    "kind": "agent-runtime",
+    "protocol": "foundry-jsonl-v1",
     "command": ["/absolute/path/to/node", "/absolute/path/to/adapter.cjs"],
-    "capabilities": ["jsonl", "cancel", "structured_output"],
+    "capabilities": ["tools", "jsonl", "cancel", "permissions", "structured_output"],
     "billing_modes": ["local"],
     "environment": []
   }]
 }
 ```
 
-Save this as `.foundry/providers.json` in an initialized project, replacing the
-example paths with your reviewed implementation. Inspect without running it:
+Replace the example paths with your implementation and declare only the
+capabilities and billing modes it actually supports. Save it as `providers.json`
+outside the npm installation. Inspect it without running anything, then create
+a project with a copy of that configuration:
 
 ```sh
-foundry provider --project /path/to/project --json
+foundry providers --providers ./providers.json
+foundry new my-project --idea "Describe the project" --adapter my-agent --providers ./providers.json
 ```
 
 The command array executes directly from the project directory, without shell
 expansion. `environment` names additional variables to pass from the caller;
 values and secrets must not be stored in this file. A small base environment
 (including `PATH`, home, temporary-directory and locale settings) is also passed.
-`codex` and `chatgpt` are reserved names.
+Use absolute command paths for portable configuration. Relative command paths
+resolve from the execution directory, which becomes the new project when run.
+The selected file replaces the source registry for that operation, not the
+built-in adapters. It is limited to 256 KiB and cannot override a saved project's
+configuration through `--providers`.
 
 A `bounded-model` returns one narrow result; it cannot run the product stages.
 Those need an `agent-runtime` with `tools`, `jsonl`, `cancel`, `permissions` and
@@ -132,10 +143,9 @@ these reads are outside the provider's sandbox. Search/discovery still depends
 on the provider's tools. No search account, browser or extra model is installed
 automatically. See [research limits](WORKFLOW.md#research).
 
-For a new product, owner-reviewed adapters in the framework's
-`.foundry/providers.json` are copied during `foundry new --adapter NAME`.
-Existing projects keep their own registry. Installing a package does not
-discover or execute third-party adapters automatically.
+Existing projects use `.foundry/providers.json` in their own directory. New
+projects without `--providers FILE` copy the source installation's registry if
+present. Installing a package does not discover or execute third-party adapters.
 
 ## Input, output and cancellation
 
@@ -145,11 +155,14 @@ reasoning preferences, permissions, output schema, billing and budget, plus:
 
 | Field | Meaning |
 | --- | --- |
-| `protocol` | `marketcraft-jsonl-v1` |
+| `protocol` | `foundry-jsonl-v1` |
 | `task_id` | Foundry's task UUID |
 | `attempt` | Current attempt number |
 | `operation` | `start` or `resume` |
 | `session_id` | Saved session ID, or `null` for a new task |
+
+Set `protocol` explicitly for new adapters. Older entries without it retain
+`marketcraft-jsonl-v1`, the previous wire identifier with the same JSON fields.
 
 Write one JSON object per stdout line, ending each with a newline. Keep
 diagnostics on stderr. An agent runtime emits a session receipt and then one
@@ -182,6 +195,20 @@ permission support must enforce it rather than merely echoing it.
 The checked contract and examples live in
 [`src/runtime/providers.ts`](../src/runtime/providers.ts) and
 [`tests/runtime/providers.test.ts`](../tests/runtime/providers.test.ts).
+
+## Bundled adapter reference
+
+The optional `codex` adapter uses the `codex-jsonl` protocol. Install its runtime
+with `npm install -g @openai/codex`, then run `codex` and follow
+[its sign-in instructions](https://developers.openai.com/codex/auth/).
+Select it explicitly with `--adapter codex`. Its executable is resolved from
+`PATH` or `FOUNDRY_CODEX=/absolute/path/to/codex`. Subscription execution filters
+API-key environment variables to keep that billing choice separate.
+
+The adapter names `codex` and `chatgpt` are reserved; `chatgpt` is an unsupported
+legacy entry. Other adapters can use `codex-jsonl` only when their command
+implements that runtime's CLI and event format. Protocol selection, not the
+adapter's name, controls command and event handling.
 
 ## Boundaries
 

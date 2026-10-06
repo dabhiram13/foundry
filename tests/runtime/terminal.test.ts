@@ -19,7 +19,8 @@ test('first-project guide commands route through the terminal with a selected pr
   });
   assert.equal(code, 0);
   assert.deepEqual(commands, [
-    ['new', 'reading-list', '--idea', 'Save links and mark them read'],
+    ['providers'],
+    ['new', 'reading-list', '--idea', 'Save links and mark them read', '--adapter', 'PROVIDER'],
     ['configure', 'reading-list', '--billing', 'subscription', '--confirmed'],
     ['run', 'reading-list'],
     ['review', 'reading-list'],

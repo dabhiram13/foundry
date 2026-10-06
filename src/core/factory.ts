@@ -278,13 +278,14 @@ async function selectedAdapter(
   billing: FactoryState['billing'],
   requireConfirmation = true,
   roleSettings: FactoryState['role_settings'] = {},
+  sourceConfiguration?: Uint8Array | null,
 ): Promise<void> {
   for (const [label, value] of [['model', model], ['reasoning', reasoning]] as const) {
     if (value !== null && (!value.trim() || value.length > 120 || /[\r\n]/.test(value))) {
       throw new FoundryError(`Factory ${label} preference must be a single line of at most 120 characters`);
     }
   }
-  const adapters = await registry(root);
+  const adapters = await registry(root, sourceConfiguration);
   const adapter = adapters[name];
   if (!adapter) throw new FoundryError(`Unknown provider adapter: ${name}`);
   if (adapter.unsupported) throw new FoundryError(adapter.unsupported);
@@ -317,8 +318,9 @@ export async function validateFactoryAdapter(
   name: string,
   billing: FactoryState['billing'],
   requireConfirmation = false,
+  sourceConfiguration?: Uint8Array | null,
 ): Promise<void> {
-  await selectedAdapter(root, name, null, null, billing, requireConfirmation, {});
+  await selectedAdapter(root, name, null, null, billing, requireConfirmation, {}, sourceConfiguration);
 }
 
 function cancellationPath(root: string): string {

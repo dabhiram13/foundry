@@ -42,8 +42,16 @@ test('first-project guide separates terminal use from contributor setup', async 
   }
   assert.ok(guide.indexOf('## Create a project') < guide.indexOf('## Update or uninstall'));
   assert.match(guide, /Commands there start with\s+`\/`/);
-  assert.match(guide, /Install and sign in to Codex separately/);
+  assert.match(guide, /--adapter PROVIDER/);
+  assert.match(guide, /Your selected AI provider performs the AI/);
   assert.match(guide, /not inside Foundry/);
+});
+
+test('common public guides and landing copy do not require a specific provider', async () => {
+  for (const file of ['README.md', 'docs/README.md', 'docs/GETTING-STARTED.md', 'docs/WORKFLOW.md', 'docs/CUSTOMIZATION.md', 'site/dist/index.html']) {
+    const content = await readFile(path.join(root, file), 'utf8');
+    assert.doesNotMatch(content, /codex|chatgpt|openai|claude|gemini/i, file);
+  }
 });
 
 async function checkLocalLinks(tree, current) {

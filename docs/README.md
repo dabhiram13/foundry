@@ -12,8 +12,8 @@ and records code changes and test results.
    what stays under your control.
 3. [Command reference](COMMANDS.md) - look up a command when you need it.
 
-You need Node.js 24 and Git. To run AI work, you also need Codex installed and
-signed in to a suitable subscription account.
+You need Node.js 24 and Git. To run AI work, choose a compatible provider,
+install its runtime and authorize the access it needs.
 
 ## When you need more detail
 

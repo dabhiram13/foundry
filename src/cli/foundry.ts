@@ -33,7 +33,7 @@ interface CommandOptions {
 
 const VALUE_OPTIONS = new Set([
   'adapter', 'billing', 'idea', 'model', 'products-dir', 'project', 'reasoning', 'revision',
-  'role', 'spec', 'source', 'target', 'request', 'task-id', 'stage', 'name',
+  'role', 'spec', 'source', 'target', 'request', 'task-id', 'stage', 'name', 'providers',
 ]);
 const FLAG_OPTIONS = new Set([
   'apply', 'confirmed', 'dry-run', 'json', 'recover', 'revoke-consent', 'update',
@@ -47,7 +47,7 @@ Usage:
   foundry --version
 
 Commands:
-  new NAME --idea TEXT [--adapter NAME]
+  new NAME --idea TEXT --adapter NAME [--providers FILE]
   list [--products-dir DIR]
   status PROJECT
   configure PROJECT [--adapter NAME] [--billing local|subscription] [--confirmed|--revoke-consent]
@@ -57,7 +57,7 @@ Commands:
   stop PROJECT
   recover PROJECT
   roles
-  providers [PROJECT]
+  providers [PROJECT] [--providers FILE]
   init --project PATH
   migrate --project PATH --dry-run|--apply [--recover]
   foundry work start|status|verify|complete|pause|resume|recover|workflow ...
@@ -300,7 +300,7 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
   const json = parsed.flags.has('json');
   const commandSpecs: Record<string, CommandOptions> = {
     new: {
-      values: ['idea', 'adapter', 'model', 'reasoning', 'products-dir'],
+      values: ['idea', 'adapter', 'model', 'reasoning', 'products-dir', 'providers'],
       minPositionals: 1,
       maxPositionals: 1,
     },
@@ -318,7 +318,7 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
     stop: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
     recover: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
     roles: { minPositionals: 0, maxPositionals: 0 },
-    providers: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
+    providers: { values: ['project', 'products-dir', 'providers'], minPositionals: 0, maxPositionals: 1 },
   };
   const commandSpec = commandSpecs[command];
   if (!commandSpec) throw new FoundryError(`Unknown command ${command}. Use --help.`);
@@ -333,6 +333,7 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
       name: parsed.positionals[0]!,
       idea: required(parsed, 'idea'),
       adapter: value(parsed, 'adapter'),
+      providers: value(parsed, 'providers'),
       model: value(parsed, 'model') ?? null,
       reasoning: value(parsed, 'reasoning') ?? null,
     });
@@ -393,7 +394,7 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
       name: role.name, description: role.description, sandbox: role.sandbox,
     }));
   } else if (command === 'providers') {
-    result = await service.providers(parsed.positionals[0] ?? context.identifier);
+    result = await service.providers(parsed.positionals[0] ?? context.identifier, value(parsed, 'providers'));
   } else {
     throw new FoundryError(`Unknown command ${command}. Use --help.`);
   }

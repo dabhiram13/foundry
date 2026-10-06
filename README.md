@@ -56,9 +56,9 @@ See the [command reference][commands] for terminal controls and scripting.
 
 ## AI providers and your data
 
-Foundry includes a Codex connector. **Install Codex and sign in separately**;
-the [setup guide][getting-started] walks you through it. Other tools need a [provider adapter][providers]
-to connect them.
+Foundry connects to AI tools through provider adapters. **Choose your provider
+and model**, then install and authorize its runtime separately. Follow the
+[setup guide][getting-started] or the [adapter reference][providers].
 
 Run `foundry providers` to inspect installed commands, declared capabilities and
 configuration sources. Use `foundry providers PROJECT` to inspect a saved project

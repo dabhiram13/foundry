@@ -48,7 +48,7 @@ export function Landing() {
           <Button size="lg" onClick={() => goTo('landing-install')}>Get started <ArrowDown aria-hidden="true" /></Button>
           <a className="landing-secondary" href={`${docs}/`}>Read the docs <ArrowUpRight aria-hidden="true" /></a>
         </div>
-        <p className="landing-local-note">Node.js 24 + Git <span aria-hidden="true">·</span> Bring your own AI subscription</p>
+        <p className="landing-local-note">Node.js 24 + Git <span aria-hidden="true">·</span> Choose your AI provider</p>
       </section>
 
       <section className="landing-shell landing-setup" id="landing-start" tabIndex={-1} aria-labelledby="start-title">
@@ -57,7 +57,7 @@ export function Landing() {
           <div className="install-heading"><h3 id="install-title"><Terminal aria-hidden="true" /> Install and open</h3><span>Node.js 24 + Git</span></div>
           <pre aria-label="Installation commands"><code>{install}</code></pre>
           <div className="install-copy"><CopyButton content={install} label="Copy commands" /><span>The first installs. The second opens.</span></div>
-          <div className="install-note"><p>Run <code>foundry</code> from any folder.</p><p>Connect <strong>Codex</strong> to run AI tasks using your subscription. Install and sign in to Codex separately.</p><a href={`${docs}/getting-started/`}>Connect Codex and create a project <ArrowUpRight aria-hidden="true" /></a></div>
+          <div className="install-note"><p>Run <code>foundry</code> from any folder.</p><p>Choose a <strong>compatible AI provider</strong> for your project. Install its runtime and authorize access separately.</p><a href={`${docs}/getting-started/`}>Connect your AI and create a project <ArrowUpRight aria-hidden="true" /></a></div>
         </div>
         <div className="landing-already"><p>Already have a repository?</p><a href={`${docs}/runtime/`}>Track and check an existing project <ArrowRight aria-hidden="true" /></a></div>
       </section>
@@ -84,9 +84,9 @@ export function Landing() {
         <h2 id="questions-title">Common<br />questions.</h2>
         <div>
           <Disclosure title="Do I need a Foundry account?"><p>No. Install Foundry and manage projects from your terminal.</p></Disclosure>
-          <Disclosure title="Which AI can I use?"><p>Foundry includes a Codex connector. Developers can add other AI tools through provider adapters.</p><a href={`${docs}/providers/`}>Connect your AI tool <ArrowUpRight aria-hidden="true" /></a></Disclosure>
+          <Disclosure title="Which AI can I use?"><p>Choose a provider adapter and a model it supports. Adapters connect AI tools to the same workflow, roles and checks.</p><a href={`${docs}/providers/`}>Connect your AI tool <ArrowUpRight aria-hidden="true" /></a></Disclosure>
           <Disclosure title="Does my code stay on my computer?"><p>Your files and Git history stay in your project folder. Cloud AI providers receive prompts and selected project content. Keep secrets out of prompts.</p></Disclosure>
-          <Disclosure title="Do I need an AI subscription?"><p>The built-in Codex connector uses your subscription. Sign in to Codex and confirm access in Foundry before running AI tasks. Your provider's usage limits apply.</p></Disclosure>
+          <Disclosure title="Do I need an AI subscription?"><p>That depends on your provider. Project workflows support local and subscription-backed adapters. Subscription access requires your confirmation; provider usage limits apply.</p></Disclosure>
           <Disclosure title="Will Foundry publish the product for me?"><p>No. Ship creates a local summary of the work and test results. You choose where and when to deploy.</p></Disclosure>
         </div>
       </section>

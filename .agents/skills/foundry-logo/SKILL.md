@@ -1,6 +1,6 @@
 ---
 name: foundry-logo
-description: Run the Foundry logo workflow explicitly in Codex.
+description: Run the Foundry logo workflow explicitly with the project's selected provider.
 ---
 
 # Logo

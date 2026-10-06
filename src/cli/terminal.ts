@@ -17,7 +17,7 @@ export interface TerminalOptions {
 const HELP = [
   '/help       show this help',
   '/projects   list projects',
-  '/new        create a project (explicitly provide NAME and --idea)',
+  '/new        create a project (provide NAME, --idea and --adapter)',
   '/use        select a project by ID or slug',
   '/run        run the selected project',
   '/review     review the selected project',

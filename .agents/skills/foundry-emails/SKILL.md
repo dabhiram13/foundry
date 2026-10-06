@@ -1,6 +1,6 @@
 ---
 name: foundry-emails
-description: Run the Foundry emails workflow explicitly in Codex.
+description: Run the Foundry emails workflow explicitly with the project's selected provider.
 ---
 
 # Emails

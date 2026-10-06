@@ -30,11 +30,11 @@ export function pageUrl(slug) {
 }
 
 export const descriptions = {
-  index: 'Learn to use Foundry, the open-source CLI for AI-assisted software development. Install it, connect Codex and build your first project.',
-  'getting-started': 'Install Foundry with npm, connect Codex, create a project and approve its plan and design before building.',
+  index: 'Learn to use Foundry, the open-source CLI for AI-assisted software development. Install it, choose your AI provider and build your first project.',
+  'getting-started': 'Install Foundry with npm, connect your AI provider, create a project and approve its plan and design before building.',
   commands: 'Find Foundry terminal commands for creating projects, running stages, approving plans, configuring providers and recovering work.',
   runtime: 'Add Foundry to an existing repository, track a change, run checks and recover interrupted work.',
-  providers: 'Connect Codex to Foundry or build a custom AI provider adapter with the process protocol, capabilities and billing settings.',
+  providers: 'Choose an AI provider and model for Foundry. Configure adapters, capabilities, billing and the shared process protocol.',
   workflow: 'Understand how Foundry coordinates Research, Plan, Design, Build, Test and Ship with approval gates and saved evidence.',
   'workflow-contracts': 'Learn how Foundry validates saved records, binds approvals to document revisions and records checks and recovery.',
   customization: 'Configure Foundry project folders, provider selection, specialist roles, billing consent and required checks.',

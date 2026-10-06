@@ -1,6 +1,6 @@
 ---
 name: foundry-domain
-description: Run the Foundry domain workflow explicitly in Codex.
+description: Run the Foundry domain workflow explicitly with the project's selected provider.
 ---
 
 # Domain

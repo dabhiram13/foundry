@@ -1,6 +1,6 @@
 ---
 name: foundry-analytics
-description: Run the Foundry analytics workflow explicitly in Codex.
+description: Run the Foundry analytics workflow explicitly with the project's selected provider.
 ---
 
 # Analytics

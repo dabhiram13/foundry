@@ -1,18 +1,47 @@
-# The Foundry workflow
+# How Foundry works
 
-Foundry has two work sizes backed by the same TypeScript core. A new product
-uses Research → Plan → Design → Build → Test → Ship. A bounded existing-repo
-change uses scoped `work` commands and does not pretend to have completed the
-six-stage product process.
+**Foundry manages the process. Your connected AI tool does the AI work.
+You decide what to approve.** Install it using the [first-project guide](GETTING-STARTED.md).
+
+## The three parts
+
+| Part | What it does |
+| --- | --- |
+| Foundry | Creates project folders, chooses stage instructions, calls the provider, saves results, runs checks and waits for approval. |
+| AI provider | Reads the supplied context and uses its tools to research, plan or change code. Codex is the built-in connection; it must be installed and signed in separately. |
+| Your project | Holds the code, documents, Git history and private progress records on your computer. Cloud AI still receives the prompts and project content sent to it. |
+
+The specialist names describe **instructions for different jobs**, not six
+independently running AI services. They share the project's provider connection;
+you do not need an account or API key for each role.
+
+## What it is built with
+
+The npm package is a prebuilt **Node.js 24 program written in TypeScript**.
+Running `foundry` opens its terminal interface. Longer shell commands call the
+same code, rather than a second product. The core manages saved progress,
+provider requests, checks and Git checkpoints.
+
+The website is a separate **Astro/Starlight static site**, with React components
+on the landing page. It only serves pages; it is not a project dashboard or a
+server the CLI needs. There is no Python service or Foundry-hosted AI model.
+See the [code layout](ARCHITECTURE.md) if you want to develop Foundry itself.
 
 ## New product
 
-Research captures context and risks. Plan records the product direction and
-criteria. Design defines an implementation approach. The owner reviews and
-approves the exact Plan and Design revisions before implementation proceeds.
-Build works in bounded tasks, runs configured checks, and allows limited repair.
-Test verifies current evidence. Ship writes a local validated summary only; it
-does not publish or deploy.
+```text
+Your idea → Research → Plan → Your approval → Design → Your approval
+         → Build → Test → Ship summary
+```
+
+| Stage | What you get |
+| --- | --- |
+| Research | Findings with captured sources, supporting quotes and limitations. |
+| Plan | A proposed scope and criteria for deciding whether it works. You approve it. |
+| Design | The implementation approach. You approve it before code is built. |
+| Build | Small coding tasks, configured checks, limited repair attempts and Git checkpoints. |
+| Test | Checks and a read-only review of the results against the plan. |
+| Ship | A local summary of completed work and evidence. **No publishing or deployment.** |
 
 Each explicit `foundry run PROJECT` performs one stage. Interactive `/run`
 continues until an approval, completion or failure boundary. Status reflects
@@ -57,6 +86,11 @@ required by Foundry; [provider access](PROVIDERS.md) and live qualification rema
 separate.
 
 ## Scoped repository work
+
+For a change in an existing repository, the shorter `work` commands track a
+specification, run checks and record completion. **They do not dispatch an AI
+to implement the change.** You or your coding tool make the changes between
+`start` and `verify`. See [existing projects](RUNTIME.md).
 
 Start a scoped run with an existing local spec:
 

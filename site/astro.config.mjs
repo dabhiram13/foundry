@@ -15,33 +15,29 @@ export default defineConfig({
     components: { SiteTitle: './src/components/SiteTitle.astro' },
     social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/dabhiram13/foundry' }],
     sidebar: [
-      { label: 'Start here', items: [
+      { label: 'Use Foundry', items: [
         { label: 'Overview', link: '/docs/' },
         { label: 'Install & first project', slug: 'docs/getting-started' },
-        { label: 'Existing repos & recovery', slug: 'docs/runtime' },
+        { label: 'How Foundry works', slug: 'docs/workflow' },
+        { label: 'Command reference', slug: 'docs/commands' },
       ] },
-      { label: 'Daily use', items: [
-        { label: 'Terminal & commands', slug: 'docs/commands' },
-        { label: 'The workflow', slug: 'docs/workflow' },
-        { label: 'Approvals & evidence', slug: 'docs/workflow-contracts' },
-        { label: 'Roles & guides', slug: 'docs/catalog' },
-      ] },
-      { label: 'Providers', items: [
-        { label: 'Setup, support & adapters', slug: 'docs/providers' },
-        { label: 'Qualification limits', slug: 'docs/qualification' },
-      ] },
-      { label: 'Reference', items: [
+      { label: 'More options', collapsed: true, items: [
+        { label: 'Existing projects & recovery', slug: 'docs/runtime' },
+        { label: 'Connect your AI tool', slug: 'docs/providers' },
+        { label: 'Specialist roles & guides', slug: 'docs/catalog' },
         { label: 'Project settings', slug: 'docs/customization' },
-        { label: 'What is tested', slug: 'docs/validation' },
+        { label: 'Current limits', slug: 'docs/qualification' },
       ] },
-      { label: 'Architecture & contribution', items: [
+      { label: 'Develop Foundry itself', collapsed: true, items: [
+        { label: 'Contributor setup', slug: 'docs/contributing' },
         { label: 'Architecture', slug: 'docs/architecture' },
-        { label: 'Contributing', slug: 'docs/contributing' },
+        { label: 'Tests', slug: 'docs/validation' },
+        { label: 'Saved-record rules', slug: 'docs/workflow-contracts' },
         { label: 'Release process', slug: 'docs/releasing' },
         { label: 'Documentation website', slug: 'docs/documentation' },
         { label: 'Public site sources', slug: 'docs/component-sources' },
       ] },
-      { label: 'Security & licenses', items: [
+      { label: 'Security & licenses', collapsed: true, items: [
         { label: 'Security & trust', slug: 'docs/security' },
         { label: 'Origins & licenses', slug: 'docs/provenance' },
         { label: 'Third-party notices', slug: 'docs/notices' },

@@ -48,7 +48,18 @@ export function Landing() {
           <Button size="lg" onClick={() => goTo('landing-install')}>Get started <ArrowDown aria-hidden="true" /></Button>
           <a className="landing-secondary" href={`${docs}/`}>Read the docs <ArrowUpRight aria-hidden="true" /></a>
         </div>
-        <p className="landing-local-note">Node.js 24 <span aria-hidden="true">·</span> Connect your AI provider</p>
+        <p className="landing-local-note">Node.js 24 + Git <span aria-hidden="true">·</span> Bring your own AI subscription</p>
+      </section>
+
+      <section className="landing-shell landing-setup" id="landing-start" tabIndex={-1} aria-labelledby="start-title">
+        <div className="landing-section-heading"><h2 id="start-title">Install it.<br />Then open Foundry.</h2><p>Two commands in your terminal. No source checkout, website build or Foundry account.</p><a href={`${docs}/getting-started/`}>Start your first project <ArrowUpRight aria-hidden="true" /></a></div>
+        <div className="landing-install" id="landing-install" tabIndex={-1} aria-labelledby="install-title">
+          <div className="install-heading"><h3 id="install-title"><Terminal aria-hidden="true" /> Install and open</h3><span>Node.js 24 + Git</span></div>
+          <pre aria-label="Installation commands"><code>{install}</code></pre>
+          <div className="install-copy"><CopyButton content={install} label="Copy commands" /><span>The first installs. The second opens.</span></div>
+          <div className="install-note"><p>Run <code>foundry</code> from any folder after installing. Installation does not start AI work.</p><p>To build, install and sign in to <strong>Codex</strong> separately. Foundry includes the connector, not an AI subscription. Tested on Linux; other platforms are not yet verified.</p><a href={`${docs}/getting-started/`}>Connect Codex and create a project <ArrowUpRight aria-hidden="true" /></a></div>
+        </div>
+        <div className="landing-already"><p>Already have a repository?</p><a href={`${docs}/runtime/`}>Track and check an existing project <ArrowRight aria-hidden="true" /></a></div>
       </section>
 
       <div className="landing-shell landing-preview" id="landing-workflow" tabIndex={-1}><ProductWalkthrough /></div>
@@ -69,22 +80,11 @@ export function Landing() {
         <a className="specialist-link" href={`${docs}/catalog/`}>Explore the specialist roles <ArrowRight aria-hidden="true" /></a>
       </section>
 
-      <section className="landing-shell landing-setup" id="landing-start" tabIndex={-1} aria-labelledby="start-title">
-        <div className="landing-section-heading"><h2 id="start-title">Start with<br />one small project.</h2><p>Install Foundry, connect your provider and choose what to build.</p><a href={`${docs}/getting-started/`}>Follow the setup guide <ArrowUpRight aria-hidden="true" /></a></div>
-        <div className="landing-install" id="landing-install" tabIndex={-1} aria-labelledby="install-title">
-          <div className="install-heading"><h3 id="install-title"><Terminal aria-hidden="true" /> Install the CLI</h3><span>macOS / Linux</span></div>
-          <pre aria-label="Installation commands"><code>{install}</code></pre>
-          <div className="install-copy"><CopyButton content={install} label="Copy commands" /><span>No Foundry account needed.</span></div>
-          <div className="install-note"><p>Requires <strong>Node.js 24 LTS</strong>, <strong>npm</strong> and <strong>Git</strong>. Install once, then run <code>foundry</code> from any directory. No source checkout or website build needed.</p><p>Installation does not start AI work. Codex is built in; confirm subscription use before running it.</p><a href={`${docs}/getting-started/`}>Setup, updates and uninstall <ArrowUpRight aria-hidden="true" /></a></div>
-        </div>
-        <div className="landing-already"><p>Already have a project?</p><a href={`${docs}/runtime/`}>Use Foundry in an existing repository <ArrowRight aria-hidden="true" /></a></div>
-      </section>
-
       <section className="landing-shell landing-faq" aria-labelledby="questions-title">
         <h2 id="questions-title">Common<br />questions.</h2>
         <div>
           <Disclosure title="Do I need a Foundry account?"><p>No. Create projects, run steps and approve plans from your terminal. Connect your own AI provider; this website is just the guide.</p></Disclosure>
-          <Disclosure title="Which AI can I use?"><p>Codex is built in. Developers can connect other tools through an adapter, but those connections need testing before you rely on them. An API key alone is not enough.</p><a href={`${docs}/providers/`}>Provider setup and limits <ArrowUpRight aria-hidden="true" /></a></Disclosure>
+          <Disclosure title="Which AI can I use?"><p>Foundry includes a connector for Codex. Install Codex and sign in separately. Developers can connect other tools, but those connections need testing before you rely on them. An API key alone is not enough.</p><a href={`${docs}/providers/`}>Provider setup and limits <ArrowUpRight aria-hidden="true" /></a></Disclosure>
           <Disclosure title="Does my code stay on my computer?"><p>Your files and Git history stay in your product folder. Cloud AI providers receive prompts and selected project content. Local storage does not mean local AI processing. Never include secrets in your prompts.</p></Disclosure>
           <Disclosure title="Do I need an AI subscription?"><p>The built-in Codex route uses your subscription login, with your explicit confirmation. Your provider’s limits still apply. Foundry does not inspect billing or silently switch to metered API usage.</p></Disclosure>
           <Disclosure title="Will Foundry publish the product for me?"><p>No. The final step summarizes the work, test results and anything still missing. Hosting, paid services and publishing need separate decisions.</p></Disclosure>

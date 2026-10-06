@@ -1,37 +1,36 @@
-# Foundry documentation
+# Start here
 
-Build software from your terminal. Start with an idea or an existing project,
-then plan, write code and run checks. You review the plan and design before a
-new product is built. Your files and Git history stay in your project.
+Foundry is a command-line tool that helps turn an idea into a software project.
+It organizes the work, calls your connected AI tool, asks for your approval,
+and records code changes and test results. This website is the manual—not an
+app you need to run alongside it.
 
-## Start here
+## Use Foundry
 
-- [Install the CLI and create your first project](GETTING-STARTED.md)
-- [npm releases and release process](RELEASING.md)
-- [Use the terminal and commands](COMMANDS.md)
-- [Add Foundry to a repository, migrate or recover](RUNTIME.md)
+1. [Install and build your first project](GETTING-STARTED.md) — one guided path,
+   from npm installation to your first approvals.
+2. [How Foundry works](WORKFLOW.md) — what Foundry does, what the AI does, and
+   what stays under your control.
+3. [Command reference](COMMANDS.md) — look up a command when you need it.
 
-## Daily use
+You need Node.js 24 and Git. To run AI work, you also need Codex installed and
+signed in to a suitable subscription account. No separate Foundry account is
+needed. Installing Foundry does not install Codex or start AI calls.
 
-- [Plan, build, check and approve](WORKFLOW.md)
-- [Saved records and evidence rules](WORKFLOW-CONTRACTS.md)
-- [Roles, packs and reference library](CATALOG.md)
+## When you need more detail
+
+- [Existing projects and recovery](RUNTIME.md)
+- [Provider setup and custom connectors](PROVIDERS.md)
 - [Project settings](CUSTOMIZATION.md)
+- [Specialist roles and extra guides](CATALOG.md)
+- [Current limits](QUALIFICATION.md) and [security](../SECURITY.md)
 
-## Providers and boundaries
+## Develop Foundry itself
 
-- [Provider setup, adapter capabilities and consent](PROVIDERS.md)
-- [Qualification status and unverified limits](QUALIFICATION.md)
-- [Security and trust boundaries](../SECURITY.md)
+These pages are for contributors and maintainers, **not installation steps**:
 
-## Architecture and contribution
-
-- [Architecture](ARCHITECTURE.md)
-- [Validation gates](VALIDATION.md)
-- [Documentation website](DOCUMENTATION.md)
-- [Contributing](../CONTRIBUTING.md)
-- [Provenance and licenses](PROVENANCE.md)
-
-Repository Markdown is the source for the static documentation site. Start with
-the root [README](../README.md) for the concise project overview and development
-checks.
+- [Contributor setup](../CONTRIBUTING.md) and [code layout](ARCHITECTURE.md)
+- [Tests](VALIDATION.md) and [saved-record rules](WORKFLOW-CONTRACTS.md)
+- [Build the documentation website](DOCUMENTATION.md)
+- [Publish an npm release](RELEASING.md)
+- [Origins and licenses](PROVENANCE.md)

@@ -34,7 +34,9 @@ browser automation.
 
 ## Navigation and links
 
-The sidebar follows Start, Daily use, Providers, Reference, Architecture and
-Security. Keep links directed at canonical repository sources. Superseded
+The sidebar starts with Use Foundry: overview, installation, how it works and
+command reference. More options, Develop Foundry itself and Security & licenses
+are collapsed by default. Keep contributor builds and release commands out of
+the beginner installation journey. Keep links directed at canonical repository sources. Superseded
 implementation notes and verification reports belong in Git history, not the
 current documentation. Do not promote old UI evidence to a present runtime claim.

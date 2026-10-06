@@ -1,9 +1,18 @@
 # Terminal and command reference
 
-The `foundry` executable is the only runtime entry point. A TTY invocation with
-no command opens the interactive terminal; a non-TTY invocation prints help and
-exits. Commands accept `--json` for machine-readable output where documented.
-Unknown or command-inapplicable options are rejected before dispatch.
+Start with the [first-project guide](GETTING-STARTED.md). This page is a lookup
+reference, not a list of setup steps to run.
+
+There are two ways to use the same tool:
+
+- **Inside Foundry:** open `foundry` in your terminal, then use `/run`, `/review`
+  and other slash commands for the selected project.
+- **From your computer's terminal:** use commands such as `foundry run reading-list`.
+  These are useful for scripts or when you prefer one command at a time.
+
+Do not type npm or shell commands at the `foundry>` prompt; use `/exit` first.
+In a non-interactive process, `foundry` prints help instead of opening a terminal.
+`--json` requests machine-readable output where supported.
 
 ## Version and help
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./site/assets/foundry-banner.svg" alt="Foundry" width="960" />
+  <img src="https://foundry-two-tan.vercel.app/assets/foundry-banner.svg" alt="Foundry" width="960" />
 </p>
 
 # Build software from your terminal.
@@ -31,6 +31,10 @@ Tested on Linux. macOS and Windows have not been verified.
 
 ## How it works
 
+**Foundry manages the steps. Your connected AI does the AI work. You approve
+the decisions.** Foundry is not a model, an AI subscription or a website you
+must host.
+
 For a new product:
 
 ```text
@@ -48,7 +52,8 @@ See the [command reference][commands] for terminal controls and scripting.
 
 ## AI providers and your data
 
-Codex is the built-in provider. Other tools need a [provider adapter][providers]
+Foundry includes a Codex connector. **Install Codex and sign in separately**;
+the [setup guide][getting-started] walks you through it. Other tools need a [provider adapter][providers]
 and separate live testing; an API key alone does not connect them.
 
 You confirm subscription use before running AI work. Cloud providers receive the

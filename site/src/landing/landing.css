@@ -45,13 +45,13 @@
 .walkthrough-local { display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 44px 10px 0; font-size: 11px; color: var(--muted-foreground); line-height: 18px; }
 .walkthrough-local svg { width: 14px; }
 .walkthrough-content { min-width: 0; padding: 40px 48px 32px; }
-.walkthrough-content [data-slot=tabs-content] { min-height: 370px; }
+.walkthrough-content [data-slot=tabs-content] { min-height: 270px; }
 .walkthrough-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--foundry-accent); margin-bottom: 20px; }
 .status-square { display: inline-block; width: 7px; height: 7px; flex: none; background: var(--foundry-accent); }
 .walkthrough-content h2 { font-size: 26px; line-height: 1.25; letter-spacing: -.035em; margin: 0 0 14px; }
 .walkthrough-content p { max-width: 58ch; color: var(--muted-foreground); font-size: 13px; line-height: 1.8; margin: 0; }
+.walkthrough-content p + p { margin-top: 18px; }
 .walkthrough-content .walkthrough-caption { font-size: 12px; }
-.terminal-example { padding: 20px; margin: 24px 0 18px; max-width: 100%; border: 1px solid var(--border); background: var(--foundry-canvas); color: var(--foreground); font-size: 13px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
 .walkthrough-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 20px; border-top: 1px solid var(--border); }
 .walkthrough-footer p { margin: 0; font-size: 11px; color: var(--muted-foreground); }
 .walkthrough-footer .landing-secondary { min-height: 44px; padding: 8px 0; border: 0; font-size: 12px; }
@@ -129,7 +129,7 @@
   .walkthrough-sidebar [data-slot=tabs-list] { gap: 4px; }
   .walkthrough-sidebar [data-slot=tabs-trigger] { min-height: 44px; padding: 8px; }
   .walkthrough-content { padding: 24px 20px; }
-  .walkthrough-content [data-slot=tabs-content] { min-height: 395px; }
+  .walkthrough-content [data-slot=tabs-content] { min-height: 320px; }
   .walkthrough-content h2 { font-size: 23px; }
   .walkthrough-footer { padding: 12px; align-items: flex-start; flex-direction: column; gap: 4px; }
   .walkthrough-footer p { line-height: 1.8; }

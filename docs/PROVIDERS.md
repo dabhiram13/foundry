@@ -1,8 +1,18 @@
-# Providers and adapter capabilities
+# Connect your AI tool
 
-Foundry uses one provider contract for terminal runs and explicit provider
-commands. Codex is the built-in agent-runtime adapter. A registered adapter is
-not necessarily protocol-tested or qualified with a live provider.
+Foundry is not an AI model or subscription. It sends tasks to an AI tool you
+have installed and authorized. Each project uses one connection; specialist
+roles do not need separate accounts.
+
+## Use Codex
+
+Foundry includes the Codex **connector**, not the Codex program. Install Codex
+and sign in using the [first-project guide](GETTING-STARTED.md#connect-the-ai).
+If you use that guided terminal path, you do not need to edit JSON or create an adapter.
+
+The rest of this page explains explicit shell setup and custom connectors for
+advanced users. A connector's presence alone does not prove live reliability;
+see [current limits](QUALIFICATION.md).
 
 ## Configure consent and selection
 
@@ -23,7 +33,10 @@ its official provider instructions. Do not paste credentials into product
 documents. Foundry filters child-process environment and redacts reported
 values, but this is not an operating-system sandbox.
 
-## Adapter contract
+## Build a custom connector (advanced)
+
+An adapter is the small integration that translates Foundry requests into
+calls to another AI tool. Adding an API key alone does not create one.
 
 An owner may define additional adapters in `.foundry/providers.json`. Each
 adapter declares its name, kind, command, billing modes, environment variable

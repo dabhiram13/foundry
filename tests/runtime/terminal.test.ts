@@ -1,8 +1,32 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { PassThrough, Readable, Writable } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { test } from 'node:test';
 import { runTerminal } from '../../src/cli/terminal.js';
+
+test('first-project guide commands route through the terminal with a selected project', async () => {
+  const guide = await readFile('docs/GETTING-STARTED.md', 'utf8');
+  const lines = [...guide.matchAll(/```text\n([\s\S]*?)\n```/g)]
+    .flatMap(([, block]) => block!.split('\n'));
+  const commands: string[][] = [];
+  const code = await runTerminal({
+    input: Readable.from([...lines, '/exit'].map((line) => `${line}\n`)),
+    output: new Writable({ write(_chunk, _encoding, callback) { callback(); } }),
+    terminal: false,
+    execute: async (args) => { commands.push(args); return 0; },
+    validateSelection: async (identifier) => { assert.equal(identifier, 'reading-list'); },
+  });
+  assert.equal(code, 0);
+  assert.deepEqual(commands, [
+    ['new', 'reading-list', '--idea', 'Save links and mark them read'],
+    ['configure', 'reading-list', '--billing', 'subscription', '--confirmed'],
+    ['run', 'reading-list'],
+    ['review', 'reading-list'],
+    ['approve', 'reading-list'],
+    ['run', 'reading-list'],
+  ]);
+});
 
 test('terminal routes explicit slash commands and rejects freeform execution', async () => {
   const commands: string[][] = [];

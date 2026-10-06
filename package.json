@@ -1,12 +1,12 @@
 {
   "name": "@dabhiram13/foundry",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dabhiram13/foundry.git"
   },
-  "homepage": "https://github.com/dabhiram13/foundry#readme",
+  "homepage": "https://foundry-two-tan.vercel.app/",
   "bugs": "https://github.com/dabhiram13/foundry/issues",
   "publishConfig": {
     "access": "public",

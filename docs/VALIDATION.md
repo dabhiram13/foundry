@@ -17,11 +17,11 @@ The standard aggregate is `npm test`. It runs each of these groups once:
 
 CI uses the same Node-only runtime and static checks with pinned actions. The
 package test builds and installs a local candidate tarball globally with normal
-npm script handling (not `--ignore-scripts`)
+npm script handling
 outside the checkout; it checks the one public bin, version
 command, excluded files and installed assets, then uninstalls it without
 removing the fixture project. The `prepack` hook builds the runtime for a normal
-`npm pack`; `--ignore-scripts` skips that hook. Package verification never
+`npm pack`. Package verification never
 publishes to npm.
 
 Research fixtures cover source limits, public-address checks, redirects,

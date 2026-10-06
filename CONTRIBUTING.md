@@ -15,15 +15,17 @@ npm run build:runtime
 ./foundry --help
 ```
 
+Here `--ignore-scripts` avoids running dependency install hooks while setting
+up the source checkout. It is a contributor precaution, not a Foundry install
+requirement. Everyday users only need `npm install -g @dabhiram13/foundry`.
+
 `npm run build:runtime` builds the CLI only; `npm run build` also builds the
 static website. `./foundry` runs the checkout directly; contributors do not need
 a global link. Installing `@dabhiram13/foundry` from npm is for everyday use,
 not a contributor requirement.
 
-To inspect a local candidate tarball, use `npm pack`; its `prepack` hook rebuilds
-the runtime. `npm pack
---ignore-scripts` skips that hook and is only appropriate when you intentionally
-use an already-built runtime. The owner-controlled release checklist is in the
+To inspect a local candidate tarball, use `npm pack`; it rebuilds
+the runtime. The owner-controlled release checklist is in the
 [release guide](docs/RELEASING.md). Do not publish as part of setup or
 contribution.
 

@@ -23,11 +23,27 @@ test('README, setup guide and landing share the npm CLI installation', async () 
   });
   assert.ok(commands);
   assert.equal(commands, 'npm install -g @dabhiram13/foundry\nfoundry');
+  const examples = [];
+  walk(tree, node => { if (node.tagName === 'pre') examples.push(textContent(node)); });
+  assert.deepEqual(examples, [commands], 'landing introduces installation, not advanced command examples');
   assert.doesNotMatch(commands, /git clone|npm run build|npm link|\.\/foundry/);
   for (const source of ['README.md', 'docs/GETTING-STARTED.md']) {
     const markdown = await readFile(path.join(root, source), 'utf8');
     assert.equal(/```sh\n([\s\S]*?)\n```/.exec(markdown)?.[1], commands, source);
   }
+});
+
+test('first-project guide separates terminal use from contributor setup', async () => {
+  const guide = await readFile(path.join(root, 'docs/GETTING-STARTED.md'), 'utf8');
+  assert.doesNotMatch(guide, /ignore-scripts|npm ci|npm run build|git clone|EXACT_REVISION/);
+  for (const command of ['/new reading-list --idea "Save links and mark them read"',
+    '/use reading-list', '/configure --billing subscription --confirmed', '/run', '/review', '/approve']) {
+    assert.ok(guide.includes(command), `missing guided command: ${command}`);
+  }
+  assert.ok(guide.indexOf('## Create a project') < guide.indexOf('## Update or uninstall'));
+  assert.match(guide, /command interface, not a freeform AI chat/);
+  assert.match(guide, /does not install Codex or provide an AI subscription/);
+  assert.match(guide, /not inside Foundry/);
 });
 
 async function checkLocalLinks(tree, current) {
@@ -153,8 +169,8 @@ test('README banner reuses the Foundry wordmark and has a self-contained backgro
   walk(parse(readme), node => {
     if (node.tagName === 'img') images.push(attr(node, 'src'));
   });
-  assert.deepEqual(images, ['./site/assets/foundry-banner.svg']);
-  assert.equal(await readFile(path.resolve(root, images[0]), 'utf8'), banner);
+  assert.deepEqual(images, ['https://foundry-two-tan.vercel.app/assets/foundry-banner.svg']);
+  assert.equal(await readFile(path.join(output, new URL(images[0]).pathname), 'utf8'), banner);
   assert.match(readme, /^\[license\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/LICENSE$/m);
   assert.doesNotMatch(readme, /^\[[^\]]+\]: (?!https?:\/\/)\S+/m);
   assert.doesNotMatch(readme, /\]\((?!https?:\/\/|#)[^)]+\)/);

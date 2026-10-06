@@ -4,6 +4,11 @@ Foundry's runtime is one Node 24 executable. [Install it with npm](GETTING-START
 then use `init` for a clean repository or the explicit migration flow for a
 legacy workspace.
 
+This is the **existing-repository path**, not more setup for a new project.
+`init` adds Foundry's local files; it does not start AI work. The `work` commands
+track a change you or a coding tool implement, then run configured checks.
+For the guided AI product workflow, use [your first project](GETTING-STARTED.md).
+
 ## Project directories
 
 New product workspaces default to `~/.foundry/products`. `--products-dir PATH`

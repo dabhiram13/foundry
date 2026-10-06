@@ -261,6 +261,54 @@ export async function readBoundedText(root: string, relative: string, limit = 8 
   return { bytes, text };
 }
 
+const buildFailureSchema = z.object({
+  run_id: z.string().uuid(),
+  passed: z.literal(false),
+  status: z.literal('failed'),
+  inputs_before: sha256Schema,
+  inputs_after: sha256Schema,
+  checks: z.array(z.object({
+    name: z.string().regex(/^[A-Za-z0-9_-]+$/).max(256),
+    required: z.boolean(),
+    status: z.string().regex(/^[a-z_]+$/).max(32),
+    exit_code: z.number().int().nullable(),
+    log: projectPathSchema,
+    log_sha256: sha256Schema,
+  })),
+});
+
+export async function readBuildFailure(root: string, runId: string, relative: string) {
+  if (!projectPathSchema.safeParse(relative).success
+    || !relative.startsWith(`.foundry/state/runs/${runId}/verification-`) || !relative.endsWith('/receipts.json')) {
+    throw new FoundryError('Build repair needs a verification receipt from its active run');
+  }
+  const { bytes, text } = await readBoundedText(root, relative);
+  const parsed = buildFailureSchema.safeParse(JSON.parse(text));
+  if (!parsed.success || parsed.data.run_id !== runId) {
+    throw new FoundryError('Build repair verification receipt is invalid');
+  }
+  const receipt = parsed.data;
+  const failures = receipt.checks.filter(check => check.required && (check.status !== 'passed' || check.exit_code !== 0));
+  const logDirectory = relative.slice(0, -'receipts.json'.length);
+  if (receipt.checks.some(check => !check.log.startsWith(logDirectory))) {
+    throw new FoundryError('Build repair check logs must belong to its verification receipt');
+  }
+  return {
+    signature: receipt.inputs_before === receipt.inputs_after && failures.length
+      ? digest(JSON.stringify([receipt.inputs_after, failures.map(({ name, status, exit_code }) => ({ name, status, exit_code }))]))
+      : null,
+    evidence: {
+      receipt: relative,
+      receipt_sha256: digest(bytes),
+      inputs_before: receipt.inputs_before,
+      inputs_after: receipt.inputs_after,
+      required_failures: failures.length,
+      omitted_failures: Math.max(0, failures.length - 20),
+      checks: failures.slice(0, 20).map(({ required: _, ...check }) => check),
+    },
+  };
+}
+
 export async function reviewEvidenceDigests(
   root: string,
   input: unknown,

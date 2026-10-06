@@ -45,6 +45,27 @@ Each explicit `foundry run PROJECT` performs one stage. Interactive `/run`
 continues until an approval, completion or failure boundary. Status reflects
 the saved stage, tasks, provider work, checks and review findings.
 
+## Build and repairs
+
+```text
+Small task → Implement → Run required checks
+                            │
+               ┌────────────┴────────────┐
+               ▼                         ▼
+             Pass                       Fail
+               │                         │
+        Git checkpoint          Exact receipt + check logs
+               │                         │
+          Next task             Repair, then check again
+                                Up to three repairs
+```
+
+Each repair receives the failed receipt's path and hash, the tested input
+revisions, and a compact list of required check failures. Repeated failures on
+unchanged declared inputs prompt the agent to inspect the earlier result and
+change approach. This is guidance, not proof of the cause. The three-repair limit
+still applies, and a failed task stays incomplete.
+
 ## Research
 
 Research has two AI turns, with a source-reading step between them:

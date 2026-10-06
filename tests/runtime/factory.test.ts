@@ -8,7 +8,7 @@ import {
   approveFactory, cancelFactory, configureFactory, initFactory, recoverFactory, reviewFactory, runFactory, statusFactory,
 } from '../../src/core/factory.js';
 import {
-  FACTORY_LOCK, readBoundedBytes, readFactoryState, reviewEvidenceDigests, writeFactoryState,
+  FACTORY_LOCK, readBoundedBytes, readBuildFailure, readFactoryState, reviewEvidenceDigests, writeFactoryState,
 } from '../../src/core/factory-contract.js';
 import { installWorkspace } from '../../src/core/install.js';
 import { ProjectService } from '../../src/core/projects.js';
@@ -63,6 +63,21 @@ process.stdin.on('data',chunk=>input+=chunk);
 process.stdin.on('end',()=>{
   const request=JSON.parse(input);
   const prompt=request.prompt;
+  if(prompt.includes('Repair evidence:\\n')){
+    const evidence=JSON.parse(prompt.split('Repair evidence:\\n')[1].split('\\n')[0]);
+    const receiptBytes=fs.readFileSync(evidence.receipt);
+    const receipt=JSON.parse(receiptBytes);
+    if(crypto.createHash('sha256').update(receiptBytes).digest('hex')!==evidence.receipt_sha256
+      ||receipt.inputs_before!==evidence.inputs_before||receipt.inputs_after!==evidence.inputs_after
+      ||evidence.required_failures!==1||evidence.checks[0].name!=='behavior')throw new Error('Repair evidence mismatch');
+    for(const check of evidence.checks){
+      if(crypto.createHash('sha256').update(fs.readFileSync(check.log)).digest('hex')!==check.log_sha256)throw new Error('Repair log mismatch');
+    }
+    const history='.foundry/state/factory/repair-prompts.json';
+    const prompts=fs.existsSync(history)?JSON.parse(fs.readFileSync(history)) : [];
+    prompts.push(prompt);
+    fs.writeFileSync(history,JSON.stringify(prompts));
+  }else if(prompt.includes('Repair task "'))throw new Error('Repair evidence missing');
   if(prompt.includes('current stage is Research') && (!request.output_schema || request.permissions.sandbox !== 'read-only')) {
     throw new Error('Research must request structured output and read-only access');
   }
@@ -122,7 +137,7 @@ process.stdin.on('end',()=>{
         ? [process.execPath,'-e',"const fs=require('node:fs');if(fs.existsSync('.foundry/state/factory/check-pass'))process.exit(0);const {spawn}=require('node:child_process');const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});fs.writeFileSync('check-started',String(child.pid));setInterval(()=>{},1000);"]
         : [process.execPath,'-e',fixtureCheckPass
           ? "const fs=require('node:fs');const product=require('./src/product.js');if(!['verified local feature','verified changed local behavior'].includes(product.feature))process.exit(1);if(fs.existsSync('src/second.js')){const second=require('./src/second.js');if(!['pending','verified second behavior'].includes(second.behavior))process.exit(1);}"
-          : 'process.exit(1)'];
+          : mode==='repair-success' ? "if(!require('./src/product.js').repaired)process.exit(1)" : 'process.exit(1)'];
       write('.foundry/project.json',JSON.stringify({name:'factory fixture',checks:[{
         name:'behavior',
         command:checkCommand,
@@ -141,6 +156,8 @@ process.stdin.on('end',()=>{
       const feature=plan.includes('A changed local behavior is checked')
         ? 'verified changed local behavior' : 'verified local feature';
       write('src/product.js','module.exports = { feature: '+JSON.stringify(feature)+' };\\n');
+      if(mode==='repair-progress')fs.appendFileSync('src/product.js','// '+prompt.match(/repair (\\d) of 3/)[1]+'\\n');
+      if(mode==='repair-success')fs.appendFileSync('src/product.js','module.exports.repaired = true;\\n');
     }
     if(mode.startsWith('workflow-')
       &&!prompt.includes('Create docs/product/tasks.md')
@@ -692,12 +709,88 @@ test('failed required checks leave the build task unticked and retry bounded rep
   assert.equal(state?.status, 'failed');
   assert.equal(state?.build_tasks[0]?.status, 'failed');
   assert.equal(state?.build_tasks[0]?.repair_attempts, 3);
+  const prompts = JSON.parse(await readFile(path.join(root, '.foundry/state/factory/repair-prompts.json'), 'utf8')) as string[];
+  assert.equal(prompts.length, 3);
+  assert.doesNotMatch(prompts[0]!, /same required checks failed on unchanged/);
+  for (const prompt of prompts.slice(1)) assert.match(prompt, /same required checks failed on unchanged/);
   assert.equal(await readFile(path.join(root, 'docs/product/tasks.md'), 'utf8'), '- [ ] Implement the local feature\n');
   const runId = state?.lifecycle_run_id;
   const recovered = await recoverFactory(root);
   assert.equal(recovered.lifecycle_run_id, runId);
   assert.equal(recovered.stage, 'build');
   assert.equal(recovered.build_tasks[0]?.status, 'failed');
+});
+
+test('changed repair inputs clear repetition guidance without extending the repair budget', async () => {
+  const root = await project('repair-progress', false);
+  await advanceToBuild(root, 'Changing repairs');
+  await assert.rejects(runFactory(root), /three bounded repairs/);
+  const prompts = JSON.parse(await readFile(path.join(root, '.foundry/state/factory/repair-prompts.json'), 'utf8')) as string[];
+  assert.equal(prompts.length, 3);
+  for (const prompt of prompts) assert.doesNotMatch(prompt, /same required checks failed on unchanged/);
+});
+
+test('an evidence-led repair can pass checks and checkpoint the task', async () => {
+  const root = await project('repair-success', false);
+  await advanceToBuild(root, 'Successful repair');
+  await runFactory(root);
+  const state = await readFactoryState(root);
+  assert.equal(state?.stage, 'verify');
+  assert.equal(state?.build_tasks[0]?.repair_attempts, 1);
+  assert.equal(state?.build_tasks[0]?.status, 'done');
+  assert.ok(state?.build_tasks[0]?.checkpoint);
+});
+
+test('repair receipts are bounded, tied to their run and summarized without log content', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'foundry-repair-evidence-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const runId = '11111111-1111-4111-8111-111111111111';
+  const directory = `.foundry/state/runs/${runId}/verification-fixture`;
+  const relative = `${directory}/receipts.json`;
+  const file = path.join(root, relative);
+  await mkdir(path.dirname(file), { recursive: true });
+  const receipt = {
+    run_id: runId, passed: false, status: 'failed', inputs_before: 'a'.repeat(64), inputs_after: 'a'.repeat(64),
+    checks: Array.from({ length: 25 }, (_, index) => ({
+      name: `check-${index}`, required: true, status: 'failed', exit_code: 1,
+      log: `${directory}/check-${index}.log`, log_sha256: 'b'.repeat(64), output: 'DO_NOT_INCLUDE_RAW_LOGS',
+    })),
+  };
+  const save = (value: unknown) => writeFile(file, JSON.stringify(value));
+  await save(receipt);
+  const result = await readBuildFailure(root, runId, relative);
+  assert.equal(result.evidence.receipt_sha256, digest(await readFile(file)));
+  assert.equal(result.evidence.checks.length, 20);
+  assert.equal(result.evidence.required_failures, 25);
+  assert.equal(result.evidence.omitted_failures, 5);
+  assert.doesNotMatch(JSON.stringify(result), /DO_NOT_INCLUDE_RAW_LOGS/);
+  assert.ok(result.signature);
+  const longName = 'a'.repeat(200);
+  await save({ ...receipt, checks: [{ ...receipt.checks[0], name: longName, log: `${directory}/${longName}.log` }] });
+  assert.equal((await readBuildFailure(root, runId, relative)).evidence.checks[0]?.name, longName);
+  await save({ ...receipt, checks: receipt.checks.map(check => ({ ...check, exit_code: 2 })) });
+  assert.notEqual((await readBuildFailure(root, runId, relative)).signature, result.signature);
+  await save({ ...receipt, inputs_after: 'c'.repeat(64) });
+  assert.equal((await readBuildFailure(root, runId, relative)).signature, null);
+  await save({ ...receipt, checks: receipt.checks.map(check => ({ ...check, required: false })) });
+  assert.equal((await readBuildFailure(root, runId, relative)).evidence.required_failures, 0);
+  for (const invalid of [
+    {}, { ...receipt, run_id: '22222222-2222-4222-8222-222222222222' },
+    { ...receipt, passed: true }, { ...receipt, status: 'running' },
+    { ...receipt, checks: [{ ...receipt.checks[0], log: 'docs/other.log' }] },
+    { ...receipt, checks: [{ ...receipt.checks[0], log: `${directory}/../other.log` }] },
+  ]) {
+    await save(invalid);
+    await assert.rejects(readBuildFailure(root, runId, relative));
+  }
+  await writeFile(file, 'not json');
+  await assert.rejects(readBuildFailure(root, runId, relative));
+  await writeFile(file, 'x'.repeat(8 * 1024 * 1024 + 1));
+  await assert.rejects(readBuildFailure(root, runId, relative));
+  await assert.rejects(readBuildFailure(root, runId, 'docs/receipt.json'));
+  await assert.rejects(readBuildFailure(root, runId, `${directory}/../other/receipts.json`));
+  await rm(file);
+  await assert.rejects(readBuildFailure(root, runId, relative));
 });
 
 test('checkpoint failure restores only the unchanged tick and preserves owner edits', async (t) => {

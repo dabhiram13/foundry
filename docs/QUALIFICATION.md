@@ -11,16 +11,16 @@ external runtime works reliably or enforces the requested permissions.
   ordinary checks do not make provider calls.
 - Local fixtures exercise protocol, cancellation, schema validation and
   redaction without credentials. Fixture success is not live-provider evidence.
-- The legacy `chatgpt` registration remains marked unsupported for compatibility;
-  it does not fall back to Python or another runtime.
+- Research source collection and matching quotes are checked locally. They do
+  not establish source truth, market demand or live-provider research quality.
+  Search depends on the provider's available tools; Foundry has no search API.
 - Node 24 runtime and package checks provide local Linux evidence, not platform
   qualification. macOS and native Windows behavior are unqualified.
 - Local package checks do not establish npm scope ownership or registry
   availability. Each release also needs a separate registry installation check;
   neither check establishes live-provider support.
-- No performance comparison with the removed runtime is claimed.
 - Migration fixtures cover supported workspace shapes. The framework cannot
-  discover arbitrary controllers outside its known registries; legacy Factory
+  discover arbitrary controllers outside its known registries; old product
   approvals and completion are nonresumable and not transferred.
 - Declared process permissions and filtered environment variables are not an OS
   sandbox. Untrusted code needs external isolation.

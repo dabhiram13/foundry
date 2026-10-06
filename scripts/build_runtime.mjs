@@ -8,6 +8,9 @@ const metadata = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf
 const define = { __FOUNDRY_VERSION__: JSON.stringify(metadata.version) };
 const runtimeOutput = path.join(root, 'dist/runtime');
 const testsOutput = path.join(root, 'dist/runtime-tests');
+const notices = await Promise.all(['LICENSE', 'licenses/Zod-MIT.txt', 'licenses/parse5-MIT.txt', 'licenses/entities-BSD.txt']
+  .map(file => readFile(path.join(root, file), 'utf8')));
+const banner = { js: `#!/usr/bin/env node\n/*!\n${notices.join('\n\n')}\n*/` };
 
 async function files(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -31,7 +34,7 @@ await build({
   target: 'node24',
   format: 'cjs',
   external: ['node:*'],
-  banner: { js: '#!/usr/bin/env node' },
+  banner,
 });
 await chmod(path.join(runtimeOutput, 'foundry.cjs'), 0o755);
 await build({
@@ -42,7 +45,7 @@ await build({
   target: 'node24',
   format: 'cjs',
   external: ['node:*'],
-  banner: { js: '#!/usr/bin/env node' },
+  banner,
 });
 await chmod(path.join(runtimeOutput, 'foundry-worker.cjs'), 0o755);
 

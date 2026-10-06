@@ -63,6 +63,9 @@ process.stdin.on('data',chunk=>input+=chunk);
 process.stdin.on('end',()=>{
   const request=JSON.parse(input);
   const prompt=request.prompt;
+  if(prompt.includes('current stage is Research') && (!request.output_schema || request.permissions.sandbox !== 'read-only')) {
+    throw new Error('Research must request structured output and read-only access');
+  }
   fs.writeFileSync('.foundry/state/factory/last-provider-request.json',JSON.stringify({
     model:request.model,reasoning:request.reasoning,
   }));
@@ -74,7 +77,7 @@ process.stdin.on('end',()=>{
     setInterval(()=>{},1000);
     return;
   }
-  if(mode==='research-hang'&&prompt.includes('current stage is Research')&&!fs.existsSync('.foundry/state/factory/research-retried')){
+  if(((mode==='research-hang'&&prompt.includes('current stage is Research'))||(mode==='synthesis-hang'&&prompt.includes('Research synthesis.')))&&!fs.existsSync('.foundry/state/factory/research-retried')){
     write('docs/product/research.md','# Partial Research\\n\\nSource: https://example.test/partial\\n');
     fs.writeFileSync('.foundry/state/factory/research-retried','1');
     const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});
@@ -82,8 +85,18 @@ process.stdin.on('end',()=>{
     setInterval(()=>{},1000);
     return;
   }
-  if(prompt.includes('current stage is Research')){
-    write('docs/product/research.md','# Research\\n\\nSource: https://example.test/research\\n');
+  if(prompt.includes('Research source selection.')){
+    output={sources:[{kind:'local',location:'docs/product/idea.md'}]};
+    if(mode==='research-url-only')output={ok:true};
+    if(mode==='research-no-source')output={sources:[{kind:'local',location:'docs/missing.md'}]};
+  }else if(prompt.includes('Research synthesis.')){
+    const observation=fs.readFileSync('docs/product/idea.md','utf8').trim();
+    output={summary:'The owner supplied a bounded local idea.',findings:[{claim:'The owner describes the intended product.',source:'S1',quote:observation}],limitations:['Owner input is not independent market evidence.']};
+    if(mode==='research-fabricated-quote')output.findings[0].quote='A fabricated quotation not present in any source.';
+    if(mode==='research-tampered-source'){
+      const collections=fs.readdirSync('.foundry/state/factory/research');
+      write('.foundry/state/factory/research/'+collections[0]+'/S1.txt','tampered');
+    }
   }else if(prompt.includes('current stage is Plan')){
     write('docs/specs/product.md','# Product plan\\n\\n## Acceptance criteria\\n- [AC-001] A configured local check passes\\n');
   }else if(prompt.includes('current stage is Design')){
@@ -218,7 +231,7 @@ process.stdin.on('end',()=>{
       name,
       kind: 'agent-runtime',
       command: [process.execPath, fakeProvider, providerMode],
-      capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'model_selection', 'reasoning_selection'],
+      capabilities: ['tools', 'jsonl', 'cancel', 'permissions', 'model_selection', 'reasoning_selection', 'structured_output'],
       billing_modes: ['local', 'subscription'],
     })),
   }));
@@ -269,6 +282,43 @@ async function waitForPidExit(pid: number): Promise<void> {
   }
   assert.fail(`Owned child process ${pid} remained alive`);
 }
+
+test('Research rejects URL-only output, unavailable sources, invented quotes and changed source snapshots', async t => {
+  for (const mode of ['research-url-only', 'research-no-source', 'research-fabricated-quote', 'research-tampered-source']) {
+    const root = await project(mode);
+    t.after(() => rm(root, { recursive: true, force: true }));
+    await initFactory(root, { name: 'Research evidence', idea: 'Use actual evidence, not a URL placeholder.', adapter: 'fixture' });
+    await assert.rejects(runFactory(root));
+    const state = await readFactoryState(root);
+    assert.equal(state?.stage, 'research');
+    assert.equal(state?.completed_stages.includes('research'), false);
+    assert.equal(state?.status, 'failed');
+  }
+});
+
+test('Factory rejects adapters without structured research support before starting work', async t => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const file = path.join(root, '.foundry/providers.json');
+  const configuration = JSON.parse(await readFile(file, 'utf8'));
+  configuration.adapters[0].capabilities = configuration.adapters[0].capabilities.filter((item: string) => item !== 'structured_output');
+  await writeFile(file, JSON.stringify(configuration));
+  await assert.rejects(initFactory(root, { name: 'Research readiness', idea: 'Require structured handoffs.', adapter: 'fixture' }), /structured_output/);
+});
+
+test('cancellation during research synthesis retains the stage and requires explicit recovery', async t => {
+  const root = await project('synthesis-hang');
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initFactory(root, { name: 'Research recovery', idea: 'Preserve source evidence after interruption.', adapter: 'fixture' });
+  const running = runFactory(root).then(() => null, (error: Error) => error);
+  const pid = Number(await waitForFile(path.join(root, 'provider-child-started')));
+  await cancelFactory(root);
+  assert.match(String(await running), /cancel/i);
+  await waitForPidExit(pid);
+  assert.equal((await readFactoryState(root))?.stage, 'research');
+  assert.equal((await recoverFactory(root)).status, 'interrupted');
+  assert.equal((await runFactory(root)).stage, 'scope');
+});
 
 test('factory completes Research through Ship with approvals, a real check and checkpoint', async (t) => {
   const products = await mkdtemp(path.join(os.tmpdir(), 'foundry-shipped-project-'));
@@ -747,7 +797,7 @@ test('partial Research output is canceled, recovered, and rerun at Research befo
   assert.equal(recovered.stage, 'research');
   assert.equal(recovered.status, 'interrupted');
   assert.equal((await runFactory(root)).stage, 'scope');
-  assert.match(await readFile(path.join(root, 'docs/product/research.md'), 'utf8'), /Source: https:\/\/example\.test\/research/);
+  assert.match(await readFile(path.join(root, 'docs/product/research.md'), 'utf8'), /S1: docs\/product\/idea\.md/);
   await runFactory(root);
   const plan = await reviewFactory(root, 'plan');
   await approveFactory(root, 'plan', String(plan.revision));
@@ -1001,6 +1051,7 @@ test('installed single-bin runtime bootstraps and ships two product-changing tas
   const invoke = (...args: string[]): JsonRecord => {
     const result = spawnSync(process.execPath, [cli, ...args, '--products-dir', products, '--json'], {
       cwd: root, encoding: 'utf8',
+      env: { ...process.env, FOUNDRY_SOURCE_ROOT: root },
     });
     assert.equal(result.status, 0, result.stderr);
     return JSON.parse(result.stdout) as JsonRecord;

@@ -2,8 +2,7 @@
 
 Foundry's runtime is one Node 24 executable. [Install it with npm](GETTING-STARTED.md#install-foundry),
 then use `init` for a clean repository or the explicit migration flow for a
-legacy workspace. There is no Python fallback, browser workspace, HTTP server or
-MCP runtime.
+legacy workspace.
 
 ## Project directories
 
@@ -50,7 +49,7 @@ formats, active tasks and ambiguous records are refused. If a migration has an
 installer journal, `--apply --recover` is the explicit recovery route.
 
 Migration backs up and archives supported legacy project state but does not
-transfer Python Factory approvals or mark work complete. Its old registry
+transfer old product approvals or mark work complete. Its old registry
 history is nonresumable. After import, use `foundry work` for scoped changes in
 the existing repository. Import does not create a new six-stage controller there;
 `foundry new` starts a separate product journey with fresh Plan and Design

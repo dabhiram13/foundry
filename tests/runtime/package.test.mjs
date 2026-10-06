@@ -101,6 +101,8 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     'dist/runtime/foundry-worker.cjs',
     'dist/runtime/foundry.cjs',
     'licenses/Zod-MIT.txt',
+    'licenses/entities-BSD.txt',
+    'licenses/parse5-MIT.txt',
     'package.json',
   ]);
   assert.doesNotMatch(packedFiles.join('\n'), /\b(?:app|server|mcp|python|state|tests|scripts)\b/i);
@@ -138,6 +140,11 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   const zodLicense = await readFile(path.join(installedRoot, 'licenses/Zod-MIT.txt'), 'utf8');
   assert.match(zodLicense, /Copyright \(c\) 2025 Colin McDonnell/);
   assert.match(zodLicense, /Permission is hereby granted, free of charge/);
+  const bundled = await readFile(path.join(installedRoot, 'dist/runtime/foundry.cjs'), 'utf8');
+  for (const name of ['Zod-MIT.txt', 'parse5-MIT.txt', 'entities-BSD.txt']) {
+    const license = await readFile(path.join(installedRoot, 'licenses', name), 'utf8');
+    assert.ok(bundled.includes(license), `${name} must travel with installed workspace runtimes`);
+  }
   assert.match(zodLicense, /THE SOFTWARE IS PROVIDED "AS IS"/);
   await assert.rejects(readFile(path.join(installedRoot, 'dist/runtime/project.cjs')));
   await assert.rejects(readFile(path.join(installedRoot, 'dist/runtime/assets/roles.json')));

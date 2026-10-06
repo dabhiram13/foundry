@@ -25,6 +25,8 @@
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "licenses/Zod-MIT.txt",
+    "licenses/parse5-MIT.txt",
+    "licenses/entities-BSD.txt",
     "README.md"
   ],
   "devDependencies": {
@@ -54,6 +56,11 @@
   },
   "engines": {
     "node": ">=24.0.0 <25"
+  },
+  "overrides": {
+    "@expressive-code/core": {
+      "postcss-nested": "7.0.2"
+    }
   },
   "scripts": {
     "prepack": "npm run build:runtime",

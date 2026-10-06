@@ -89,6 +89,8 @@ test('every canonical documentation source produces a searchable linked page', a
 
 test('README links readers to built public documentation pages', async () => {
   const readme = await readFile(path.join(root, 'README.md'), 'utf8');
+  assert.match(readme, /foundry providers PROJECT/);
+  assert.doesNotMatch(readme, /foundry providers \./);
   const links = new Map([...readme.matchAll(/^\[([^\]]+)\]: (\S+)$/gm)]
     .map(([, name, href]) => [name, href]));
   const website = new URL(links.get('website'));

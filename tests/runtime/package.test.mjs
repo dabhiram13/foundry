@@ -179,6 +179,9 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.equal(project.billing_mode, 'subscription');
   assert.equal(project.subscription_confirmed, false);
   assert.equal(project.path, path.join(home, '.foundry/products/tarball-fixture'));
+  const providers = JSON.parse(run(executable, ['providers', project.slug, '--json'], { cwd: home, env }).stdout);
+  assert.ok(providers.some(adapter => adapter.name === 'codex' && adapter.source === 'builtin'
+    && adapter.authentication === 'not_checked' && ['available', 'missing'].includes(adapter.availability)));
   const providerTasksPath = path.join(project.path, '.foundry/state/providers/tasks');
   const providerTasks = await readdir(providerTasksPath).catch((error) => {
     if (error.code === 'ENOENT') return [];

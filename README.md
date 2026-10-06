@@ -61,7 +61,8 @@ the [setup guide][getting-started] walks you through it. Other tools need a [pro
 to connect them.
 
 Run `foundry providers` to inspect installed commands, declared capabilities and
-configuration sources. Inside a project, use `foundry providers .`.
+configuration sources. Use `foundry providers PROJECT` to inspect a saved project
+by its folder name or ID.
 
 You confirm subscription use before running AI work. Cloud providers receive the
 prompts and project content sent to them. Foundry is **not a sandbox**. Read the

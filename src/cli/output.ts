@@ -1,4 +1,17 @@
+import type { WorkContext } from '../core/lifecycle.js';
+
 type JsonRecord = Record<string, unknown>;
+
+export function renderWorkContext(context: WorkContext): string {
+  const run = context.run;
+  const lines = [run ? `${run.slug}${run.historical ? ' (completed history)' : ''}` : 'No scoped work yet.'];
+  if (run) lines.push(`Saved progress: ${run.saved_status}`, `Specification: ${run.spec.path}`);
+  const evidence = context.evidence.status === 'current'
+    ? 'Required checks passed for the current inputs.'
+    : context.blockers[0] ?? 'No verification recorded.';
+  lines.push(`Evidence: ${evidence}`, `Next: ${context.next_action.reason}`);
+  return `${lines.join('\n')}\n`;
+}
 
 function scalar(value: unknown): string {
   if (value === null) return '—';

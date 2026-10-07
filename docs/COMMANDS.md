@@ -94,6 +94,7 @@ of `--dry-run` or `--apply`; `--recover` is only valid with `--apply`.
 
 ```text
 foundry work status [--project PATH]
+foundry work context [--project PATH] [--json]
 foundry work start SLUG --spec PATH [--project PATH]
 foundry work pause|resume|verify|complete|recover [--project PATH]
 foundry work workflow guide|context|gate|record|feedback [OPTIONS]
@@ -101,6 +102,32 @@ foundry work workflow guide|context|gate|record|feedback [OPTIONS]
 
 `verify` and `complete` return a meaningful result in human or JSON mode and
 preserve nested task, check, review and active-run state.
+
+### Read current work
+
+`work context` shows the active scoped change, or the last completed run when
+there is no active change. It separates saved progress from current check
+evidence and suggests the next action. Reading context does not run checks or
+change saved work.
+
+Use `--json` for a versioned snapshot containing the run and specification,
+receipt reference, check outcomes, blockers and next action. `snapshot_revision`
+identifies the observed context; it is not an approval or authorization token.
+Concurrent changes can require another read. A zero exit code means the context
+was read successfully; inspect `evidence.status` for verification results.
+
+Evidence is `current`, `stale`, `failed`, `missing` or `invalid`. Current means
+the required checks and their retained evidence match the observed inputs.
+Optional checks are marked `not_assessed`, not counted as verified requirements.
+Scoped work does not assess scope approval or requirement coverage. Completed
+history remains history if later edits make its evidence stale.
+
+This command is for scoped work. Product journeys use `status` and `review`.
+`work workflow context` remains the separate workflow-record ledger.
+
+`next_action.kind` is a recommendation: `start`, `verify`, `complete`, `resume`,
+`recover`, `inspect` or `none`. `inspect` means review the referenced evidence;
+it is not a separate CLI command. Completion always validates again.
 
 ## Provider operations
 

@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { FoundryError, normalizeLocalPath, within } from '../core/fs.js';
-import { complete, pauseOrResume, recover, start, status, verify } from '../core/lifecycle.js';
+import { complete, pauseOrResume, recover, start, status, verify, workContext } from '../core/lifecycle.js';
 import { context, gate, guide, record } from '../core/workflow.js';
 import { cancel, execute, inspectAdapter, providerStatus, registry, reconcile } from '../runtime/providers.js';
-import { writeResult } from './output.js';
+import { renderWorkContext, writeResult } from './output.js';
 
 type Options = Record<string, string | boolean | string[]>;
 type JsonRecord = Record<string, unknown>;
@@ -20,6 +20,7 @@ function usage(): string {
 
 Usage:
   foundry work status [--project PATH]
+  foundry work context [--project PATH] [--json]
   foundry work start SLUG --spec PATH [--project PATH]
   foundry work pause|resume|verify|complete|recover [--project PATH]
   foundry work workflow guide|context|gate|record|feedback [options]
@@ -294,6 +295,13 @@ export async function dispatchProjectCommand(arguments_: string[]): Promise<numb
   const [command, ...rest] = arguments_;
   if (!command || command === '--help' || command === '-h' || command === 'help') {
     process.stdout.write(usage());
+    return 0;
+  }
+  if (command === 'context') {
+    const { options } = parse(rest, { value: [...PROJECT_OPTION] });
+    const snapshot = await workContext(rootOption(options));
+    if (options.json === true) output(snapshot, true);
+    else process.stdout.write(renderWorkContext(snapshot));
     return 0;
   }
   if (command === 'status') {

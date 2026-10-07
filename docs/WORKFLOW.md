@@ -112,7 +112,7 @@ Start a scoped run with an existing local spec:
 
 ```sh
 foundry work start SLUG --spec docs/specs/change.md --project /path/to/repository
-foundry work status --project /path/to/repository
+foundry work context --project /path/to/repository
 foundry work verify --project /path/to/repository
 foundry work complete --project /path/to/repository
 ```
@@ -121,6 +121,11 @@ foundry work complete --project /path/to/repository
 task state. `complete` records local completion only when evidence permits it.
 Pause, resume, stop and recover are explicit. An interrupted or failed command
 does not become a pass because a later command returned successfully.
+
+Use `work context` when returning to a change or handing it to another coding
+tool. It checks whether saved verification still matches the current work and
+shows the next action. Add `--json` for structured context. `work status` shows
+the saved lifecycle state, which may predate later edits.
 
 ## Roles and review
 

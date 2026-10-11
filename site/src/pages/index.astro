@@ -1,7 +1,7 @@
 ---
 import landing from '../../.generated/landing.html?raw';
-const title = 'Foundry - AI-assisted software development CLI';
-const description = 'Build software from your terminal with Foundry. Choose your AI provider, research an idea, approve a plan and build in small tasks with checks and Git checkpoints.';
+const title = 'Foundry - a product-building workflow for coding agents';
+const description = 'Research, plan, design, build and review with specialist roles, saved progress and your approvals. Explore the published CLI and OpenCode source preview.';
 const canonical = new URL('/', Astro.site).href;
 const application = {
   '@context': 'https://schema.org',
@@ -20,7 +20,7 @@ const application = {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#101010" />
+    <meta name="theme-color" content="#dce9eb" />
     <meta name="description" content={description} />
     <title>{title}</title>
     <link rel="canonical" href={canonical} />
@@ -32,7 +32,7 @@ const application = {
     <script type="application/ld+json" set:html={JSON.stringify(application)} />
     <link rel="icon" href="/assets/foundry-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/style.css" />
-    <script is:inline src="/public.js" defer></script>
+    <script is:inline type="module" src="/public.js"></script>
   </head>
   <body><div id="foundry-public" set:html={landing} /></body>
 </html>

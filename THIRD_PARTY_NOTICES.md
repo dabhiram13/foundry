@@ -21,6 +21,12 @@ beside applicable assets in `site/assets/licenses/`. Inter variable Latin is
 vendored from `@fontsource-variable/inter` under SIL OFL 1.1; the Foundry mark
 and wordmark are original SVG artwork.
 
+Three.js 0.180.0 renders the optional, original specialist-keycap illustration.
+Its MIT license is retained in `site/assets/licenses/Three-MIT.txt` and generated
+JavaScript. It is a site-only dependency, not bundled into the CLI. Landscape
+vectors and keycap geometry are original; no Imageory artwork or Spline scene
+is redistributed.
+
 Site controls adapt shadcn/ui and Animate UI patterns. Their retained notices
 are in `site/assets/licenses/shadcn-ui.txt` and
 `site/assets/animate-ui.LICENSE.md`. The Animate UI license includes its Commons

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'node:test';
 import { gzipSync } from 'node:zlib';
@@ -117,8 +117,8 @@ test('README links readers to built public documentation pages', async () => {
 
 test('public landing is pre-rendered and does not load the workspace client', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
-  assert.match(html, /Build software<br\/>/);
-  assert.match(html, /from your terminal/);
+  assert.match(html, /Your idea\.<br\/>/);
+  assert.match(html, /A whole team behind it/);
   assert.match(html, /href="\/docs\/"/);
   assert.doesNotMatch(html, /foundry-token|src="\/app.js"|Open local browser view/);
   const script = await readFile(path.join(output, 'public.js'), 'utf8');
@@ -143,6 +143,47 @@ test('landing CSS compiles utilities, local styles and font assets', async () =>
   const fonts = [];
   css.walkAtRules('font-face', rule => rule.walkDecls('src', declaration => fonts.push(declaration.value)));
   assert.ok(fonts.some(value => value.includes('/assets/inter-latin-wght-normal.woff2')));
+});
+
+test('Mist landing separates current installation options from planned capabilities', async () => {
+  const html = await readFile(path.join(output, 'index.html'), 'utf8');
+  const tree = parse(html);
+  const headings = [];
+  const summaries = [];
+  const landmarks = [];
+  walk(tree, node => {
+    if (node.tagName === 'h1') headings.push(textContent(node));
+    if (node.tagName === 'summary') summaries.push(textContent(node));
+    if (node.tagName === 'main') landmarks.push(attr(node, 'id'));
+    if (node.tagName === 'canvas') assert.equal(attr(node, 'aria-hidden'), 'true');
+  });
+  assert.equal(headings.length, 1);
+  assert.deepEqual(landmarks, ['landing-main']);
+  assert.equal(summaries.length, 5, 'FAQ works as native disclosures without JavaScript');
+  for (const copy of ['Source preview', 'not in 0.5.1', 'Not published yet', 'a live model-driven run is not', 'full specialist journey into the connected client is planned', 'do not guarantee correctness']) {
+    assert.ok(textContent(tree).includes(copy), copy);
+  }
+  assert.doesNotMatch(html, /src=["']https?:|imageory\.in|splinecode|<iframe|brew install|data-client-token/);
+  assert.match(html, /type="module" src="\/public\.js"/);
+  assert.match(html, /class="scene-poster"/);
+});
+
+test('Three.js is a separately loaded, licensed scene within a bounded transfer budget', async () => {
+  const script = await readFile(path.join(output, 'public.js'), 'utf8');
+  assert.doesNotMatch(script, /WebGLRenderer|PCFSoftShadowMap|ACESFilmicToneMapping/);
+  assert.match(script, /import\("\.\/chunks\/scene-renderer-/);
+  const chunks = await readdir(path.join(output, 'chunks'));
+  const scenes = chunks.filter(name => name.startsWith('scene-renderer-'));
+  assert.equal(scenes.length, 1, 'only the current scene chunk is shipped');
+  const scene = await readFile(path.join(output, 'chunks', scenes[0]));
+  assert.ok(gzipSync(scene).byteLength <= 165_000, 'Optional scene exceeds 165 kB gzip');
+  const allChunks = await Promise.all(chunks.map(name => readFile(path.join(output, 'chunks', name))));
+  const total = allChunks.reduce((size, chunk) => size + gzipSync(chunk).byteLength, gzipSync(script).byteLength);
+  assert.ok(total <= 250_000, 'Combined interactive landing exceeds 250 kB gzip');
+  assert.match(scene.toString(), /Copyright © 2010-2025 three\.js authors/);
+  assert.match(await readFile(path.join(output, 'assets/licenses/Three-MIT.txt'), 'utf8'), /Permission is hereby granted/);
+  const source = await readFile(path.join(root, 'site/src/landing/components/specialist-scene.tsx'), 'utf8');
+  for (const guard of ['min-width: 768px', 'pointer: fine', 'prefers-reduced-motion: no-preference', 'saveData', 'IntersectionObserver', 'unavailable']) assert.ok(source.includes(guard), guard);
 });
 
 test('landing follows device motion preferences without a separate toggle', async () => {
@@ -190,7 +231,7 @@ test('landing groups six specialist roles with decorative icons and a catalog li
     }
     if (attr(node, 'href') === '/docs/catalog/') catalog = true;
   });
-  assert.deepEqual(roles, ['Research', 'Planning', 'Design', 'Development', 'Testing', 'Review']);
+  assert.deepEqual(roles, ['Research', 'Plan', 'Design', 'Build', 'Review', 'Handoff']);
   assert.ok(catalog);
 });
 

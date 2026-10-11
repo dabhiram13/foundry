@@ -121,8 +121,8 @@
 }
 @layer base {
   * { @apply border-border; }
-  html { color-scheme: dark; scroll-padding-top: 88px; scrollbar-color: #737373 #171717; }
-  body { margin: 0; background: var(--foundry-canvas); color: var(--foreground); font-family: var(--font-sans); font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
+  html { color-scheme: light; scroll-padding-top: 24px; scrollbar-color: #8b9ea3 #dce9eb; }
+  body { margin: 0; background: #dce9eb; color: #181c1e; font-family: var(--font-sans); font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
   button, input, textarea, select { font: inherit; }
   button, a, summary { -webkit-tap-highlight-color: transparent; }
   a { text-underline-offset: 4px; }

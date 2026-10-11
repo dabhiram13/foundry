@@ -95,7 +95,9 @@ of `--dry-run` or `--apply`; `--recover` is only valid with `--apply`.
 ```text
 foundry work status [--project PATH]
 foundry work context [--project PATH] [--json]
-foundry work start SLUG --spec PATH [--project PATH]
+foundry work start SLUG --spec PATH [--contract PATH] [--project PATH]
+foundry work review [--project PATH] [--json]
+foundry work approve --revision HASH [--project PATH] [--json]
 foundry work pause|resume|verify|complete|recover [--project PATH]
 foundry work workflow guide|context|gate|record|feedback [OPTIONS]
 ```
@@ -119,15 +121,67 @@ was read successfully; inspect `evidence.status` for verification results.
 Evidence is `current`, `stale`, `failed`, `missing` or `invalid`. Current means
 the required checks and their retained evidence match the observed inputs.
 Optional checks are marked `not_assessed`, not counted as verified requirements.
-Scoped work does not assess scope approval or requirement coverage. Completed
+Context JSON uses schema version 2. Legacy runs keep `scope_approval: not_recorded`,
+`requirements_coverage: not_assessed` and `scope: null`. Opted-in runs report
+approval and criterion/check coverage separately from executed evidence. Completed
 history remains history if later edits make its evidence stale.
 
 This command is for scoped work. Product journeys use `status` and `review`.
 `work workflow context` remains the separate workflow-record ledger.
 
-`next_action.kind` is a recommendation: `start`, `verify`, `complete`, `resume`,
+`next_action.kind` is a recommendation: `start`, `review`, `verify`, `complete`, `resume`,
 `recover`, `inspect` or `none`. `inspect` means review the referenced evidence;
 it is not a separate CLI command. Completion always validates again.
+
+### Approve a scoped change
+
+Add a project-relative JSON contract alongside the specification:
+
+```json
+{
+  "schema_version": 1,
+  "criteria": [
+    {
+      "id": "COMPAT-001",
+      "requirement": "The installed command starts on the supported Node versions.",
+      "checks": ["package"]
+    }
+  ]
+}
+```
+
+Use stable uppercase IDs. Every criterion in the contract is required. Each
+must map to one or more required check names already configured in
+`.foundry/project.json`. Empty mappings, unknown checks and optional checks
+block approval. The contract declares coverage; Foundry does not infer criteria
+from prose or judge whether a mapped check meaningfully tests its requirement.
+
+```sh
+foundry work start compatibility --spec docs/specs/compatibility.md --contract docs/specs/compatibility.json --project /path/to/repository
+foundry work review --project /path/to/repository
+foundry work approve --revision HASH --project /path/to/repository
+# Implement the agreed change.
+foundry work verify --project /path/to/repository
+foundry work complete --project /path/to/repository
+```
+
+Review shows the specification, criteria and configured commands without executing
+them. Copy its exact revision into approval. Approval binds to the run, document
+paths and bytes, mapping and check settings. Edits to those inputs require fresh
+review and approval. Code edits require fresh verification but do not by themselves
+change scope approval. Verification and completion reject missing, invalid or
+stale approval and mismatched scope receipts. Approval never completes the change.
+
+For opted-in runs, `scope_approval` is `pending`, `current`, `stale` or `invalid`.
+`requirements_coverage` is `unmapped`, `mapped` or `checks_passed`. The last value
+means current mapped required-check evidence passed, not semantic correctness or
+owner acceptance. Criterion details and approval metadata are in `scope`.
+
+Terminal approval records a local workflow decision using `manual_cli`. It does
+not authenticate a human or restrict another process with equal filesystem access.
+Explicit approval of the current reviewed revision can replace an invalid approval
+record. Never repair private state by hand. Existing runs cannot be enrolled later;
+finish them normally and opt in on the next run. Factory approvals remain separate.
 
 ## Provider operations
 

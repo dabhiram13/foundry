@@ -15,6 +15,19 @@ Plan and Design approval binds to the exact document revision shown by
 that revision only. An edit or replacement makes an earlier revision stale.
 Legacy approval markers are not imported as fresh approvals.
 
+Scoped changes can opt in at `work start --contract PATH`. Their separate
+`work review` and `work approve --revision HASH` commands bind the specification,
+criteria, configured checks and run identity. Enrollment and approval are runtime
+records under that run's private directory. The specification and JSON contract
+remain project documents. A scoped receipt carries the approved scope revision.
+Missing or altered enrollment fails closed; missing, stale or malformed approval
+cannot authorize verification or completion. Legacy runs need no migration and
+retain no recorded approval. The current-work JSON snapshot uses schema version 2.
+
+Manual terminal approval is a local workflow gate, not human authentication or
+a hostile-agent security boundary. A mapped passing check is evidence of that
+configured check, not proof that its requirement is semantically correct.
+
 ## Checks and review
 
 The scoped work lifecycle records the active run, tasks, checks, review

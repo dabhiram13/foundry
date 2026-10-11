@@ -108,6 +108,13 @@ specification, run checks and record completion. **They do not dispatch an AI
 to implement the change.** You or your coding tool make the changes between
 `start` and `verify`. See [existing projects](RUNTIME.md).
 
+To require scope approval, start with `--contract PATH`. The contract gives each
+required criterion a stable ID and maps it to configured required checks. Read
+`work review`, then explicitly approve its exact revision with
+`work approve --revision HASH`. Verification records that approved revision;
+completion requires current approval and matching passing evidence. Scope edits
+require another approval. See the [contract format](COMMANDS.md#approve-a-scoped-change).
+
 Start a scoped run with an existing local spec:
 
 ```sh

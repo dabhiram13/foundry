@@ -52,7 +52,7 @@ test('context is read-only, stable across independent readers and explicit about
   const [one, two] = await Promise.all([workContext(root), workContext(root)]);
   assert.deepEqual(one, two);
   assert.deepEqual(await files(root), before);
-  assert.equal(one.schema_version, 1);
+  assert.equal(one.schema_version, 2);
   assert.match(one.snapshot_revision, /^[a-f0-9]{64}$/);
   assert.equal(one.run?.saved_status, 'verified');
   assert.equal(one.evidence.status, 'current');

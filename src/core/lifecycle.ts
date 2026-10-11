@@ -9,6 +9,10 @@ import {
   readJson, rejectSymlinkComponents, within, withProcessLock,
 } from './fs.js';
 import { assertFactoryShipGate, readFactoryState } from './factory-contract.js';
+import {
+  assertScopeReady, enrollScope, inspectScope, readScopeContract, recordScopeApproval,
+  scopedBindingSchema, type ScopeApprovalStatus, type ScopeReview,
+} from './scope.js';
 
 const runtimeMarkerSchema = z.object({
   schema_version: z.literal(1),
@@ -59,6 +63,7 @@ const runStateSchema = z.object({
   updated_at: z.string().min(1),
   verification: relativePointerSchema.optional(),
   previous_verification: relativePointerSchema.optional(),
+  scope: scopedBindingSchema.optional(),
   completion: z.object({
     path: relativePointerSchema,
     text: z.string().min(1),
@@ -232,6 +237,7 @@ async function sourceFiles(root: string): Promise<string[]> {
   output.add(within(root, '.foundry/project.json'));
   const [, state] = await activeRun(root);
   if (state?.spec) output.add(within(root, state.spec));
+  if (state?.scope) output.add(within(root, state.scope.contract));
   const walkEnv = async (directory: string): Promise<void> => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const child = path.join(directory, entry.name);
@@ -566,7 +572,7 @@ async function requireActive(root: string): Promise<[string, RunState]> {
   return [relative, state];
 }
 
-export async function start(rootInput: string, slug: string, spec: string): Promise<RunState> {
+export async function start(rootInput: string, slug: string, spec: string, contract?: string): Promise<RunState> {
   const root = await requireRuntimeWorkspace(rootInput, 'start');
   if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug)) {
     throw new FoundryError('Use a lowercase feature slug with letters, numbers and hyphens');
@@ -580,6 +586,10 @@ export async function start(rootInput: string, slug: string, spec: string): Prom
   }
   if (!contents.trim()) throw new FoundryError('A nonempty local spec is required');
   return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+    if (contract !== undefined) {
+      if (await readFactoryState(root)) throw new FoundryError('Scope contracts are for scoped work, not Factory-owned work.');
+      await readScopeContract(root, contract);
+    }
     const [, current] = await activeRun(root);
     if (current) throw new FoundryError(`Resume active run ${current.slug} (${current.status}) before starting another.`);
     const runId = randomUUID();
@@ -591,10 +601,56 @@ export async function start(rootInput: string, slug: string, spec: string): Prom
       status: 'building',
       started_at: now(),
       updated_at: now(),
+      ...(contract === undefined ? {} : { scope: { contract } }),
     };
+    await enrollScope(root, state);
     await atomicJson(root, `.foundry/state/runs/${runId}/state.json`, state);
     await atomicJson(root, '.foundry/state/active.json', { run_id: runId, slug });
     return state;
+  });
+}
+
+export async function reviewScope(rootInput: string): Promise<ScopeReview> {
+  const root = await requireRuntimeWorkspace(rootInput, 'review scoped work in');
+  const sample = async (): Promise<ScopeReview> => {
+    if (await exists(root, '.foundry/state/coordinator.lock') || await readFactoryState(root)) {
+      throw new FoundryError('Scope review needs idle scoped work, not a writer or Factory-owned work.');
+    }
+    const [, state] = await requireActive(root);
+    const scope = await inspectScope(root, state, await configuredChecks(root));
+    if (!scope) throw new FoundryError('This run has no scope contract. Start a new run with --contract PATH to opt in.');
+    return scope;
+  };
+  const first = await sample();
+  const second = await sample();
+  if (canonicalJson(first) !== canonicalJson(second) || await exists(root, '.foundry/state/coordinator.lock')) {
+    throw new FoundryError('Scope changed while reading review. Review it again.');
+  }
+  return second;
+}
+
+export async function approveScope(rootInput: string, revision: string): Promise<ScopeReview> {
+  const root = await requireRuntimeWorkspace(rootInput, 'approve scoped work in');
+  if (!/^[a-f0-9]{64}$/.test(revision)) throw new FoundryError('Use the exact revision shown by work review.');
+  return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+    if (await readFactoryState(root)) throw new FoundryError('Scope approval is for scoped work, not Factory-owned work.');
+    const [statePath, state] = await requireActive(root);
+    if (!['building', 'verified', 'paused'].includes(state.status)) throw new FoundryError('Recover the unfinished operation before approving scope.');
+    const scope = await inspectScope(root, state, await configuredChecks(root));
+    if (!scope) throw new FoundryError('This run has no scope contract.');
+    if (scope.revision !== revision) throw new FoundryError('Scope changed since review. Review the current revision before approving.');
+    if (scope.criteria.some(criterion => !criterion.mapped)) throw new FoundryError('Every acceptance criterion needs configured required checks before approval.');
+    const current = await inspectScope(root, state, await configuredChecks(root));
+    const [, currentState] = await requireActive(root);
+    if (!current || current.revision !== revision || canonicalJson(currentState) !== canonicalJson(state)) {
+      throw new FoundryError('Scope changed during approval. Review it again.');
+    }
+    const approvalSha256 = await recordScopeApproval(root, state, current);
+    const nextState = { ...state, scope: { ...state.scope!, approval_sha256: approvalSha256 }, updated_at: now() };
+    await atomicJson(root, statePath, nextState);
+    const approved = await inspectScope(root, nextState, await configuredChecks(root));
+    assertScopeReady(approved);
+    return approved!;
   });
 }
 
@@ -624,6 +680,8 @@ export async function verify(rootInput: string, cancelRequested: () => boolean =
       throw new FoundryError('Recover the interrupted run before verifying again.');
     }
     const checks = await configuredChecks(root);
+    const scope = await inspectScope(root, state, checks);
+    assertScopeReady(scope);
     const before = await workspaceRevision(root);
     const batchName = `.foundry/state/runs/${state.run_id}/verification-${randomUUID()}`;
     const receipts: CheckReceipt[] = [];
@@ -635,6 +693,7 @@ export async function verify(rootInput: string, cancelRequested: () => boolean =
       passed: false,
       status: 'running',
       checks: receipts,
+      ...(scope ? { scope_revision: scope.revision } : {}),
     };
     await atomicJson(root, `${batchName}/receipts.json`, evidence);
     await atomicJson(root, statePath, { ...state, status: 'verifying', verification: `${batchName}/receipts.json`, updated_at: now() });
@@ -670,7 +729,14 @@ export async function verify(rootInput: string, cancelRequested: () => boolean =
     }
     interrupted = interrupted || cancelRequested();
     const after = await workspaceRevision(root);
-    const passed = !interrupted
+    let scopeCurrent = true;
+    try {
+      const afterScope = await inspectScope(root, state, await configuredChecks(root));
+      scopeCurrent = afterScope?.revision === scope?.revision && (!afterScope || !afterScope.blockers.length);
+    } catch {
+      scopeCurrent = false;
+    }
+    const passed = !interrupted && scopeCurrent
       && receipts.length === checks.length
       && receipts.every((receipt) => !receipt.required || (receipt.status === 'passed' && receipt.exit_code === 0))
       && before === after;
@@ -698,19 +764,22 @@ function exactTestCounts(value: unknown): value is { executed: number; passed: n
     && counts.executed === (counts.passed as number) + (counts.failed as number);
 }
 
-async function completionEvidence(root: string, state: RunState, observedRevision?: string): Promise<[string, Record<string, unknown>[]]> {
+async function completionEvidence(root: string, state: RunState, observedRevision?: string, requireScopeApproval = false): Promise<[string, Record<string, unknown>[]]> {
   const verification = typeof state.verification === 'string' ? state.verification : '';
   if (!verification) throw new FoundryError('Completion needs a fresh successful verify run.');
   const evidence = await readJson<Record<string, unknown>>(within(root, verification));
   const completion = typeof state.completion === 'object' && state.completion !== null
     ? state.completion as { path?: string }
     : null;
-  const fingerprint = observedRevision ?? await workspaceRevision(root, completion?.path ? [completion.path] : [], [state.spec]);
+  const fingerprint = observedRevision ?? await workspaceRevision(root, completion?.path ? [completion.path] : [], [state.spec, ...(state.scope ? [state.scope.contract] : [])]);
   if (evidence.run_id !== state.run_id || evidence.passed !== true
     || evidence.inputs_before !== fingerprint || evidence.inputs_after !== fingerprint) {
     throw new FoundryError('Verification is stale or mismatched. Run verify again.');
   }
   const checks = await configuredChecks(root);
+  const scope = await inspectScope(root, state, checks);
+  if (requireScopeApproval) assertScopeReady(scope);
+  if (scope && evidence.scope_revision !== scope.revision) throw new FoundryError('Verification does not match the current scoped contract. Run verify again.');
   const receipts = evidence.checks;
   if (!Array.isArray(receipts) || receipts.length !== checks.length) throw new FoundryError('Missing check receipts');
   const validated: Record<string, unknown>[] = [];
@@ -834,8 +903,9 @@ export async function complete(rootInput: string): Promise<number> {
       );
     }
     let state = current;
+    assertScopeReady(await inspectScope(root, state, await configuredChecks(root)));
     if (state.status !== 'completed') {
-      const [fingerprint, receipts] = await completionEvidence(root, state);
+      const [fingerprint, receipts] = await completionEvidence(root, state, undefined, true);
       if (!state.completion) {
         let output = `.foundry/state/runs/${state.run_id}/completion.md`;
         const defaultPath = `docs/built/${state.slug}.md`;
@@ -856,6 +926,7 @@ export async function complete(rootInput: string): Promise<number> {
         throw new FoundryError('Completion output changed; preserved for manual reconciliation.');
       }
       if (existing === null) await atomicWrite(root, intent.path, intent.text);
+      await completionEvidence(root, state, undefined, true);
       state = {
         ...state,
         status: 'completed',
@@ -912,7 +983,7 @@ export async function recover(rootInput: string): Promise<RunState | null> {
             await workspaceRevision(root, await factoryCompletionExclusions(root, state)),
           );
         }
-        await completionEvidence(root, state);
+        await completionEvidence(root, state, undefined, true);
         const intent = state.completion as { path: string; text: string; completed_at: string };
         const output = await readFile(within(root, intent.path), 'utf8').catch((error: NodeJS.ErrnoException) => {
           if (error.code === 'ENOENT') return null;
@@ -920,6 +991,7 @@ export async function recover(rootInput: string): Promise<RunState | null> {
         });
         if (output !== null && output !== intent.text) throw new FoundryError('Completion output changed; owner version preserved.');
         if (output === null) await atomicWrite(root, intent.path, intent.text);
+        await completionEvidence(root, state, undefined, true);
         const completed: RunState = {
           ...state,
           status: 'completed',
@@ -986,7 +1058,7 @@ export async function status(rootInput: string): Promise<Record<string, unknown>
 }
 
 export interface WorkContext {
-  schema_version: 1;
+  schema_version: 2;
   kind: 'scoped_work';
   snapshot_revision: string;
   project: string;
@@ -994,8 +1066,12 @@ export interface WorkContext {
     id: string; slug: string; saved_status: RunState['status']; historical: boolean;
     spec: { path: string; sha256: string };
   } | null;
-  scope_approval: 'not_recorded';
-  requirements_coverage: 'not_assessed';
+  scope_approval: 'not_recorded' | ScopeApprovalStatus;
+  requirements_coverage: 'not_assessed' | 'unmapped' | 'mapped' | 'checks_passed';
+  scope: null | {
+    contract: ScopeReview['contract']; revision: string; approval: ScopeReview['approval'];
+    criteria: Array<{ id: string; requirement: string; checks: string[]; status: 'unmapped' | 'pending' | 'checks_passed' }>;
+  };
   evidence: {
     status: 'missing' | 'current' | 'stale' | 'failed' | 'invalid';
     receipt: string | null;
@@ -1003,7 +1079,7 @@ export interface WorkContext {
     checks: { name: string; required: boolean; status: 'not_current' | 'passed' | 'not_assessed' }[];
   };
   blockers: string[];
-  next_action: { kind: 'start' | 'verify' | 'complete' | 'resume' | 'recover' | 'inspect' | 'none'; reason: string };
+  next_action: { kind: 'start' | 'review' | 'verify' | 'complete' | 'resume' | 'recover' | 'inspect' | 'none'; reason: string };
 }
 
 async function contextRun(root: string): Promise<{ state: RunState | null; historical: boolean }> {
@@ -1033,11 +1109,11 @@ async function contextSample(root: string): Promise<WorkContext> {
   const checks = state ? await configuredChecks(root) : [];
   const exclusions = state?.completion ? [state.completion.path] : [];
   const revision = (): Promise<string> => state
-    ? workspaceRevision(root, exclusions, [state.spec])
+    ? workspaceRevision(root, exclusions, [state.spec, ...(state.scope ? [state.scope.contract] : [])])
     : projectConfig(root).then((config) => digest(canonicalJson(config)));
   const inputs = await revision();
   const result: WorkContext = {
-    schema_version: 1,
+    schema_version: 2,
     kind: 'scoped_work',
     snapshot_revision: '',
     project: root,
@@ -1047,6 +1123,7 @@ async function contextSample(root: string): Promise<WorkContext> {
     } : null,
     scope_approval: 'not_recorded',
     requirements_coverage: 'not_assessed',
+    scope: null,
     evidence: {
       status: 'missing', receipt: state?.verification ?? null, receipt_sha256: null,
       checks: checks.map((check) => ({ name: check.name, required: check.required, status: 'not_current' })),
@@ -1082,6 +1159,19 @@ async function contextSample(root: string): Promise<WorkContext> {
     }
   }
   if (state) {
+    const scope = await inspectScope(root, state, checks);
+    if (scope) {
+      result.scope_approval = scope.approval.status;
+      result.requirements_coverage = scope.criteria.some(criterion => !criterion.mapped) ? 'unmapped'
+        : scope.approval.status === 'current' && result.evidence.status === 'current' ? 'checks_passed' : 'mapped';
+      result.scope = {
+        contract: scope.contract, revision: scope.revision, approval: scope.approval,
+        criteria: scope.criteria.map(({ mapped, ...criterion }) => ({ ...criterion,
+          status: !mapped ? 'unmapped' : result.requirements_coverage === 'checks_passed' ? 'checks_passed' : 'pending',
+        })),
+      };
+      result.blockers.push(...scope.blockers);
+    }
     const messages: Record<WorkContext['evidence']['status'], string> = {
       missing: 'No verification is recorded for this run.',
       current: '',
@@ -1095,9 +1185,11 @@ async function contextSample(root: string): Promise<WorkContext> {
     } else if (state.status === 'paused') {
       result.next_action = { kind: 'resume', reason: 'Resume the scoped change before verifying it again.' };
     } else if (historical) {
-      result.next_action = result.evidence.status === 'current'
+      result.next_action = result.evidence.status === 'current' && !result.blockers.length
         ? { kind: 'none', reason: 'This run is completed; its configured checks still match the current inputs.' }
         : { kind: 'start', reason: 'Keep the completed history. Start a new run to verify the current work.' };
+    } else if (scope?.blockers.length) {
+      result.next_action = { kind: 'review', reason: 'Review the current scope, resolve missing check mappings, then explicitly approve its revision.' };
     } else if (result.evidence.status === 'current' && state.status === 'verified') {
       result.next_action = { kind: 'complete', reason: 'Configured checks are current. Review the change before completing it.' };
     } else {

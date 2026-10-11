@@ -273,9 +273,9 @@ function executableFor(command: string, cwd: string): string | null {
   return null;
 }
 
-export async function workspaceRevision(root: string, exclude: readonly string[] = []): Promise<string> {
+export async function workspaceRevision(root: string, exclude: readonly string[] = [], include: readonly string[] = []): Promise<string> {
   const files: Record<string, string> = {};
-  for (const file of await sourceFiles(root)) {
+  for (const file of new Set([...await sourceFiles(root), ...include.map((relative) => within(root, relative))])) {
     const relative = path.relative(root, file).split(path.sep).join('/');
     if (exclude.includes(relative)) continue;
     const stats = lstatSync(file);
@@ -698,14 +698,14 @@ function exactTestCounts(value: unknown): value is { executed: number; passed: n
     && counts.executed === (counts.passed as number) + (counts.failed as number);
 }
 
-async function completionEvidence(root: string, state: RunState): Promise<[string, Record<string, unknown>[]]> {
+async function completionEvidence(root: string, state: RunState, observedRevision?: string): Promise<[string, Record<string, unknown>[]]> {
   const verification = typeof state.verification === 'string' ? state.verification : '';
   if (!verification) throw new FoundryError('Completion needs a fresh successful verify run.');
   const evidence = await readJson<Record<string, unknown>>(within(root, verification));
   const completion = typeof state.completion === 'object' && state.completion !== null
     ? state.completion as { path?: string }
     : null;
-  const fingerprint = await workspaceRevision(root, completion?.path ? [completion.path] : []);
+  const fingerprint = observedRevision ?? await workspaceRevision(root, completion?.path ? [completion.path] : [], [state.spec]);
   if (evidence.run_id !== state.run_id || evidence.passed !== true
     || evidence.inputs_before !== fingerprint || evidence.inputs_after !== fingerprint) {
     throw new FoundryError('Verification is stale or mismatched. Run verify again.');
@@ -983,4 +983,146 @@ export async function status(rootInput: string): Promise<Record<string, unknown>
     runtime_owner: marker ? 'typescript' : 'unmarked-or-legacy',
     active: active ?? { status: 'idle' },
   };
+}
+
+export interface WorkContext {
+  schema_version: 1;
+  kind: 'scoped_work';
+  snapshot_revision: string;
+  project: string;
+  run: {
+    id: string; slug: string; saved_status: RunState['status']; historical: boolean;
+    spec: { path: string; sha256: string };
+  } | null;
+  scope_approval: 'not_recorded';
+  requirements_coverage: 'not_assessed';
+  evidence: {
+    status: 'missing' | 'current' | 'stale' | 'failed' | 'invalid';
+    receipt: string | null;
+    receipt_sha256: string | null;
+    checks: { name: string; required: boolean; status: 'not_current' | 'passed' | 'not_assessed' }[];
+  };
+  blockers: string[];
+  next_action: { kind: 'start' | 'verify' | 'complete' | 'resume' | 'recover' | 'inspect' | 'none'; reason: string };
+}
+
+async function contextRun(root: string): Promise<{ state: RunState | null; historical: boolean }> {
+  const [, active] = await activeRun(root);
+  if (active) return { state: active, historical: false };
+  if (!(await exists(root, '.foundry/state/last-completed.json'))) return { state: null, historical: false };
+  const ref = z.object({ run_id: z.string().uuid(), state: relativePointerSchema })
+    .parse(await readJson(within(root, '.foundry/state/last-completed.json')));
+  if (ref.state !== `.foundry/state/runs/${ref.run_id}/state.json`) {
+    throw new FoundryError('Completed pointer does not match its run');
+  }
+  const state = runStateSchema.parse(await readJson(within(root, ref.state)));
+  if (state.run_id !== ref.run_id || state.status !== 'completed') {
+    throw new FoundryError('Completed pointer does not match completed run state');
+  }
+  return { state, historical: true };
+}
+
+async function contextSample(root: string): Promise<WorkContext> {
+  if (await exists(root, '.foundry/state/coordinator.lock')) {
+    throw new FoundryError('Work is changing. Wait for the current operation, then read context again.');
+  }
+  if (await readFactoryState(root)) {
+    throw new FoundryError('Work context is for scoped work. Use foundry status or review for a product journey.');
+  }
+  const { state, historical } = await contextRun(root);
+  const checks = state ? await configuredChecks(root) : [];
+  const exclusions = state?.completion ? [state.completion.path] : [];
+  const revision = (): Promise<string> => state
+    ? workspaceRevision(root, exclusions, [state.spec])
+    : projectConfig(root).then((config) => digest(canonicalJson(config)));
+  const inputs = await revision();
+  const result: WorkContext = {
+    schema_version: 1,
+    kind: 'scoped_work',
+    snapshot_revision: '',
+    project: root,
+    run: state ? {
+      id: state.run_id, slug: state.slug, saved_status: state.status, historical,
+      spec: { path: state.spec, sha256: digest(await readFile(within(root, state.spec))) },
+    } : null,
+    scope_approval: 'not_recorded',
+    requirements_coverage: 'not_assessed',
+    evidence: {
+      status: 'missing', receipt: state?.verification ?? null, receipt_sha256: null,
+      checks: checks.map((check) => ({ name: check.name, required: check.required, status: 'not_current' })),
+    },
+    blockers: [],
+    next_action: { kind: 'start', reason: 'Start a scoped change with a local specification.' },
+  };
+  if (state?.verification) {
+    try {
+      const bytes = await readFile(within(root, state.verification));
+      result.evidence.receipt_sha256 = digest(bytes);
+      const receipt = z.object({
+        run_id: z.string().uuid(), passed: z.boolean(), status: z.enum(['running', 'interrupted', 'passed', 'failed']),
+        inputs_before: z.string(), inputs_after: z.string().nullable(),
+      }).parse(JSON.parse(bytes.toString('utf8')));
+      if (receipt.run_id !== state.run_id) {
+        result.evidence.status = 'invalid';
+      } else if (['running', 'interrupted'].includes(receipt.status)) {
+        result.evidence.status = 'invalid';
+      } else if (receipt.inputs_before !== inputs || receipt.inputs_after !== inputs) {
+        result.evidence.status = 'stale';
+      } else if (!receipt.passed || receipt.status !== 'passed') {
+        result.evidence.status = 'failed';
+      } else {
+        await completionEvidence(root, state, inputs);
+        result.evidence.status = 'current';
+        result.evidence.checks = checks.map((check) => ({
+          name: check.name, required: check.required, status: check.required ? 'passed' : 'not_assessed',
+        }));
+      }
+    } catch {
+      result.evidence.status = 'invalid';
+    }
+  }
+  if (state) {
+    const messages: Record<WorkContext['evidence']['status'], string> = {
+      missing: 'No verification is recorded for this run.',
+      current: '',
+      stale: 'The saved verification does not match the current inputs.',
+      failed: 'The recorded verification did not pass.',
+      invalid: 'Verification evidence is missing, interrupted or invalid.',
+    };
+    if (messages[result.evidence.status]) result.blockers.push(messages[result.evidence.status]);
+    if (['verifying', 'completing', 'completed'].includes(state.status) && !historical) {
+      result.next_action = { kind: 'recover', reason: 'Inspect and recover the unfinished lifecycle operation.' };
+    } else if (state.status === 'paused') {
+      result.next_action = { kind: 'resume', reason: 'Resume the scoped change before verifying it again.' };
+    } else if (historical) {
+      result.next_action = result.evidence.status === 'current'
+        ? { kind: 'none', reason: 'This run is completed; its configured checks still match the current inputs.' }
+        : { kind: 'start', reason: 'Keep the completed history. Start a new run to verify the current work.' };
+    } else if (result.evidence.status === 'current' && state.status === 'verified') {
+      result.next_action = { kind: 'complete', reason: 'Configured checks are current. Review the change before completing it.' };
+    } else {
+      result.next_action = result.evidence.status === 'failed' || result.evidence.status === 'invalid'
+        ? { kind: 'inspect', reason: 'Inspect the saved evidence, resolve the problem, then run verification.' }
+        : { kind: 'verify', reason: 'Run the configured checks against the current work.' };
+    }
+  }
+  const after = await contextRun(root);
+  if (canonicalJson({ state, historical }) !== canonicalJson(after)
+    || inputs !== await revision()
+    || await exists(root, '.foundry/state/coordinator.lock') || await readFactoryState(root)) {
+    throw new FoundryError('Work changed while reading context. Read context again.');
+  }
+  result.snapshot_revision = digest(canonicalJson({ result, inputs, state }));
+  return result;
+}
+
+export async function workContext(rootInput: string): Promise<WorkContext> {
+  const root = await requireRuntimeWorkspace(rootInput, 'read work context from');
+  let previous = await contextSample(root);
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const current = await contextSample(root);
+    if (current.snapshot_revision === previous.snapshot_revision) return current;
+    previous = current;
+  }
+  throw new FoundryError('Work changed while reading context. Read context again.');
 }

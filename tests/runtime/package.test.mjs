@@ -217,6 +217,27 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     .then((content) => content.includes('Create one local workspace')), true);
   assert.equal(await readFile(path.join(project.path, '.foundry/runtime.json'), 'utf8')
     .then((content) => JSON.parse(content).runtime), 'typescript');
+  const scoped = path.join(home, 'scoped');
+  await mkdir(scoped);
+  run(executable, ['init', '--project', scoped], { cwd: home, env });
+  await writeFile(path.join(scoped, '.foundry/project.json'), JSON.stringify({
+    name: 'scoped fixture', checks: [{
+      name: 'behavior', command: [process.execPath, '-e', 'process.exit(0)'], inputs: ['spec.md'], required: true,
+    }],
+  }));
+  await writeFile(path.join(scoped, 'spec.md'), '# Installed context\n');
+  run(executable, ['work', 'start', 'installed-context', '--spec', 'spec.md', '--project', scoped], { cwd: home, env });
+  run(executable, ['work', 'verify', '--project', scoped], { cwd: home, env });
+  const contextArgs = ['work', 'context', '--project', scoped, '--json'];
+  const fresh = JSON.parse(run(executable, contextArgs, { cwd: home, env }).stdout);
+  assert.equal(fresh.schema_version, 1);
+  assert.equal(fresh.evidence.status, 'current');
+  await writeFile(path.join(scoped, 'spec.md'), '# Changed since verification\n');
+  const stale = JSON.parse(run(executable, contextArgs, { cwd: home, env }).stdout);
+  assert.equal(stale.run.saved_status, 'verified');
+  assert.equal(stale.evidence.status, 'stale');
+  assert.equal(stale.next_action.kind, 'verify');
+  assert.notEqual(stale.snapshot_revision, fresh.snapshot_revision);
   run('npm', ['uninstall', '-g', '--prefix', prefix, metadata.name], { cwd: home, env });
   assert.equal(existsSync(path.join(prefix, 'bin/foundry')), false);
   assert.ok(existsSync(path.join(project.path, 'docs/product/idea.md')));

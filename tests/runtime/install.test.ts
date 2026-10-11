@@ -1,21 +1,29 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { install, installWorkspace } from '../../src/core/install.js';
 import { readRuntimeMarker } from '../../src/core/lifecycle.js';
 
-test('installed runtime is copied and usable without Python', async () => {
+test('installed runtime is copied and usable without Python', async (t) => {
   const target = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-install-'));
-  const source = path.resolve('.');
+  const source = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-install-source-'));
+  t.after(async () => {
+    await Promise.all([rm(source, { recursive: true, force: true }), rm(target, { recursive: true, force: true })]);
+  });
+  for (const file of ['dist/runtime/foundry.cjs', 'dist/runtime/foundry-worker.cjs', '.foundry/roles.json']) {
+    await mkdir(path.dirname(path.join(source, file)), { recursive: true });
+    await copyFile(path.resolve(file), path.join(source, file));
+  }
   const result = await install(source, target);
   assert.equal(result.target, target);
   assert.equal((await readRuntimeMarker(target))?.runtime, 'typescript');
   const project = JSON.parse(await readFile(path.join(target, '.foundry/project.json'), 'utf8')) as { name: string };
   assert.equal(project.name, path.basename(target));
   const runtime = await readFile(path.join(target, '.foundry/runtime/foundry.cjs'), 'utf8');
+  assert.equal(runtime, await readFile(path.join(source, 'dist/runtime/foundry.cjs'), 'utf8'));
   assert.match(runtime, /Foundry terminal-first runtime/);
   assert.deepEqual((await readdir(path.join(target, '.foundry/runtime'))).sort(), ['foundry-worker.cjs', 'foundry.cjs'].sort());
   const child = spawnSync(process.execPath, [path.join(target, '.foundry/runtime/foundry.cjs'), '--help'], {
@@ -23,7 +31,7 @@ test('installed runtime is copied and usable without Python', async () => {
     env: { PATH: path.dirname(process.execPath), HOME: os.tmpdir() },
   });
   assert.equal(child.status, 0, child.stderr);
-  assert.match(child.stdout, /foundry work start\|status\|verify\|complete\|pause\|resume\|recover/);
+  assert.match(child.stdout, /foundry work start\|status\|context\|verify\|complete\|pause\|resume\|recover/);
   const guidance = spawnSync(process.execPath, [path.join(target, '.foundry/runtime/foundry.cjs'), 'work', 'workflow', 'guide'], {
     cwd: target,
     encoding: 'utf8',

@@ -572,7 +572,7 @@ async function requireActive(root: string): Promise<[string, RunState]> {
   return [relative, state];
 }
 
-export async function start(rootInput: string, slug: string, spec: string, contract?: string): Promise<RunState> {
+export async function start(rootInput: string, slug: string, spec: string, contract?: string, snapshot?: string): Promise<RunState> {
   const root = await requireRuntimeWorkspace(rootInput, 'start');
   if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug)) {
     throw new FoundryError('Use a lowercase feature slug with letters, numbers and hyphens');
@@ -586,6 +586,7 @@ export async function start(rootInput: string, slug: string, spec: string, contr
   }
   if (!contents.trim()) throw new FoundryError('A nonempty local spec is required');
   return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+    await assertClientSnapshot(root, snapshot, false);
     if (contract !== undefined) {
       if (await readFactoryState(root)) throw new FoundryError('Scope contracts are for scoped work, not Factory-owned work.');
       await readScopeContract(root, contract);
@@ -654,9 +655,10 @@ export async function approveScope(rootInput: string, revision: string): Promise
   });
 }
 
-export async function pauseOrResume(rootInput: string, pause: boolean): Promise<RunState> {
+export async function pauseOrResume(rootInput: string, pause: boolean, snapshot?: string): Promise<RunState> {
   const root = await requireRuntimeWorkspace(rootInput, pause ? 'pause' : 'resume');
   return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+    await assertClientSnapshot(root, snapshot);
     const [statePath, current] = await requireActive(root);
     if (['completing', 'completed', 'verifying'].includes(current.status)) {
       throw new FoundryError('Use recover to reconcile the interrupted operation before resuming.');
@@ -672,9 +674,10 @@ export async function pauseOrResume(rootInput: string, pause: boolean): Promise<
   });
 }
 
-export async function verify(rootInput: string, cancelRequested: () => boolean = () => false): Promise<number> {
+export async function verify(rootInput: string, cancelRequested: () => boolean = () => false, snapshot?: string): Promise<number> {
   const root = await requireRuntimeWorkspace(rootInput, 'verify');
   return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+    await assertClientSnapshot(root, snapshot);
     const [statePath, state] = await requireActive(root);
     if (['completing', 'completed', 'verifying'].includes(state.status)) {
       throw new FoundryError('Recover the interrupted run before verifying again.');
@@ -859,9 +862,10 @@ async function factoryCompletionExclusions(root: string, state: RunState): Promi
   return [intent.path];
 }
 
-export async function complete(rootInput: string): Promise<number> {
+export async function complete(rootInput: string, snapshot?: string): Promise<number> {
   const root = await requireRuntimeWorkspace(rootInput, 'complete');
   return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+    await assertClientSnapshot(root, snapshot);
     const [statePath, current] = await activeRun(root);
     if (!current || !statePath) {
       if (await exists(root, '.foundry/state/last-completed.json')) {
@@ -945,9 +949,10 @@ export async function complete(rootInput: string): Promise<number> {
   });
 }
 
-export async function recover(rootInput: string): Promise<RunState | null> {
+export async function recover(rootInput: string, snapshot?: string): Promise<RunState | null> {
   const root = await requireRuntimeWorkspace(rootInput, 'recover');
   return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+    await assertClientSnapshot(root, snapshot);
     const [statePath, state] = await requireActive(root);
     if (state.status === 'completed') {
       const factory = await readFactoryState(root);
@@ -1098,8 +1103,8 @@ async function contextRun(root: string): Promise<{ state: RunState | null; histo
   return { state, historical: true };
 }
 
-async function contextSample(root: string): Promise<WorkContext> {
-  if (await exists(root, '.foundry/state/coordinator.lock')) {
+async function contextSample(root: string, coordinatorOwned = false): Promise<WorkContext> {
+  if (!coordinatorOwned && await exists(root, '.foundry/state/coordinator.lock')) {
     throw new FoundryError('Work is changing. Wait for the current operation, then read context again.');
   }
   if (await readFactoryState(root)) {
@@ -1201,7 +1206,7 @@ async function contextSample(root: string): Promise<WorkContext> {
   const after = await contextRun(root);
   if (canonicalJson({ state, historical }) !== canonicalJson(after)
     || inputs !== await revision()
-    || await exists(root, '.foundry/state/coordinator.lock') || await readFactoryState(root)) {
+    || (!coordinatorOwned && await exists(root, '.foundry/state/coordinator.lock')) || await readFactoryState(root)) {
     throw new FoundryError('Work changed while reading context. Read context again.');
   }
   result.snapshot_revision = digest(canonicalJson({ result, inputs, state }));
@@ -1217,4 +1222,16 @@ export async function workContext(rootInput: string): Promise<WorkContext> {
     previous = current;
   }
   throw new FoundryError('Work changed while reading context. Read context again.');
+}
+
+async function assertClientSnapshot(root: string, snapshot?: string, requireContract = true): Promise<void> {
+  if (snapshot === undefined) return;
+  const before = await contextSample(root, true);
+  const after = await contextSample(root, true);
+  if (before.snapshot_revision !== snapshot || after.snapshot_revision !== snapshot) {
+    throw new FoundryError('Client context is stale. Read foundry_context again before changing work.');
+  }
+  if (requireContract && !after.scope) {
+    throw new FoundryError('Legacy scoped work is read-only through MCP. Finish it through the terminal before starting contracted work.');
+  }
 }

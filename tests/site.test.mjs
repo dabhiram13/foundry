@@ -184,6 +184,8 @@ test('Three.js is a separately loaded, licensed scene within a bounded transfer 
   assert.match(await readFile(path.join(output, 'assets/licenses/Three-MIT.txt'), 'utf8'), /Permission is hereby granted/);
   const source = await readFile(path.join(root, 'site/src/landing/components/specialist-scene.tsx'), 'utf8');
   for (const guard of ['min-width: 768px', 'pointer: fine', 'prefers-reduced-motion: no-preference', 'saveData', 'IntersectionObserver', 'unavailable']) assert.ok(source.includes(guard), guard);
+  assert.match(source, /controller\.current\.dispose\(true\)/);
+  assert.match(source, /key=\{canvasGeneration\}/, 'fresh canvas avoids carrying pixel unpack state to a remounted renderer');
 });
 
 test('landing follows device motion preferences without a separate toggle', async () => {

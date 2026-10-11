@@ -9,6 +9,7 @@ export function SpecialistScene() {
     'poster' | 'loading' | 'ready' | 'unavailable'
   >('poster');
   const [interactive, setInteractive] = useState(true);
+  const [canvasGeneration, setCanvasGeneration] = useState(0);
 
   useEffect(() => {
     const element = host.current;
@@ -36,8 +37,11 @@ export function SpecialistScene() {
       if (disposed) return;
       const eligible = capability.matches && !connection?.saveData;
       if (!eligible) {
-        controller.current?.dispose();
-        controller.current = null;
+        if (controller.current) {
+          controller.current.dispose(true);
+          controller.current = null;
+          setCanvasGeneration((value) => value + 1);
+        }
         setPhase('poster');
         return;
       }
@@ -62,7 +66,7 @@ export function SpecialistScene() {
             document.hidden
           )
             return;
-          controller.current = mountScene(target!, element!, () => {
+          controller.current = mountScene(canvas.current!, element!, () => {
             failed = true;
             controller.current?.dispose();
             controller.current = null;
@@ -100,7 +104,7 @@ export function SpecialistScene() {
       controller.current?.dispose(true);
       controller.current = null;
     };
-  }, []);
+  }, [canvasGeneration]);
 
   useEffect(() => {
     controller.current?.setInteractive(interactive);
@@ -126,7 +130,7 @@ export function SpecialistScene() {
           <span className="scene-foundry">foundry</span>
         </div>
       </div>
-      <canvas ref={canvas} aria-hidden="true" />
+      <canvas ref={canvas} key={canvasGeneration} aria-hidden="true" />
       <div className="scene-caption">
         <span>
           {phase === 'ready'

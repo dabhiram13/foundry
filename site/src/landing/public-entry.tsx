@@ -1,5 +1,5 @@
-import { createRoot } from 'react-dom/client';
+import { hydrateRoot } from 'react-dom/client';
 import { PublicPage } from './public-page';
 
 const root = document.getElementById('foundry-public');
-if (root) createRoot(root).render(<PublicPage />);
+if (root) hydrateRoot(root, <PublicPage />);

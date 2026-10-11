@@ -72,6 +72,7 @@ test('MCP exposes one project, protocol stdout and no approval or provider tools
     'foundry_complete', 'foundry_context', 'foundry_pause', 'foundry_recover', 'foundry_resume', 'foundry_review', 'foundry_start', 'foundry_verify',
   ]);
   assert.equal(catalog.tools.find(tool => tool.name === 'foundry_context')?.annotations?.readOnlyHint, true);
+  assert.equal(catalog.tools.find(tool => tool.name === 'foundry_verify')?.annotations?.destructiveHint, true);
   const before = await files(root);
   const first = await context(connection);
   assert.equal(first.project, root);

@@ -56,7 +56,7 @@ export async function serveMcp(rootInput: string, version: string): Promise<void
   }));
   server.registerTool('foundry_verify', {
     description: 'Run only the project-configured checks for currently approved scoped work. Checks have local command authority, not a sandbox.',
-    inputSchema: snapshot, annotations: { ...mutation, openWorldHint: true },
+    inputSchema: snapshot, annotations: { ...mutation, destructiveHint: true, openWorldHint: true },
   }, async ({ snapshot_revision }, context) => guarded(async () => {
     const exit_code = await verify(root, () => closing || context.mcpReq.signal.aborted, snapshot_revision);
     return { exit_code, context: await workContext(root) };

@@ -5,6 +5,8 @@ import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -102,12 +104,14 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     'THIRD_PARTY_NOTICES.md',
     'dist/runtime/foundry-worker.cjs',
     'dist/runtime/foundry.cjs',
+    'licenses/MCP-SDK-LICENSE.txt',
     'licenses/Zod-MIT.txt',
     'licenses/entities-BSD.txt',
+    'licenses/jsonc-parser-MIT.txt',
     'licenses/parse5-MIT.txt',
     'package.json',
   ]);
-  assert.doesNotMatch(packedFiles.join('\n'), /\b(?:app|server|mcp|python|state|tests|scripts)\b/i);
+  assert.doesNotMatch(packedFiles.join('\n'), /\b(?:app|server|python|state|tests|scripts)\b/i);
 
   const tarball = path.join(base, packRecord.filename);
   run('npm', [
@@ -134,7 +138,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.deepEqual(metadata.bin, { foundry: 'dist/runtime/foundry.cjs' });
   assert.deepEqual(Object.keys(metadata.bin), ['foundry']);
   assert.deepEqual(metadata.dependencies ?? {}, {});
-  assert.doesNotMatch(JSON.stringify(metadata), /@modelcontextprotocol|@openai\/mcp|python|mcp\.cjs/i);
+  assert.doesNotMatch(JSON.stringify(metadata.dependencies ?? {}), /@modelcontextprotocol|@openai\/mcp|python|mcp\.cjs/i);
   assert.deepEqual((await readdir(path.join(installedRoot, '.foundry'))).sort(), [
     'LICENSE-framework',
     'THIRD_PARTY_NOTICES.md',
@@ -144,7 +148,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.match(zodLicense, /Copyright \(c\) 2025 Colin McDonnell/);
   assert.match(zodLicense, /Permission is hereby granted, free of charge/);
   const bundled = await readFile(path.join(installedRoot, 'dist/runtime/foundry.cjs'), 'utf8');
-  for (const name of ['Zod-MIT.txt', 'parse5-MIT.txt', 'entities-BSD.txt']) {
+  for (const name of ['Zod-MIT.txt', 'parse5-MIT.txt', 'entities-BSD.txt', 'MCP-SDK-LICENSE.txt', 'jsonc-parser-MIT.txt']) {
     const license = await readFile(path.join(installedRoot, 'licenses', name), 'utf8');
     assert.ok(bundled.includes(license), `${name} must travel with installed workspace runtimes`);
   }
@@ -164,7 +168,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.match(versionWithExtra.stderr, /Version does not accept additional arguments/);
   const help = run(executable, ['--help'], { cwd: prefix, env });
   assert.match(help.stdout, /Foundry terminal-first runtime/);
-  assert.doesNotMatch(help.stdout, /\b(?:typed|mcp|http|python)\b/i);
+  assert.doesNotMatch(help.stdout, /\b(?:typed|http|python)\b/i);
   assert.ok(run(executable, ['roles'], { cwd: prefix, env }).stdout.trim());
 
   const registryFile = path.join(home, 'providers.json');
@@ -257,6 +261,44 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.equal(covered.requirements_coverage, 'checks_passed');
   run(executable, ['work', 'complete', '--project', scoped], { cwd: home, env });
   assert.equal(JSON.parse(run(executable, contextArgs, { cwd: home, env }).stdout).run.historical, true);
+
+  await writeFile(path.join(scoped, 'connected-scope.json'), JSON.stringify({ schema_version: 1, criteria: [{
+    id: 'INSTALL-002', requirement: 'A bundled MCP client can complete checked work.', checks: ['behavior'],
+  }] }));
+  const preview = JSON.parse(run(executable, ['connect', 'opencode', '--project', scoped, '--dry-run', '--json'], { cwd: home, env }).stdout);
+  assert.equal(preview.config, 'opencode.json');
+  assert.equal(preview.configuration_action, 'add');
+  assert.equal(existsSync(path.join(scoped, 'opencode.json')), false);
+  run(executable, ['connect', 'opencode', '--project', scoped, '--apply'], { cwd: home, env });
+  const installedCommand = JSON.parse(await readFile(path.join(scoped, 'opencode.json'), 'utf8')).mcp.foundry.command;
+  assert.deepEqual(installedCommand, [process.execPath, path.join(installedRoot, 'dist/runtime/foundry.cjs'), 'mcp', '--project', scoped]);
+  assert.match(await readFile(path.join(scoped, '.opencode/skills/foundry-work/SKILL.md'), 'utf8'), /Do not run approval yourself/);
+  const connection = new Client({ name: 'installed-package-test', version: '1' });
+  const transport = new StdioClientTransport({ command: installedCommand[0], args: installedCommand.slice(1), env, stderr: 'pipe' });
+  let errors = '';
+  transport.stderr?.on('data', data => { errors += String(data); });
+  try {
+    await connection.connect(transport);
+    const catalog = await connection.listTools();
+    assert.equal(catalog.tools.length, 8);
+    assert.equal(catalog.tools.some(tool => tool.name.includes('approve')), false);
+    const read = async () => (await connection.callTool({ name: 'foundry_context', arguments: {} })).structuredContent;
+    const before = await read();
+    const start = await connection.callTool({ name: 'foundry_start', arguments: {
+      snapshot_revision: before.snapshot_revision, slug: 'installed-connected', spec: 'spec.md', contract: 'connected-scope.json',
+    } });
+    assert.equal(start.isError, false);
+    const scope = (await connection.callTool({ name: 'foundry_review', arguments: {} })).structuredContent;
+    run(executable, ['work', 'approve', '--revision', scope.revision, '--project', scoped], { cwd: home, env });
+    const checked = await connection.callTool({ name: 'foundry_verify', arguments: { snapshot_revision: (await read()).snapshot_revision } });
+    assert.equal(checked.isError, false);
+    assert.equal(checked.structuredContent.exit_code, 0);
+    const completed = await connection.callTool({ name: 'foundry_complete', arguments: { snapshot_revision: (await read()).snapshot_revision } });
+    assert.equal(completed.isError, false);
+  } finally { await connection.close(); }
+  assert.equal(errors, '');
+  run(executable, ['connect', 'opencode', '--project', scoped, '--remove'], { cwd: home, env });
+  assert.equal(existsSync(path.join(scoped, 'opencode.json')), false);
   run('npm', ['uninstall', '-g', '--prefix', prefix, metadata.name], { cwd: home, env });
   assert.equal(existsSync(path.join(prefix, 'bin/foundry')), false);
   assert.ok(existsSync(path.join(project.path, 'docs/product/idea.md')));

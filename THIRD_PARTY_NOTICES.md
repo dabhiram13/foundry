@@ -6,6 +6,9 @@ notices are retained with the package and embedded in each copied runtime:
 - Zod: `licenses/Zod-MIT.txt`.
 - parse5, used to read research pages without running scripts: `licenses/parse5-MIT.txt`.
 - entities, used by parse5: `licenses/entities-BSD.txt`.
+- Model Context Protocol server and core libraries, version 2.3.1:
+  `licenses/MCP-SDK-LICENSE.txt` (Apache-2.0 with retained MIT contributions).
+- jsonc-parser, used for preserving client configuration: `licenses/jsonc-parser-MIT.txt`.
 
 The neutral role kit and vendored skill libraries retain their source and
 license records beside their files. `library/provenance.json` records the

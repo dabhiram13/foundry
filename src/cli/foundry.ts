@@ -36,7 +36,7 @@ const VALUE_OPTIONS = new Set([
   'role', 'spec', 'source', 'target', 'request', 'task-id', 'stage', 'name', 'providers',
 ]);
 const FLAG_OPTIONS = new Set([
-  'apply', 'confirmed', 'dry-run', 'json', 'recover', 'revoke-consent', 'update',
+  'apply', 'confirmed', 'dry-run', 'json', 'recover', 'remove', 'revoke-consent', 'update',
 ]);
 
 export function usage(): string {
@@ -60,6 +60,8 @@ Commands:
   providers [PROJECT] [--providers FILE]
   init --project PATH
   migrate --project PATH --dry-run|--apply [--recover]
+  mcp --project PATH
+  connect opencode --project PATH --dry-run|--apply|--remove
   foundry work start|status|context|review|approve|verify|complete|pause|resume|recover|workflow ...
   foundry provider run|status|cancel|reconcile ...
 
@@ -235,6 +237,32 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
     return dispatchProjectCommand([workCommand!, ...workArgs]);
   }
   if (command === 'provider') return dispatchProjectCommand(['providers', ...rest]);
+  if (command === 'connect') {
+    const [client, ...options] = rest;
+    if (client !== 'opencode') throw new FoundryError('The first supported connection is opencode.');
+    const parsed = parse(options);
+    validateCommandOptions(parsed, command, { values: ['project'], flags: ['dry-run', 'apply', 'remove'], minPositionals: 0, maxPositionals: 0 });
+    const modes = ['dry-run', 'apply', 'remove'].filter(mode => parsed.flags.has(mode));
+    if (modes.length !== 1) throw new FoundryError('connect requires exactly one of --dry-run, --apply or --remove.');
+    const project = projectPath(parsed);
+    if (!project) throw new FoundryError('connect requires --project PATH');
+    const { connectOpenCode } = await import('../core/connect.js');
+    const result = await connectOpenCode(project, realpathSync(process.argv[1]!), modes[0] as 'dry-run' | 'apply' | 'remove');
+    if (parsed.flags.has('json')) writeResult(result, true);
+    else process.stdout.write(`OpenCode connection ${result.mode}${result.applied ? ' applied' : ''}\nConfig: ${result.config} (mcp.foundry: ${result.configuration_action})\nSkill: ${result.skill} (${result.skill_action})\nCommand: ${result.command.map(part => JSON.stringify(part)).join(' ')}\nNext: ${result.next_action}\n`);
+    return 0;
+  }
+  if (command === 'mcp') {
+    if (terminalMode) throw new FoundryError('Run mcp from your coding client, not the interactive terminal.');
+    const parsed = parse(rest);
+    validateCommandOptions(parsed, command, { values: ['project'], minPositionals: 0, maxPositionals: 0 });
+    if (parsed.flags.size) throw new FoundryError('MCP uses protocol stdout; it does not accept flags.');
+    const project = projectPath(parsed);
+    if (!project) throw new FoundryError('mcp requires --project PATH');
+    const { serveMcp } = await import('../runtime/mcp.js');
+    await serveMcp(project, __FOUNDRY_VERSION__);
+    return 0;
+  }
   if (command === 'init') {
     const parsed = parse(rest);
     validateCommandOptions(parsed, command, {

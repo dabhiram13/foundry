@@ -8,7 +8,7 @@ const metadata = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf
 const define = { __FOUNDRY_VERSION__: JSON.stringify(metadata.version) };
 const runtimeOutput = path.join(root, 'dist/runtime');
 const testsOutput = path.join(root, 'dist/runtime-tests');
-const notices = await Promise.all(['LICENSE', 'licenses/Zod-MIT.txt', 'licenses/parse5-MIT.txt', 'licenses/entities-BSD.txt']
+const notices = await Promise.all(['LICENSE', 'licenses/Zod-MIT.txt', 'licenses/parse5-MIT.txt', 'licenses/entities-BSD.txt', 'licenses/MCP-SDK-LICENSE.txt', 'licenses/jsonc-parser-MIT.txt']
   .map(file => readFile(path.join(root, file), 'utf8')));
 const banner = { js: `#!/usr/bin/env node\n/*!\n${notices.join('\n\n')}\n*/` };
 
@@ -31,6 +31,7 @@ await build({
   outfile: path.join(runtimeOutput, 'foundry.cjs'),
   bundle: true,
   platform: 'node',
+  mainFields: ['module', 'main'],
   target: 'node24',
   format: 'cjs',
   external: ['node:*'],
@@ -42,6 +43,7 @@ await build({
   outfile: path.join(runtimeOutput, 'foundry-worker.cjs'),
   bundle: true,
   platform: 'node',
+  mainFields: ['module', 'main'],
   target: 'node24',
   format: 'cjs',
   external: ['node:*'],
@@ -59,9 +61,10 @@ if (testEntries.length) {
     outbase: path.join(root, 'tests/runtime'),
     bundle: true,
     platform: 'node',
+    mainFields: ['module', 'main'],
     target: 'node24',
     format: 'cjs',
-    external: ['node:*'],
+    external: ['node:*', '@modelcontextprotocol/client', '@modelcontextprotocol/client/stdio'],
     outExtension: { '.js': '.cjs' },
   });
 }

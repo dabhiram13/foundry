@@ -54,6 +54,17 @@ needed. **Ship writes a local summary; it does not publish or deploy.**
 Small changes to an existing repository use a [shorter workflow][runtime].
 See the [command reference][commands] for terminal controls and scripting.
 
+### Connected coding client (source preview)
+
+The source checkout can connect **OpenCode** to scoped repository work through
+a local MCP server and project skill. OpenCode keeps your chat, model and account;
+Foundry holds the agreed scope, runs configured checks and checks whether the
+evidence still matches the work. Preview with `./foundry connect opencode
+--project PATH --dry-run`, then apply with `--apply`. Approval remains a separate
+terminal action. See [connection details][commands] and the precise limits.
+**This connection is not in published version 0.5.1** and has not been
+qualified with a live model. Existing terminal and provider workflows remain.
+
 ## AI providers and your data
 
 Foundry connects to AI tools through provider adapters. **Choose your provider

@@ -183,6 +183,58 @@ Explicit approval of the current reviewed revision can replace an invalid approv
 record. Never repair private state by hand. Existing runs cannot be enrolled later;
 finish them normally and opt in on the next run. Factory approvals remain separate.
 
+## Connect OpenCode to scoped work (source preview)
+
+The first connected client uses a local MCP server and one project skill. This
+feature is in this source checkout; published version 0.5.1 does not include it.
+Build from source with Node 24 or newer (`npm ci --ignore-scripts` and
+`npm run build:runtime`), then initialize an existing repository and preview:
+
+```sh
+./foundry init --project /path/to/repository
+./foundry connect opencode --project /path/to/repository --dry-run
+./foundry connect opencode --project /path/to/repository --apply
+```
+
+Open or restart OpenCode **from that project directory**. The setup changes only its
+`opencode.json` or `opencode.jsonc` `mcp.foundry` entry and adds
+`.opencode/skills/foundry-work/SKILL.md`. Preview prints the exact command,
+files and proposed actions. JSON/JSONC comments and unrelated settings remain
+in place. Existing files with those names are not overwritten unless an unchanged
+Foundry ownership record matches them. An interrupted apply/remove can be
+retried with the same flag. The command records the current Node and Foundry
+executable paths. If either installation moves, preview and apply again to
+update the managed connection. To remove managed entries and skill safely:
+
+```sh
+./foundry connect opencode --project /path/to/repository --remove
+```
+
+The MCP command itself is `foundry mcp --project PATH` over stdio. Use it from a
+compatible client, not as an interactive terminal. The server stays bound to
+one initialized project and exposes `foundry_context`, `foundry_review`,
+`foundry_start`, `foundry_verify`, `foundry_complete`, `foundry_pause`,
+`foundry_resume` and `foundry_recover`. It does **not** run a model, select a
+provider, authorize billing, approve work or accept a client-selected command.
+An agent may start only contracted scoped work; legacy work remains readable
+but needs the CLI for mutation. Every MCP mutation needs a fresh
+`snapshot_revision` from `foundry_context`. A stale snapshot fails without
+changing the run. Work checked before later source edits needs fresh evidence.
+
+**You review and approve scope separately.** Ask the agent to call
+`foundry_review`, inspect the spec, criteria and configured check commands,
+then run `foundry work approve --revision HASH --project PATH` yourself with
+that exact revision. This is a local workflow decision, not human authentication:
+a process with equal filesystem access could still call the terminal command.
+Configured checks execute locally with your privileges; Foundry is not a
+sandbox. A passing check does not establish semantic correctness or acceptance.
+If the client cancels or disconnects during verification, read context from a
+new session and use its `resume` or `recover` action; no interrupted check counts
+as a pass. Connection and tool/skill discovery were checked with OpenCode 1.19.0,
+using Node 24 and 25 for the Foundry server. SDK and installed-package fixtures
+check the work flow, but a live model-driven run remains unqualified. This does
+not claim compatibility with every client version or semantic correctness.
+
 ## Provider operations
 
 ```text

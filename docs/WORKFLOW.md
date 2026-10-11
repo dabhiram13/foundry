@@ -134,6 +134,11 @@ tool. It checks whether saved verification still matches the current work and
 shows the next action. Add `--json` for structured context. `work status` shows
 the saved lifecycle state, which may predate later edits.
 
+The source-only [OpenCode connection](COMMANDS.md#connect-opencode-to-scoped-work-source-preview)
+uses this same scoped state through local MCP tools. It does not launch Foundry's
+provider adapters or approve on behalf of the owner. Client actions carry a
+current context snapshot; manual approval is still through `work approve`.
+
 ## Roles and review
 
 The neutral role catalog supplies instructions and permission requests to

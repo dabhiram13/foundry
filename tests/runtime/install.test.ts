@@ -31,7 +31,7 @@ test('installed runtime is copied and usable without Python', async (t) => {
     env: { PATH: path.dirname(process.execPath), HOME: os.tmpdir() },
   });
   assert.equal(child.status, 0, child.stderr);
-  assert.match(child.stdout, /foundry work start\|status\|context\|verify\|complete\|pause\|resume\|recover/);
+  assert.match(child.stdout, /foundry work start\|status\|context\|review\|approve\|verify\|complete\|pause\|resume\|recover/);
   const guidance = spawnSync(process.execPath, [path.join(target, '.foundry/runtime/foundry.cjs'), 'work', 'workflow', 'guide'], {
     cwd: target,
     encoding: 'utf8',

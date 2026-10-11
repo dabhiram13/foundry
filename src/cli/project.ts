@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { FoundryError, normalizeLocalPath, within } from '../core/fs.js';
-import { complete, pauseOrResume, recover, start, status, verify, workContext } from '../core/lifecycle.js';
+import { approveScope, complete, pauseOrResume, recover, reviewScope, start, status, verify, workContext } from '../core/lifecycle.js';
 import { context, gate, guide, record } from '../core/workflow.js';
 import { cancel, execute, inspectAdapter, providerStatus, registry, reconcile } from '../runtime/providers.js';
-import { renderWorkContext, writeResult } from './output.js';
+import { renderScopeReview, renderWorkContext, writeResult } from './output.js';
 
 type Options = Record<string, string | boolean | string[]>;
 type JsonRecord = Record<string, unknown>;
@@ -21,7 +21,9 @@ function usage(): string {
 Usage:
   foundry work status [--project PATH]
   foundry work context [--project PATH] [--json]
-  foundry work start SLUG --spec PATH [--project PATH]
+  foundry work start SLUG --spec PATH [--contract PATH] [--project PATH]
+  foundry work review [--project PATH] [--json]
+  foundry work approve --revision HASH [--project PATH] [--json]
   foundry work pause|resume|verify|complete|recover [--project PATH]
   foundry work workflow guide|context|gate|record|feedback [options]
   foundry provider [--project PATH]
@@ -310,14 +312,28 @@ export async function dispatchProjectCommand(arguments_: string[]): Promise<numb
     return 0;
   }
   if (command === 'start') {
-    const { positional, options } = parse(rest, { value: [...PROJECT_OPTION, 'spec'], positional: 1 });
-    const state = await start(rootOption(options), positional[0] ?? '', requiredOption(options, 'spec'));
+    const { positional, options } = parse(rest, { value: [...PROJECT_OPTION, 'spec', 'contract'], positional: 1 });
+    const state = await start(rootOption(options), positional[0] ?? '', requiredOption(options, 'spec'), stringOption(options, 'contract'));
     output(state, options.json === true);
     return 0;
   }
   if (['pause', 'resume'].includes(command)) {
     const { options } = parse(rest, { value: [...PROJECT_OPTION] });
     output(await pauseOrResume(rootOption(options), command === 'pause'), options.json === true);
+    return 0;
+  }
+  if (command === 'review') {
+    const { options } = parse(rest, { value: [...PROJECT_OPTION] });
+    const scope = await reviewScope(rootOption(options));
+    if (options.json === true) output(scope, true);
+    else process.stdout.write(renderScopeReview(scope));
+    return 0;
+  }
+  if (command === 'approve') {
+    const { options } = parse(rest, { value: [...PROJECT_OPTION, 'revision'] });
+    const scope = await approveScope(rootOption(options), requiredOption(options, 'revision'));
+    if (options.json === true) output(scope, true);
+    else process.stdout.write('Scope approved. Next: implement the change, then run work verify.\n');
     return 0;
   }
   if (command === 'verify') {

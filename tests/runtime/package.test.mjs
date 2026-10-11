@@ -230,7 +230,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   run(executable, ['work', 'verify', '--project', scoped], { cwd: home, env });
   const contextArgs = ['work', 'context', '--project', scoped, '--json'];
   const fresh = JSON.parse(run(executable, contextArgs, { cwd: home, env }).stdout);
-  assert.equal(fresh.schema_version, 1);
+  assert.equal(fresh.schema_version, 2);
   assert.equal(fresh.evidence.status, 'current');
   await writeFile(path.join(scoped, 'spec.md'), '# Changed since verification\n');
   const stale = JSON.parse(run(executable, contextArgs, { cwd: home, env }).stdout);
@@ -238,6 +238,25 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.equal(stale.evidence.status, 'stale');
   assert.equal(stale.next_action.kind, 'verify');
   assert.notEqual(stale.snapshot_revision, fresh.snapshot_revision);
+  run(executable, ['work', 'verify', '--project', scoped], { cwd: home, env });
+  run(executable, ['work', 'complete', '--project', scoped], { cwd: home, env });
+  await writeFile(path.join(scoped, 'scope.json'), JSON.stringify({ schema_version: 1, criteria: [{
+    id: 'INSTALL-001', requirement: 'The installed command verifies this change.', checks: ['behavior'],
+  }] }));
+  run(executable, ['work', 'start', 'installed-approval', '--spec', 'spec.md', '--contract', 'scope.json', '--project', scoped], { cwd: home, env });
+  const pending = JSON.parse(run(executable, contextArgs, { cwd: home, env }).stdout);
+  assert.equal(pending.scope_approval, 'pending');
+  const unapproved = spawnSync(executable, ['work', 'verify', '--project', scoped, '--json'], { cwd: home, env, encoding: 'utf8' });
+  assert.equal(unapproved.status, 2);
+  assert.match(JSON.parse(unapproved.stdout).error, /approve/);
+  const review = JSON.parse(run(executable, ['work', 'review', '--project', scoped, '--json'], { cwd: home, env }).stdout);
+  const approved = JSON.parse(run(executable, ['work', 'approve', '--revision', review.revision, '--project', scoped, '--json'], { cwd: home, env }).stdout);
+  assert.equal(approved.approval.status, 'current');
+  run(executable, ['work', 'verify', '--project', scoped], { cwd: home, env });
+  const covered = JSON.parse(run(executable, contextArgs, { cwd: home, env }).stdout);
+  assert.equal(covered.requirements_coverage, 'checks_passed');
+  run(executable, ['work', 'complete', '--project', scoped], { cwd: home, env });
+  assert.equal(JSON.parse(run(executable, contextArgs, { cwd: home, env }).stdout).run.historical, true);
   run('npm', ['uninstall', '-g', '--prefix', prefix, metadata.name], { cwd: home, env });
   assert.equal(existsSync(path.join(prefix, 'bin/foundry')), false);
   assert.ok(existsSync(path.join(project.path, 'docs/product/idea.md')));

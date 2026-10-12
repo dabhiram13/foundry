@@ -19,6 +19,7 @@ import { loadRoles, roleByName, rolePrompt } from './roles.js';
 import { assertResearchReady, designReportSchema, planRevision, policyRevision,
   readSourceCapture, renderPreparationHandoff, sourceCaptureSchema, validateDesign, type PreparationState } from './work-preparation.js';
 import { collectResearchSources, renderResearchReport, researchReportSchema, researchSelectionSchema } from './research.js';
+import { previewCheckSetup } from './check-setup.js';
 
 const runtimeMarkerSchema = z.object({
   schema_version: z.literal(1),
@@ -167,6 +168,37 @@ export async function configuredChecks(root: string): Promise<CheckConfig[]> {
     throw new FoundryError('Verification unavailable: configure at least one required behavior/build check.');
   }
   return checks;
+}
+
+export async function setupChecks(rootInput: string, mode: 'dry-run' | 'apply', revision?: string, snapshot?: string) {
+  const root = await requireRuntimeWorkspace(rootInput, 'set up checks in');
+  const preview = async () => previewCheckSetup(root, await projectConfig(root));
+  if (mode === 'dry-run') {
+    if (await exists(root, '.foundry/state/coordinator.lock')) {
+      throw new FoundryError('Work is changing. Wait for the current operation, then preview setup again.');
+    }
+    const first = await preview();
+    const second = await preview();
+    if (first.revision !== second.revision || await exists(root, '.foundry/state/coordinator.lock')) {
+      throw new FoundryError('Project changed while reading setup. Preview again.');
+    }
+    return { ...second, project: root, mode, applied: false };
+  }
+  return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+    await assertClientSnapshot(root, snapshot, false);
+    if ((await activeRun(root))[1] || await readFactoryState(root)) {
+      throw new FoundryError('Setup cannot change checks during active work. Finish the current work first.');
+    }
+    const config = await projectConfig(root);
+    const proposal = await previewCheckSetup(root, config);
+    if (!revision || revision !== proposal.revision) throw new FoundryError('Setup proposal is stale or missing. Preview again and use its exact revision.');
+    if (proposal.status === 'needs_scripts') throw new FoundryError(proposal.reason);
+    if (proposal.status === 'existing') return { ...proposal, project: root, mode, applied: false };
+    const current = await preview();
+    if (current.revision !== revision) throw new FoundryError('Project changed while applying setup. Preview again.');
+    await atomicJson(root, '.foundry/project.json', { ...config, checks: proposal.checks });
+    return { ...proposal, project: root, mode, applied: true };
+  });
 }
 
 async function declaredFiles(root: string, relative: string): Promise<string[]> {

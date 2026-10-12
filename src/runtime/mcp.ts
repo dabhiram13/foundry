@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { FoundryError, rejectSymlinkComponents } from '../core/fs.js';
 import {
   captureWorkSources, complete, finishTask, pauseOrResume, prepareAssignment, recordWorkDesign, recordWorkResearch, recordWorkReview, recover,
-  reviewScope, saveTaskPlan, specialists, start, verify, workContext,
+  reviewScope, saveTaskPlan, setupChecks, specialists, start, verify, workContext,
 } from '../core/lifecycle.js';
 import { taskPlanSchema, workReviewSchema } from '../core/work-plan.js';
 import { designReportSchema } from '../core/work-preparation.js';
@@ -49,6 +49,16 @@ export async function serveMcp(rootInput: string, version: string): Promise<void
     description: 'Read the exact proposed specification, criteria and configured checks for owner review. This does not approve anything.',
     inputSchema: empty, annotations: readOnly,
   }, async () => guarded(() => reviewScope(root)));
+  server.registerTool('foundry_setup', {
+    description: 'Preview checks from existing project test/build scripts. Read-only; no commands, dependencies or model run. Existing checks are preserved.',
+    inputSchema: empty, annotations: readOnly,
+  }, async () => guarded(() => setupChecks(root, 'dry-run')));
+  server.registerTool('foundry_apply_setup', {
+    description: 'Save a previewed check setup before starting work. Requires exact setup and context revisions; preserves owner settings and refuses active work. Executes no commands.',
+    inputSchema: snapshot.extend({ revision: z.string().regex(/^[0-9a-f]{64}$/) }).strict(), annotations: mutation,
+  }, async ({ revision, snapshot_revision }) => guarded(async () => ({
+    setup: await setupChecks(root, 'apply', revision, snapshot_revision), context: await workContext(root),
+  })));
   server.registerTool('foundry_specialists', {
     description: 'List the neutral specialist roles available in this project. No provider runs.',
     inputSchema: empty, annotations: readOnly,

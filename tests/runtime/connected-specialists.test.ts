@@ -281,7 +281,7 @@ test('real stdio clients continue specialist tasks with terminal approval and no
   await call(second, 'foundry_record_review', { report, snapshot_revision: (await call(second, 'foundry_context')).snapshot_revision });
   await call(second, 'foundry_complete', { snapshot_revision: (await call(second, 'foundry_context')).snapshot_revision });
   const tools = await second.listTools();
-  assert.equal(tools.tools.length, 16);
+  assert.equal(tools.tools.length, 18);
   assert.ok(tools.tools.every(tool => !/approve|provider|model/.test(tool.name)));
 });
 

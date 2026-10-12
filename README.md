@@ -75,7 +75,8 @@ waits for approval and records check results and review findings. The steps are
 **Research → Plan approval → Design approval → relevant Builders → Reviewer → local handoff**.
 Research saves sources and checks quotations. Design explains how each
 requirement will be built. Small changes can skip Research and Design.
-Your coding tool prepares the brief, tasks and required checks for you.
+Your coding tool prepares the brief and tasks, then previews project checks.
+For a new project, it creates real tests first. You do not write check JSON.
 You review the connection before applying it, then approve Plan and Design in
 your terminal. Follow [the OpenCode guide][connected-client].
 Existing terminal and provider workflows remain available.

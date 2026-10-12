@@ -59,6 +59,8 @@ Commands:
   roles
   providers [PROJECT] [--providers FILE]
   init --project PATH
+  setup --project PATH --dry-run
+  setup --project PATH --apply --revision HASH
   migrate --project PATH --dry-run|--apply [--recover]
   mcp --project PATH
   connect opencode --project PATH --dry-run|--apply|--remove
@@ -296,7 +298,26 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
       Boolean(parsed.flags.has('update')),
       Boolean(parsed.flags.has('recover')),
     );
-    writeResult(result, parsed.flags.has('json'));
+    if (parsed.flags.has('json')) writeResult(result, true);
+    else process.stdout.write(`Foundry ${result.updated ? 'updated in' : 'added to'} ${result.target}\nNext: connect your coding tool, or preview project checks with setup --dry-run.\n`);
+    return 0;
+  }
+  if (command === 'setup') {
+    const parsed = parse(rest);
+    validateCommandOptions(parsed, command, { values: ['project', 'revision'], flags: ['dry-run', 'apply'], minPositionals: 0, maxPositionals: 0 });
+    const project = projectPath(parsed);
+    if (!project) throw new FoundryError('setup requires --project PATH');
+    const apply = parsed.flags.has('apply');
+    if (apply === parsed.flags.has('dry-run')) throw new FoundryError('setup requires exactly one of --dry-run or --apply');
+    if (!apply && value(parsed, 'revision')) throw new FoundryError('--revision is only valid with setup --apply');
+    const { setupChecks } = await import('../core/lifecycle.js');
+    const result = await setupChecks(project, apply ? 'apply' : 'dry-run', apply ? required(parsed, 'revision') : undefined);
+    if (parsed.flags.has('json')) writeResult(result, true);
+    else {
+      process.stdout.write(`${result.applied ? 'Project checks saved.' : result.reason}\n`);
+      for (const check of result.checks) process.stdout.write(`${check.name}: ${check.command.join(' ')}\nInputs: ${check.inputs.map(input => JSON.stringify(input)).join(', ')}\n`);
+      if (!apply && result.status === 'proposed') process.stdout.write(`To save: setup --project ${JSON.stringify(project)} --apply --revision ${result.revision}\n`);
+    }
     return 0;
   }
   if (command === 'migrate') {

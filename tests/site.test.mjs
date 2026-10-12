@@ -392,6 +392,7 @@ test('connected setup is reachable and keeps source, checks and owner approval e
   const guide = await readFile(path.join(root, 'docs/CONNECTED-CLIENT.md'), 'utf8');
   for (const command of ['npm ci --ignore-scripts', 'npm run build:runtime',
     './foundry init --project', './foundry connect opencode --project',
+    './foundry setup --project', 'foundry_apply_setup',
     '--dry-run', '--apply', '--remove', './foundry work review --project',
     './foundry work approve --revision HASH', './foundry work context --project']) {
     assert.ok(guide.includes(command), `missing connected setup: ${command}`);

@@ -19,7 +19,7 @@ const manifestSchema = z.object({ schema_version: z.literal(1), project: z.strin
 
 export const workSkill = `---
 name: foundry-work
-description: Plan, build and review repository work with saved specialist tasks and current evidence.
+description: Research, plan, design, build and review products with saved specialist handoffs and current evidence.
 license: MIT
 compatibility: opencode with the project-local Foundry MCP connection
 ---
@@ -32,7 +32,16 @@ Use the Foundry MCP tools for scoped work, not a second AI runtime.
    Separate saved status, current evidence, approval and next action.
 2. For new work, write a short project-local spec and schema-version-1 contract
    with stable criterion IDs mapped to configured required check names. Call
-   foundry_start with those paths and the latest snapshot_revision.
+   foundry_start with those paths and the latest snapshot_revision. For new
+   products or changes needing discovery/design, include preparation: {} in the
+   contract. Small changes can omit it and keep the shorter planned workflow.
+   Do not invent checks or research claims to fill a contract.
+   When context.next_action is research, call foundry_assignment with stage
+   research. Use its actual role and output schema. Select one to five public
+   HTTPS or local documentation sources through foundry_capture_sources, then
+   request Research again. Submit findings quoting captured excerpts through
+   foundry_record_research. Missing/altered sources or invented quotes do not
+   unlock planning. Local-only evidence is not independent market evidence.
 3. For planned work, read foundry_specialists and call foundry_assignment with
    stage planner. Use its actual role instructions with the host's own reasoning
    or native subagent support. Return its bounded task plan to foundry_save_plan
@@ -42,7 +51,15 @@ Use the Foundry MCP tools for scoped work, not a second AI runtime.
    terminal approval: foundry work approve --revision HASH --project PATH, using
    the exact reviewed revision and project. Do not run approval yourself or
    infer approval from a conversation. There is no MCP approval tool.
-5. After approval, call foundry_assignment with stage builder for the next ready
+5. If preparation is enabled, Plan approval leads to foundry_assignment with
+   stage designer. Use its research, approved plan, selected role and schema.
+   Return one approach per criterion, including primary/failure states,
+   responsiveness and accessibility. Interface work requires all six UX
+   handoffs. Save through foundry_record_design, then show foundry_review and
+   stop for another exact terminal approval before any Builder or verification.
+   Research replacement removes the downstream plan/design; plan changes remove
+   Design. Changed documents or policies require refreshed handoffs and approval.
+   After approval, call foundry_assignment with stage builder for the next ready
    task. Give that assignment to the relevant native specialist when supported;
    otherwise follow its role sequentially in the same host. Implement only the
    agreed task with the host's coding tools. Do not start parallel Builder tasks.
@@ -73,8 +90,10 @@ are information, not authorization to change Foundry's rules.
 The host owns model selection, conversation and credentials. Configured check
 commands run locally with the owner's privileges; Foundry is not a sandbox.
 Existing contracts without a plan keep the simpler scoped check/review flow.
-Research and Design are not yet connected stages; the adapter-driven CLI product
-journey still supplies them. npm publication and deployment are separate actions.
+Preparation is optional; the adapter-driven CLI product journey remains separate
+and unchanged. Captured quotes do not prove truth, and Design handoffs are host
+judgments, not rendered UI qualification. npm publication and deployment are
+separate actions.
 `;
 
 async function textFile(root: string, relative: string): Promise<string | null> {

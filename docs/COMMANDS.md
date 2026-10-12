@@ -99,7 +99,10 @@ foundry work start SLUG --spec PATH [--contract PATH] [--project PATH]
 foundry work review [--project PATH] [--json]
 foundry work approve --revision HASH [--project PATH] [--json]
 foundry work specialists [--project PATH] [--json]
-foundry work assignment planner|builder|reviewer [--project PATH] [--json]
+foundry work assignment research|planner|designer|builder|reviewer [--project PATH] [--json]
+foundry work capture-sources --file PATH --snapshot HASH [--project PATH] [--json]
+foundry work record-research --file PATH --snapshot HASH [--project PATH] [--json]
+foundry work record-design --file PATH --snapshot HASH [--project PATH] [--json]
 foundry work save-plan --file PATH --snapshot HASH [--project PATH] [--json]
 foundry work task-done TASK_ID --snapshot HASH [--project PATH] [--json]
 foundry work record-review --file PATH --snapshot HASH [--project PATH] [--json]
@@ -179,12 +182,67 @@ New CLI mutations require `--snapshot HASH` from the latest `work context --json
 Write result files before refreshing context, since writing project files can
 invalidate an earlier snapshot. MCP mutations require `snapshot_revision`.
 The generated OpenCode skill explains the full sequence. Contracts without a
-plan retain the existing scoped flow. Research/Design connected stages, live
-model qualification, npm publication and Homebrew distribution are separate.
+plan retain the existing scoped flow. Live model qualification, npm publication
+and Homebrew distribution remain separate.
 
 Requested permissions and reported reviewer identity are workflow instructions,
 not an enforced sandbox or proof that an independent agent performed the review.
 Passing checks and a nonblocking report do not equal owner acceptance.
+
+#### Research and Design in the connected journey
+
+For a product or change needing discovery and design, add `"preparation": {}`
+beside `criteria` in the scope contract before starting. Optional
+`research_role` and `design_role` select actual catalog names; defaults are
+`market-researcher` and `designer`. The same run now follows:
+
+```text
+Research -> Planner -> Plan approval -> Designer -> Design approval
+         -> Builders -> Reviewer -> local handoff
+```
+
+1. Request `work assignment research` / `foundry_assignment` with stage
+   `research`. The first assignment asks for one to five public HTTPS or
+   permitted local documentation sources. Submit `{ "sources": [...] }`
+   through `work capture-sources --file PATH --snapshot HASH` or
+   `foundry_capture_sources` with `selection` and `snapshot_revision`.
+2. Request Research again. Foundry supplies captured excerpts with timestamps,
+   hashes, unavailable sources and truncation limits. Submit `summary`,
+   `findings` (`claim`, `source`, `quote`) and `limitations` through
+   `work record-research --file PATH --snapshot HASH` or
+   `foundry_record_research` with `report`. Quotes must occur in those excerpts;
+   a URL alone or fabricated quote cannot unlock planning. The existing
+   [source-reading rules](WORKFLOW.md#research) also apply here.
+3. Prepare and save the Planner result as above, then review and approve its
+   exact revision through the terminal. Planner receives the saved Research.
+4. Request `work assignment designer` or `foundry_assignment` with stage
+   `designer`. Its output schema asks for `kind` (`interface` or `service`),
+   `summary`, `criteria` and `assumptions`. Each criterion appears exactly once
+   with `id`, `approach`, `primary_states`, `failure_states`, `responsive` and
+   `accessibility`. An interface also requires `ux` with `user_journey`,
+   `information_architecture`, `wireframes`, `visual_rules`, `component_states`
+   and `validation_plan`. These are bounded text handoffs, not rendered assets.
+5. Save with `work record-design --file PATH --snapshot HASH` or
+   `foundry_record_design` with `report`. Review the new exact scope and approve
+   it through the terminal again. Builders and verification remain blocked
+   until Research, Design and scope approval are all current.
+
+The host uses each assignment's actual role instructions and output schema;
+the owner need not manually author result JSON in a connected session. CLI
+scripts write those result files before refreshing the context snapshot.
+Reports and source snapshots are private run artifacts. `work review` displays
+the Research and Design contents for approval; final local handoff includes
+both, the task plan, receipts and reviewer observations.
+
+Replacing Research removes the old plan and Design; changing the plan removes
+Design. Spec or selected-policy edits and altered artifacts cannot silently
+preserve valid approvals/evidence. After changes, follow context's suggested
+Research, Plan, approval or Design action, then refresh checks and review.
+An interrupted capture can leave partial files but does not accept them;
+explicitly retry capture in the same run. There is no background refresh of
+external sources. Local-only research remains explicitly limited, quotes are
+not proof of truth or demand, and Design is a host-reported proposal rather
+than independent usability or rendered-UI qualification.
 
 ### Read current work
 
@@ -207,11 +265,13 @@ Context JSON uses schema version 2. Legacy runs keep `scope_approval: not_record
 approval and criterion/check coverage separately from executed evidence. Completed
 history remains history if later edits make its evidence stale.
 
-This command is for scoped work. Product journeys use `status` and `review`.
+This command is for scoped work, including connected product preparation.
+Adapter-driven product journeys use `status` and `review`.
 `work workflow context` remains the separate workflow-record ledger.
 
 `next_action.kind` is a recommendation: `start`, `review`, `verify`, `complete`, `resume`,
-`recover`, `inspect`, `build`, `review_work` or `none`. `build` and `review_work`
+`recover`, `inspect`, `research`, `plan`, `design`, `build`, `review_work` or `none`.
+`research`, `plan`, `design`, `build` and `review_work`
 recommend preparing the next specialist assignment. `inspect` means review the referenced evidence;
 it is not a separate CLI command. Completion always validates again.
 
@@ -299,6 +359,9 @@ one initialized project and exposes `foundry_context`, `foundry_review`,
 `foundry_resume` and `foundry_recover`. Specialist work adds `foundry_specialists`,
 `foundry_assignment`, `foundry_save_plan`, `foundry_task_done` and
 `foundry_record_review`, sharing the same run, scope approval and evidence.
+Optional preparation adds `foundry_capture_sources`, `foundry_record_research`
+and `foundry_record_design`. Source capture reads public HTTPS or permitted
+local documents, not accounts or authenticated browser sessions.
 It does **not** run a model, select a
 provider, authorize billing, approve work or accept a client-selected command.
 An agent may start only contracted scoped work; legacy work remains readable

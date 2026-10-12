@@ -3,6 +3,12 @@
 Start with the [first-project guide](GETTING-STARTED.md). This page is a lookup
 reference, not a list of setup steps to run.
 
+This reference describes **current source**. Published npm 0.5.1 supports the
+adapter-driven terminal journey; scoped context, exact scope approval,
+specialist preparation and MCP connection commands are source-preview features.
+Use [the connected-client guide](CONNECTED-CLIENT.md) to build that source rather
+than expecting the installed 0.5.1 command to expose it. Homebrew is unavailable.
+
 There are two ways to use the same tool:
 
 - **Inside Foundry:** open `foundry` in your terminal, then use `/run`, `/review`
@@ -115,8 +121,10 @@ preserve nested task, check, review and active-run state.
 
 ### Connected specialist work
 
-The host creates the spec and criterion/check mapping, then asks for a Planner
-assignment. Foundry returns the actual neutral role instructions, exact scope,
+The host configures real required checks with existing declared input paths,
+creates the spec and criterion/check mapping, then starts a contracted run.
+For preparation-enabled work, Research comes before the Planner; smaller changes
+can ask for a Planner assignment directly. Foundry returns the actual neutral role instructions, exact scope,
 output schema and host execution boundary. The host can use native subagents or
 follow roles sequentially. Foundry never launches a model through these tools.
 
@@ -329,6 +337,8 @@ finish them normally and opt in on the next run. Factory approvals remain separa
 
 The first connected client uses a local MCP server and one project skill. This
 feature is in this source checkout; published version 0.5.1 does not include it.
+For a complete setup and first-product example, use
+[build inside your coding client](CONNECTED-CLIENT.md).
 Build from source with Node 24 or newer (`npm ci --ignore-scripts` and
 `npm run build:runtime`), then initialize an existing repository and preview:
 

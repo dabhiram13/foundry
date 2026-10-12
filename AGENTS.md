@@ -8,6 +8,9 @@ make product, provider, spending, and release decisions.
 
 - Read `README.md`, `docs/WORKFLOW.md`, and the relevant runtime, provider, and
   evidence guides.
+- Distinguish published npm 0.5.1 adapter work from the connected source preview.
+  `docs/CONNECTED-CLIENT.md` is the setup guide for that path; its host owns the
+  model, account and tools. Local fixtures are not live-model qualification.
 - Stay within the request's scope and permissions. Small repository changes use
   the scoped `work` lifecycle; they do not need the six-stage product journey.
 - Preserve existing owner edits and records. Never edit `.foundry/state/` by hand.

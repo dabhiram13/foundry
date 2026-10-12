@@ -26,6 +26,26 @@ Research fixtures cover source limits, public-address checks, redirects,
 cancellation, snapshot changes and matching quotations. Network responses use
 controlled fixtures.
 
+Connected fixtures also exercise source-backed Research, Plan and Design
+approvals, dependent tasks, criterion-level review, altered artifacts, stale
+approvals and cancellation-safe source capture. CLI and real stdio MCP journeys
+include continuation in a second client and installed candidate-package behavior.
+These are local protocol tests, **not a live-model product trial** or proof that
+the model follows each role correctly.
+
+## Public website checks
+
+Static checks validate every generated page, local link and anchor, search
+assets, metadata, identity and asset budgets. UI-driven checks separately inspect
+the landing and docs at narrow mobile, tablet and desktop widths, including
+long commands/tables, navigation, search, theme controls, keyboard focus and
+reduced motion. Reflow at browser zoom should not clip controls or force page-wide
+horizontal scrolling; code and tables may scroll inside their own containers.
+
+Browser results are supporting website evidence, not a replacement for framework
+verification. Record browser versions and widths, and leave untested engines
+and physical devices unverified.
+
 ## Test an integration
 
 Use the [provider integration checklist](QUALIFICATION.md) to test an adapter

@@ -104,7 +104,7 @@ test('README links readers to built public documentation pages', async () => {
     .map(([, name, href]) => [name, href]));
   const website = new URL(links.get('website'));
   assert.equal(website.protocol, 'https:');
-  for (const name of ['documentation-index', 'getting-started', 'release-guide']) {
+  for (const name of ['documentation-index', 'getting-started', 'connected-client', 'release-guide']) {
     const link = new URL(links.get(name));
     assert.equal(link.origin, website.origin, `${name}: use public docs`);
     assert.ok(link.pathname.startsWith('/docs/'));
@@ -208,7 +208,7 @@ test('README banner reuses the Foundry wordmark and has a self-contained backgro
   walk(parse(readme), node => {
     if (node.tagName === 'img') images.push(attr(node, 'src'));
   });
-  assert.equal(images[0], 'https://foundry-two-tan.vercel.app/assets/foundry-banner.svg');
+  assert.equal(images[0], 'https://raw.githubusercontent.com/dabhiram13/foundry/main/site/assets/foundry-banner.svg');
   assert.equal(images.length, 6);
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
   for (const [name, value] of [['ci', 'checks'], ['npm', `v${manifest.version}`], ['node', manifest.engines.node.replaceAll('<', '&lt;').replaceAll('>', '&gt;')], ['license', manifest.license], ['docs', 'read']]) {
@@ -219,7 +219,14 @@ test('README banner reuses the Foundry wordmark and has a self-contained backgro
     assert.match(badge, /role="img" aria-label=/);
     assert.doesNotMatch(badge, /<script|<image|<foreignObject|passing/);
   }
-  assert.equal(await readFile(path.join(output, new URL(images[0]).pathname), 'utf8'), banner);
+  assert.equal(await readFile(path.join(output, 'assets/foundry-banner.svg'), 'utf8'), banner);
+  const mark = await readFile(path.join(root, 'site/assets/foundry-mark.svg'), 'utf8');
+  const horsePath = /<path d="([^"]+)"/.exec(mark)?.[1];
+  assert.ok(horsePath && banner.includes(horsePath), 'banner retains the approved horse mark');
+  assert.match(banner, /viewBox="0 0 1200 340"/);
+  assert.match(banner, /translate\(282 58\) scale\(\.16\)/);
+  const width = Number(/viewBox="-30 -30 (\d+) 820"/.exec(wordmark)?.[1]);
+  assert.ok(width * .16 + 282 < 1200, 'outlined wordmark fits within the banner');
   assert.match(readme, /^\[license\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/LICENSE$/m);
   assert.doesNotMatch(readme, /^\[[^\]]+\]: (?!https?:\/\/)\S+/m);
   assert.doesNotMatch(readme, /\]\((?!https?:\/\/|#)[^)]+\)/);
@@ -363,11 +370,43 @@ test('product journey remains native, readable and honest about connection bound
   assert.ok(mobileMenu);
   assert.match(textContent(mobileMenu), /The processSpecialistsDocumentation/);
   assert.match(html, /28 role definitions/);
-  assert.match(html, /source preview for scoped work, approval and evidence/);
-  assert.match(html, /full specialist journey is not yet exposed/);
+  assert.match(textContent(tree), /OpenCode source preview supports Research, Plan, Design, Builders and Reviewer/);
+  assert.match(textContent(tree), /not part of npm 0\.5\.1/);
+  assert.match(textContent(tree), /live model-driven product trial remains unqualified/);
+  assert.doesNotMatch(html, /full specialist journey is not yet exposed/);
   assert.match(html, /Homebrew distribution is planned, not available/);
   assert.match(html, /Ship is a local handoff, not automatic deployment/);
   assert.doesNotMatch(html, /role="tab"|<canvas|<iframe|Imageory|Spline/);
+});
+
+test('connected setup is reachable and keeps source, checks and owner approval explicit', async () => {
+  assert.equal(pages.get('docs/CONNECTED-CLIENT.md'), 'connected-client');
+  const guide = await readFile(path.join(root, 'docs/CONNECTED-CLIENT.md'), 'utf8');
+  for (const command of ['npm ci --ignore-scripts', 'npm run build:runtime',
+    './foundry init --project', './foundry connect opencode --project',
+    '--dry-run', '--apply', '--remove', './foundry work review --project',
+    './foundry work approve --revision HASH', './foundry work context --project']) {
+    assert.ok(guide.includes(command), `missing connected setup: ${command}`);
+  }
+  assert.match(guide, /not part of published npm 0\.5\.1/);
+  assert.match(guide, /Repeat review and approval for the new revision/);
+  assert.match(guide, /Every declared input path must exist/);
+  assert.match(guide, /zero-test command/);
+  assert.match(guide, /Do not build the\s+demo inside/);
+  const sidebar = await readFile(path.join(root, 'site/astro.config.mjs'), 'utf8');
+  assert.match(sidebar, /slug: 'docs\/connected-client'/);
+  const landing = parse(await readFile(path.join(output, 'index.html'), 'utf8'));
+  const connections = [];
+  walk(landing, node => { if (attr(node, 'href') === '/docs/connected-client/') connections.push(node); });
+  assert.ok(connections.length, 'landing links directly to the owner-facing connection guide');
+});
+
+test('active guides reject obsolete connected-journey and distribution claims', async () => {
+  for (const source of ['README.md', ...pages.keys()]) {
+    const markdown = await readFile(path.join(root, source), 'utf8');
+    assert.doesNotMatch(markdown, /not the\s+whole specialist journey|full specialist journey is not yet exposed/, source);
+    assert.doesNotMatch(markdown, /\bbrew\s+install\b/, `${source}: no nonexistent Homebrew install command`);
+  }
 });
 
 function webpDimensions(buffer) {

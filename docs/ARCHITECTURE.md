@@ -29,7 +29,13 @@ documentation are a separate static build.
        Astro / Starlight → static landing + docs
 ```
 
-Foundry controls progression and approval. The provider performs bounded work.
+For the connected source path, an existing coding client reaches the same scoped
+service through a project-bound stdio MCP server. The client owns its model,
+conversation, account and coding tools; Foundry returns assignments and validates
+saved results. No provider adapter runs behind that server. The workflow is not
+a hosted app builder or a separately launched agent team.
+
+Foundry controls progression and approval. The provider or host performs bounded work.
 The product repository contains the application, which can use any stack.
 
 ## One executable, two sizes of work
@@ -56,6 +62,10 @@ one Node executable and does not bundle project data or credentials. Registry
 publication is a separate owner-controlled release action, not part of product
 Ship or an automated workflow. See the [release guide](RELEASING.md) for its
 preconditions and limits.
+
+Published npm remains 0.5.1. The connected Research/Design workflow and MCP tools
+are merged source-preview features, not included in that registry release.
+Homebrew distribution is not available. See [connected setup](CONNECTED-CLIENT.md).
 
 ## Specialist roles
 
@@ -84,11 +94,13 @@ The controller retains control of approvals and spending rules.
 | `src/core/lifecycle.ts` | Scoped runs, checks, receipts and completion |
 | `src/core/workflow.ts` | Criteria, evidence, decisions and handoff records |
 | `src/core/install.ts` | Managed files, conflicts and recoverable installation |
+| `src/core/connect.ts` | Preview, apply and remove the managed coding-client connection |
 | `src/core/migrate.ts` | Explicit legacy import with backups and conflict checks |
 | `src/core/roles.ts` | Provider-neutral role validation |
 | `src/runtime/jobs.ts`, `src/runtime/worker.ts` | Local worker threads and confirmed shutdown for terminal runs |
 | `src/runtime/providers.ts` | Adapter execution, messages, cancellation and recovery |
 | `src/runtime/environment.ts` | Restricted provider child environment |
+| `src/runtime/mcp.ts` | Project-bound stdio tools for the connected host |
 | `site/` | Static landing page and searchable documentation |
 | `scripts/` | Node build, catalog and exact-index secret checks |
 
@@ -106,8 +118,9 @@ approved criteria → explicit check mapping → command receipts
                 publication: not_authorized
 ```
 
-The first Build task configures real required checks with declared inputs and
-maps each approved Plan criterion to a check. Missing checks stop progression.
+In adapter mode, the first Build task configures real required checks with declared
+inputs and maps each approved Plan criterion to a check. Connected scoped work
+needs those checks and mappings before enrollment and owner approval. Missing checks stop progression.
 Stale evidence is not a pass. Failed checks and interrupted attempts remain
 recorded. A checkpoint failure is not misreported as a product-check failure.
 

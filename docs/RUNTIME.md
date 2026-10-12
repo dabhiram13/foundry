@@ -8,6 +8,12 @@ legacy workspace.
 track a change you or a coding tool implement, then run configured checks.
 For the guided AI product workflow, use [your first project](GETTING-STARTED.md).
 
+To work inside OpenCode, use [the connected source preview](CONNECTED-CLIENT.md).
+It supports Research, Plan and Design approvals, Builders and Reviewer in this
+same scoped lifecycle. Your coding client supplies the reasoning and edits.
+Published npm 0.5.1 does not include scoped context, exact scope approval or the
+connection; use the source launcher for those commands.
+
 ## Project directories
 
 New product workspaces default to `~/.foundry/products`. `--products-dir PATH`
@@ -24,6 +30,11 @@ Initialization installs the runtime, role catalog and project settings inside
 the target `.foundry` directory. It preserves unmanaged owner files. Normal `init`
 refuses any existing `.foundry` directory that lacks the TypeScript runtime
 marker; `--update` does not grant permission to import an old runtime.
+
+An empty repository starts with no required check commands. Configure real
+[checks and input paths](CUSTOMIZATION.md#checks-and-content) before verification
+or a contracted run. Initialization does not create an app, discover tests or
+turn an empty test run into evidence.
 
 An interrupted TypeScript install can be recovered explicitly:
 

@@ -3,6 +3,11 @@
 You need [Node.js 24 or newer](https://nodejs.org/en/download) (which includes npm) and
 [Git](https://git-scm.com/downloads).
 
+This guide uses **published npm 0.5.1** and an adapter that calls your selected
+provider. Already working inside a coding client? Follow the separate
+[OpenCode source-preview guide](CONNECTED-CLIENT.md), which reuses that client's
+model and account. The connected workflow is not in the published package.
+
 ## Install Foundry
 
 Run these two commands in your computer's terminal:
@@ -128,7 +133,10 @@ changing versions.
   [installation permissions guide](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally).
 - **Previously used `npm link`:** run `npm unlink -g @dabhiram13/foundry` before
   installing the published package. Keep any edits in your source checkout.
-- **Already have a repository?** Follow [existing projects](RUNTIME.md). Those
-  commands track and check a change; they do not automatically run the new-product AI workflow.
+- **Already have a repository?** Follow [existing projects](RUNTIME.md) for manual
+  scoped work, or [connected work](CONNECTED-CLIENT.md) inside OpenCode. Neither
+  silently starts the adapter-driven new-product workflow in that repository.
+- **Looking for Homebrew?** No tap or formula is available yet. Use npm for the
+  published CLI, or the source preview for the coding-client connection.
 - **Want shell commands or scripts instead?** Use the [command reference](COMMANDS.md).
 - **Want to change Foundry itself?** Use [contributor setup](../CONTRIBUTING.md).

@@ -5,6 +5,7 @@ export const pages = new Map(
   [
     ['docs/README.md', 'index'],
     ['docs/GETTING-STARTED.md', 'getting-started'],
+    ['docs/CONNECTED-CLIENT.md', 'connected-client'],
     ['docs/COMMANDS.md', 'commands'],
     ['docs/RUNTIME.md', 'runtime'],
     ['docs/PROVIDERS.md', 'providers'],
@@ -31,8 +32,9 @@ export function pageUrl(slug) {
 }
 
 export const descriptions = {
-  index: 'Learn to use Foundry, the open-source CLI for AI-assisted software development. Install it, choose your AI provider and build your first project.',
+  index: 'Build products with Foundry. Choose the published terminal workflow or the connected coding-client source preview, with saved progress and your approvals.',
   'getting-started': 'Install Foundry with npm, connect your AI provider, create a project and approve its plan and design before building.',
+  'connected-client': 'Connect OpenCode to Foundry from source. Research, plan, design, build and review a small product using your coding client and terminal approvals.',
   commands: 'Find Foundry terminal commands for creating projects, running stages, approving plans, configuring providers and recovering work.',
   runtime: 'Add Foundry to an existing repository, track a change, run checks and recover interrupted work.',
   providers: 'Choose an AI provider and model for Foundry. Configure adapters, capabilities, billing and the shared process protocol.',

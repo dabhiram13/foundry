@@ -23,6 +23,9 @@ implementation for each requirement. Tasks, artifacts and selected role policies
 are part of the exact scope you approve. Smaller changes can omit preparation
 and keep Planner → approved tasks → Builders → Reviewer. See
 [connected work](COMMANDS.md#connected-specialist-work).
+For setup and an owner-facing example, use [the connected-client guide](CONNECTED-CLIENT.md).
+This path is merged source, not published npm 0.5.1; live model-driven work
+remains unqualified. Homebrew installation is not available.
 
 ## What it is built with
 
@@ -35,7 +38,7 @@ The website is a separate **Astro/Starlight static site**, with React components
 on the landing page.
 See the [code layout](ARCHITECTURE.md) if you want to develop Foundry itself.
 
-## New product
+## New product through a provider adapter
 
 ```text
 Your idea → Research → Plan → Your approval → Design → Your approval
@@ -110,6 +113,13 @@ explicit. Retry selects and reads sources again rather than trusting partial wor
 
 Source discovery uses the provider's tools. Research uses the same
 [provider connection](PROVIDERS.md) as the other stages.
+
+Connected Research uses the same reader and quotation checks, but saves artifacts
+under the scoped run's `preparation/` directory rather than the adapter product's
+Factory directory. The host performs source selection and synthesis, submitting
+each result with the current snapshot. Connected Design is a structured text
+handoff, not generated screens or proof of rendered UI quality. Its approval
+changes the scope revision before Builders can continue.
 
 ## Scoped repository work
 

@@ -21,8 +21,13 @@ local-billing example in `echo-request.json`. The smoke directory is removed
 when the command exits; nothing is written to the user's real
 `.foundry/providers.json`.
 
-The Factory terminal's `providers [PROJECT]` command reports registered
+The `foundry providers [PROJECT]` command reports registered
 metadata only and does not qualify it. A bounded-model route is intentionally
-not a Factory product-building route: Factory stages require a locally billed
-`agent-runtime` with tools, permissions and cancellation capabilities. A model
+not a Factory product-building route: Factory stages require an `agent-runtime`
+with local or subscription billing, tools, permissions and cancellation capabilities. A model
 endpoint or API key is not an agent runtime.
+
+Foundry itself is TypeScript on Node 24+. Python is used only for these optional
+fixture scripts, not required to install or run the CLI. They do not demonstrate
+the [connected coding-client source preview](../docs/CONNECTED-CLIENT.md), which
+uses the host's tools and account rather than this provider protocol.

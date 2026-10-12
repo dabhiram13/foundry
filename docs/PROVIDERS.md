@@ -3,6 +3,11 @@
 Foundry sends tasks to an AI tool you have installed and authorized. Each
 project uses one connection shared by its specialist roles.
 
+This guide describes **adapter mode**, including the published npm CLI. In the
+[connected OpenCode source preview](CONNECTED-CLIENT.md), the host already owns
+the model, sign-in, conversation, tools and billing. That path does not use an
+adapter or launch a second provider runtime behind the MCP connection.
+
 ## Choose a provider and model
 
 Foundry uses adapters rather than a fixed model or AI vendor. Each adapter

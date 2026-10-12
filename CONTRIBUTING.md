@@ -8,6 +8,8 @@ private accounts or paid inference. Read [the setup guide](docs/GETTING-STARTED.
 
 This is contributor setup, not required for everyday CLI use. For installation,
 follow [Install Foundry](docs/GETTING-STARTED.md#install-foundry).
+To try the connected workflow rather than contribute, follow
+[the source-preview guide](docs/CONNECTED-CLIENT.md).
 
 ```sh
 npm ci --ignore-scripts

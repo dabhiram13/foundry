@@ -33,6 +33,11 @@ its own copy, so package updates do not replace that configuration.
 Use `--model MODEL` and `--reasoning VALUE` when supported by the adapter.
 Model names and reasoning values belong to the provider, not Foundry.
 
+These settings apply to adapter-driven products. For
+[connected work](CONNECTED-CLIENT.md), choose the model and account in the coding
+client instead. A scoped contract selects role policies and may enable Research
+and Design with `preparation: {}`; it does not change the host's provider.
+
 ## Checks and content
 
 The project `.foundry/project.json` describes required local check commands and
@@ -40,6 +45,19 @@ their inputs. Configure real commands that exercise the product. A missing or
 stale check is not evidence. Product specifications belong in `docs/specs/`;
 runtime logs and private records belong in `.foundry/state/` and are never
 committed as product evidence.
+
+`init` starts a clean repository with an empty check list. Configure actual
+test/build/lint commands before starting a contracted change. Each required
+check needs a name, a command array, a working directory, a timeout in seconds
+and declared `inputs`. Paths are project-relative and must exist; include all
+files that affect the result, not only the test files. Node's `--test` returning
+success with zero tests is not meaningful evidence. A unit-test command alone
+does not qualify a web app's rendered interface.
+
+In the connected path, ask the coding client to create scripts and input paths,
+configure the checks and map each criterion before `foundry_start`. Review the
+actual commands at the approval step. Changing their configuration changes the
+scope revision and requires another approval.
 
 See [provider configuration](PROVIDERS.md) and
 [existing-repository lifecycle](RUNTIME.md).

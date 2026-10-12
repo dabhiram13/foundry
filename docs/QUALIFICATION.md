@@ -1,7 +1,36 @@
-# Check a provider integration
+# Check a coding-client or provider integration
 
-Use this checklist when adding or changing a [provider adapter](PROVIDERS.md).
+Use this checklist when adding or changing a [provider adapter](PROVIDERS.md)
+or [coding-client connection](CONNECTED-CLIENT.md).
 Run protocol tests locally, then test the connection with an authorized account.
+
+## Connected coding-client checks
+
+Connection and tool/skill discovery were checked with OpenCode 1.19.0. Node 24/25,
+SDK and installed-package fixtures cover the local protocol. The merged source
+preview has not yet been qualified by a live model building a product.
+
+First test preview/apply/remove, preservation of unrelated settings, refusal of
+owner-file collisions, stale snapshot rejection, stdio cancellation and a second
+client continuing the same saved run. Confirm that no tool can approve scope,
+launch a provider or select billing.
+
+With separate account and spending permission, build a small disposable app:
+
+1. Let the host create real checks, a brief and a preparation-enabled contract.
+2. Capture sources, submit quoted findings and review their limitations.
+3. Save the Plan and verify it pauses for terminal approval.
+4. Save Design and verify it needs a new approval before building.
+5. Complete dependent tasks, deliberately encounter a failed check and repair it.
+6. Stop and continue from another session without inventing a passing result.
+7. Submit criterion-level review and inspect the local handoff.
+8. Exercise the running app, including mobile and keyboard behavior, and record
+   owner acceptance separately from protocol and unit-test results.
+
+Record the host version, Foundry commit, model, OS, budget, commands, findings and
+untested gaps. A source-backed report is not independent market validation; a text
+Design handoff is not a rendered-interface test. Do not claim other coding clients
+or every OpenCode release are qualified by this one connection.
 
 ## Local protocol checks
 

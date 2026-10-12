@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://foundry-two-tan.vercel.app/assets/foundry-banner.svg" alt="Foundry" width="960" />
+  <img src="https://raw.githubusercontent.com/dabhiram13/foundry/main/site/assets/foundry-banner.svg" alt="Foundry: research, plan, design, build, review and hand off" width="960" />
 </p>
 
 <p align="center">
@@ -10,10 +10,11 @@
   <a href="https://foundry-two-tan.vercel.app/docs/"><img src="https://foundry-two-tan.vercel.app/assets/badge-docs.svg" alt="Read the documentation" /></a>
 </p>
 
-# Build software from your terminal.
+# From idea to product, with your AI.
 
-Start with an idea or an existing project. Foundry helps you plan, write code and
-run checks, with your approval before building a new product.
+Foundry is a framework for building products with specialist roles, saved
+progress and your approval. Start with an idea or improve an existing repository.
+Your AI does the reasoning and coding; Foundry carries the work between steps.
 
 [Website][website] · [Docs][documentation-index] · [npm][npm-package] ·
 [Contribute][contributing]
@@ -33,6 +34,18 @@ Use `foundry --help` for commands and `foundry --version` to check your version.
 **Next:** follow the [setup guide][getting-started] to connect a provider and
 start a project. The guide also covers updates and uninstalling.
 
+### Choose how to work
+
+| Path | Available now | Who runs the AI |
+| --- | --- | --- |
+| Published npm CLI, **0.5.1** | Terminal product journey through a provider adapter | The runtime you select and authorize |
+| Connected coding client, **source preview** | Research, Plan, Design, Builders and Reviewer in OpenCode | Your existing coding client, with its model and account |
+
+The connected path is merged into the source, **not published on npm** and
+**not yet qualified with a live model**. Homebrew installation is not available.
+To try it, follow [the connected-client guide][connected-client]; installing npm
+0.5.1 does not add that connection.
+
 ## How it works
 
 **Foundry manages the steps. Your connected AI does the AI work. You approve
@@ -46,8 +59,9 @@ Research → Plan → Design → Build → Test → Ship
 
 - **You approve the plan and design** before building starts.
 - **Specialist roles focus on each step:** research, planning, design, coding and review.
-- **Work happens in small tasks**, with checks, evidence-led repairs and Git checkpoints.
-- **Each AI handoff is traceable**, with input hashes, role details and saved results.
+- **Work happens in small tasks**, with saved results and checks tied to current code.
+- **Roles are focused assignments**, not 28 agents automatically running at once.
+- **Decisions carry forward**, with the plan, design and review available to the next session.
 
 Your code and history stay in your project. You can stop and recover work when
 needed. **Ship writes a local summary; it does not publish or deploy.**
@@ -65,23 +79,23 @@ Research uses captured sources and checked quotations; Design links implementati
 and interface decisions to requirements. Small changes can keep the shorter
 Planner → approved tasks → Builders path without Research or Design.
 It uses the host's reasoning or native subagents, not a second AI runtime.
-Preview with `./foundry connect opencode
---project PATH --dry-run`, then apply with `--apply`. Approval remains a separate
-terminal action. See [connection details][commands] and the precise limits.
-**This connection is not in published version 0.5.1** and has not been
-qualified with a live model. Existing terminal and provider workflows remain.
+The coding client prepares the brief, check mapping and contract for you.
+You review the connection before applying it, then approve Plan and Design in
+your terminal. Follow [the source-preview walkthrough][connected-client].
+Existing terminal and provider workflows remain available.
 
 ## AI providers and your data
 
-Foundry connects to AI tools through provider adapters. **Choose your provider
-and model**, then install and authorize its runtime separately. Follow the
+In adapter mode, **choose your provider and model**, then install and authorize
+its runtime separately. In connected mode, your coding client keeps model
+selection, sign-in and billing. Follow the
 [setup guide][getting-started] or the [adapter reference][providers].
 
 Run `foundry providers` to inspect installed commands, declared capabilities and
 configuration sources. Use `foundry providers PROJECT` to inspect a saved project
 by its folder name or ID.
 
-You confirm subscription use before running AI work. Cloud providers receive the
+Adapter-driven subscription work requires explicit consent. Cloud providers receive the
 prompts and project content sent to them. Foundry is **not a sandbox**. Read the
 [security guide][security].
 
@@ -104,6 +118,7 @@ and the [release guide][release-guide] for publishing.
 
 [website]: https://foundry-two-tan.vercel.app/
 [getting-started]: https://foundry-two-tan.vercel.app/docs/getting-started/
+[connected-client]: https://foundry-two-tan.vercel.app/docs/connected-client/
 [npm-package]: https://www.npmjs.com/package/@dabhiram13/foundry
 [documentation-index]: https://foundry-two-tan.vercel.app/docs/
 [release-guide]: https://foundry-two-tan.vercel.app/docs/releasing/

@@ -20,6 +20,7 @@ export default defineConfig({
       { label: 'Use Foundry', items: [
         { label: 'Overview', link: '/docs/' },
         { label: 'Install & first project', slug: 'docs/getting-started' },
+        { label: 'Use your coding client', slug: 'docs/connected-client' },
         { label: 'How Foundry works', slug: 'docs/workflow' },
         { label: 'Command reference', slug: 'docs/commands' },
       ] },

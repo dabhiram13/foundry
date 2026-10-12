@@ -73,7 +73,9 @@ The actual CLI names its final stages Test and Ship; Ship creates a local
 handoff rather than deploying. Specialist roles are assignments executed through
 the selected runtime, not automatically spawned independent agents.
 
-The OpenCode source preview exposes scoped work, approval and evidence, not the
-whole specialist journey. The published npm version and source preview are
-separate paths. Homebrew is planned, not an available installation method.
+The OpenCode source preview supports Research → Plan approval → Design approval
+→ Builders → Reviewer → local handoff. It uses the host's model and coding tools,
+not another launched AI runtime. Published npm 0.5.1 and the source preview are
+separate paths; the connected journey has not been qualified with a live model.
+Homebrew is planned, not an available installation method.
 Keep those distinctions visible; checks are supporting evidence, not the product.

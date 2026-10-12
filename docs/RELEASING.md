@@ -8,6 +8,12 @@ The public package name is [`@dabhiram13/foundry`](https://www.npmjs.com/package
 The examples below use `0.5.1`; substitute the intended
 version for later releases.
 
+The connected coding-client workflow is merged into source but is not in npm
+0.5.1. Publishing it requires a new approved version, a live-client qualification
+record and candidate-tarball checks. Local package fixtures are not publication.
+Homebrew has no tap or formula yet; its future release needs owner approval,
+checksums and separate installation/upgrade/removal qualification.
+
 ## Publishing access
 
 Publishing requires the owner's npm access. Sign in locally or use a short-lived,

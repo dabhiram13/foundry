@@ -10,7 +10,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { parse } from 'jsonc-parser';
 import { approveScope, reviewScope, start, status, verify, workContext, type WorkContext } from '../../src/core/lifecycle.js';
 import { connectOpenCode, workSkill } from '../../src/core/connect.js';
-import { digest, withProcessLock } from '../../src/core/fs.js';
+import { digest, exists, withProcessLock } from '../../src/core/fs.js';
 
 const executable = path.resolve('dist/runtime/foundry.cjs');
 const skillPath = '.opencode/skills/foundry-work/SKILL.md';
@@ -254,7 +254,8 @@ test('cancellation preserves interrupted receipts and allows continuation', asyn
   await waitFor(async () => ((await status(root)).active as Record<string, unknown>).status === 'verifying');
   abort.abort();
   await rejected;
-  await waitFor(async () => ((await status(root)).active as Record<string, unknown>).status === 'paused');
+  await waitFor(async () => ((await status(root)).active as Record<string, unknown>).status === 'paused'
+    && !await exists(root, '.foundry/state/coordinator.lock'));
   const interrupted = await context(connection);
   assert.equal(interrupted.evidence.status, 'invalid');
   assert.equal(interrupted.next_action.kind, 'resume');

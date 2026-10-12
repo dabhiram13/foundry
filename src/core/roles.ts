@@ -21,6 +21,10 @@ const rolesFileSchema = z.object({
 
 export type RolePolicy = z.infer<typeof rolePolicySchema>;
 
+export function rolePrompt(role: Pick<RolePolicy, 'name' | 'description' | 'instructions'>, context: string[]): string {
+  return [`You are the ${role.name} role in Foundry.`, role.description, role.instructions, ...context].join('\n\n');
+}
+
 export async function loadRoles(root: string): Promise<readonly RolePolicy[]> {
   const file = within(root, '.foundry/roles.json');
   try {

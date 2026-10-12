@@ -280,7 +280,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   try {
     await connection.connect(transport);
     const catalog = await connection.listTools();
-    assert.equal(catalog.tools.length, 8);
+    assert.equal(catalog.tools.length, 13);
     assert.equal(catalog.tools.some(tool => tool.name.includes('approve')), false);
     const read = async () => (await connection.callTool({ name: 'foundry_context', arguments: {} })).structuredContent;
     const before = await read();
@@ -288,11 +288,30 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
       snapshot_revision: before.snapshot_revision, slug: 'installed-connected', spec: 'spec.md', contract: 'connected-scope.json',
     } });
     assert.equal(start.isError, false);
+    const assignment = await connection.callTool({ name: 'foundry_assignment', arguments: { stage: 'planner' } });
+    assert.equal(assignment.isError, false);
+    assert.equal(assignment.structuredContent.execution, 'host_client');
+    const plan = { planner_role: 'planner', reviewer_role: 'quality-gate', tasks: [{
+      id: 'TASK-01', title: 'Implement installed behavior', instructions: 'Implement INSTALL-002 only.',
+      role: 'backend', criteria: ['INSTALL-002'], depends_on: [],
+    }] };
+    const planned = await connection.callTool({ name: 'foundry_save_plan', arguments: { plan, snapshot_revision: (await read()).snapshot_revision } });
+    assert.equal(planned.isError, false);
     const scope = (await connection.callTool({ name: 'foundry_review', arguments: {} })).structuredContent;
     run(executable, ['work', 'approve', '--revision', scope.revision, '--project', scoped], { cwd: home, env });
     const checked = await connection.callTool({ name: 'foundry_verify', arguments: { snapshot_revision: (await read()).snapshot_revision } });
     assert.equal(checked.isError, false);
     assert.equal(checked.structuredContent.exit_code, 0);
+    const finished = await connection.callTool({ name: 'foundry_task_done', arguments: { task_id: 'TASK-01', snapshot_revision: (await read()).snapshot_revision } });
+    assert.equal(finished.isError, false);
+    const reviewAssignment = await connection.callTool({ name: 'foundry_assignment', arguments: { stage: 'reviewer' } });
+    assert.equal(reviewAssignment.isError, false);
+    const reviewed = await connection.callTool({ name: 'foundry_record_review', arguments: {
+      report: { summary: 'Installed command behavior inspected in this package fixture.',
+        criteria: [{ id: 'INSTALL-002', assessment: 'met', observation: 'The bundled MCP completed configured local checks.' }], findings: [] },
+      snapshot_revision: (await read()).snapshot_revision,
+    } });
+    assert.equal(reviewed.isError, false);
     const completed = await connection.callTool({ name: 'foundry_complete', arguments: { snapshot_revision: (await read()).snapshot_revision } });
     assert.equal(completed.isError, false);
   } finally { await connection.close(); }

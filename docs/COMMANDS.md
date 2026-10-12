@@ -98,12 +98,93 @@ foundry work context [--project PATH] [--json]
 foundry work start SLUG --spec PATH [--contract PATH] [--project PATH]
 foundry work review [--project PATH] [--json]
 foundry work approve --revision HASH [--project PATH] [--json]
+foundry work specialists [--project PATH] [--json]
+foundry work assignment planner|builder|reviewer [--project PATH] [--json]
+foundry work save-plan --file PATH --snapshot HASH [--project PATH] [--json]
+foundry work task-done TASK_ID --snapshot HASH [--project PATH] [--json]
+foundry work record-review --file PATH --snapshot HASH [--project PATH] [--json]
 foundry work pause|resume|verify|complete|recover [--project PATH]
 foundry work workflow guide|context|gate|record|feedback [OPTIONS]
 ```
 
 `verify` and `complete` return a meaningful result in human or JSON mode and
 preserve nested task, check, review and active-run state.
+
+### Connected specialist work
+
+The host creates the spec and criterion/check mapping, then asks for a Planner
+assignment. Foundry returns the actual neutral role instructions, exact scope,
+output schema and host execution boundary. The host can use native subagents or
+follow roles sequentially. Foundry never launches a model through these tools.
+
+Save the Planner's result with `work save-plan` (or MCP `foundry_save_plan`). It
+adds a `plan` to the existing contract, preserving criteria and check names:
+
+```json
+{
+  "planner_role": "planner",
+  "reviewer_role": "quality-gate",
+  "tasks": [
+    {
+      "id": "TASK-01",
+      "title": "Implement the agreed behavior",
+      "instructions": "Build only the behavior described by FEATURE-001.",
+      "role": "backend",
+      "criteria": ["FEATURE-001"],
+      "depends_on": []
+    }
+  ]
+}
+```
+
+Use real criterion IDs from your contract. Plans contain 1-12 tasks, cover every
+criterion and reference only earlier task IDs as dependencies. Builders must
+have writable policies; reviewers must be read-only. Discover relevant roles
+with `work specialists` or `foundry_specialists`. The owner reviews the task
+plan, policies and check commands through `work review`, then explicitly approves
+the exact revision through the terminal. Changed scope, plan, selected policies
+or checks require renewed approval; affected task progress resets to pending.
+
+After approval, `work assignment builder` / `foundry_assignment` prepares the
+next ready task. The host implements it, runs `work verify` / `foundry_verify`,
+inspects the actual receipt and records it with `work task-done` /
+`foundry_task_done`. Later source edits require fresh checks, but do not erase
+historical task receipts. Pause/resume and another client retain the same tasks.
+Assignments advise stopping after three unsuccessful repairs; the host enforces
+that limit. Foundry does not automatically execute or count host repair attempts.
+
+With every task done and current passing checks, prepare the Reviewer assignment.
+The host inspects the actual diff and supplies a report to `work record-review`
+or `foundry_record_review`:
+
+```json
+{
+  "summary": "Compared the implementation and saved results with the scope.",
+  "criteria": [
+    { "id": "FEATURE-001", "assessment": "met", "observation": "Name the behavior and evidence actually inspected." }
+  ],
+  "findings": []
+}
+```
+
+Every criterion must appear exactly once, with `met`, `gap` or `unverified` and
+an observation. Findings name a criterion, a `message` and a `blocking` boolean.
+Gaps, unverified criteria and blocking findings prevent completion. Reports are
+saved even when blocked; earlier reports remain available. Changes to inputs,
+approval or verification receipts require a fresh final review. A changed or
+missing review record is invalid, not a pass. Successful completion includes
+tasks, evidence and the host-reported review in the local handoff.
+
+New CLI mutations require `--snapshot HASH` from the latest `work context --json`.
+Write result files before refreshing context, since writing project files can
+invalidate an earlier snapshot. MCP mutations require `snapshot_revision`.
+The generated OpenCode skill explains the full sequence. Contracts without a
+plan retain the existing scoped flow. Research/Design connected stages, live
+model qualification, npm publication and Homebrew distribution are separate.
+
+Requested permissions and reported reviewer identity are workflow instructions,
+not an enforced sandbox or proof that an independent agent performed the review.
+Passing checks and a nonblocking report do not equal owner acceptance.
 
 ### Read current work
 
@@ -130,7 +211,8 @@ This command is for scoped work. Product journeys use `status` and `review`.
 `work workflow context` remains the separate workflow-record ledger.
 
 `next_action.kind` is a recommendation: `start`, `review`, `verify`, `complete`, `resume`,
-`recover`, `inspect` or `none`. `inspect` means review the referenced evidence;
+`recover`, `inspect`, `build`, `review_work` or `none`. `build` and `review_work`
+recommend preparing the next specialist assignment. `inspect` means review the referenced evidence;
 it is not a separate CLI command. Completion always validates again.
 
 ### Approve a scoped change
@@ -214,7 +296,10 @@ The MCP command itself is `foundry mcp --project PATH` over stdio. Use it from a
 compatible client, not as an interactive terminal. The server stays bound to
 one initialized project and exposes `foundry_context`, `foundry_review`,
 `foundry_start`, `foundry_verify`, `foundry_complete`, `foundry_pause`,
-`foundry_resume` and `foundry_recover`. It does **not** run a model, select a
+`foundry_resume` and `foundry_recover`. Specialist work adds `foundry_specialists`,
+`foundry_assignment`, `foundry_save_plan`, `foundry_task_done` and
+`foundry_record_review`, sharing the same run, scope approval and evidence.
+It does **not** run a model, select a
 provider, authorize billing, approve work or accept a client-selected command.
 An agent may start only contracted scoped work; legacy work remains readable
 but needs the CLI for mutation. Every MCP mutation needs a fresh
@@ -222,7 +307,7 @@ but needs the CLI for mutation. Every MCP mutation needs a fresh
 changing the run. Work checked before later source edits needs fresh evidence.
 
 **You review and approve scope separately.** Ask the agent to call
-`foundry_review`, inspect the spec, criteria and configured check commands,
+`foundry_review`, inspect the spec, criteria, proposed tasks, role policies and configured check commands,
 then run `foundry work approve --revision HASH --project PATH` yourself with
 that exact revision. This is a local workflow decision, not human authentication:
 a process with equal filesystem access could still call the terminal command.

@@ -28,6 +28,15 @@ Manual terminal approval is a local workflow gate, not human authentication or
 a hostile-agent security boundary. A mapped passing check is evidence of that
 configured check, not proof that its requirement is semantically correct.
 
+Scope contracts can optionally contain a bounded specialist task plan. The plan
+and selected role policies join the same exact approval revision, not a second
+controller. Task completion records current passing receipts in the existing run.
+Progress is tied to the scope revision; a revised scope makes those tasks pending.
+Final review reports cover every criterion and are bound to inputs, approval and
+receipts. Missing, invalid, stale or blocking reports prevent local completion.
+Reports are host-reported judgments; their presence does not authenticate an
+independent specialist. See [connected work](COMMANDS.md#connected-specialist-work).
+
 ## Checks and review
 
 The scoped work lifecycle records the active run, tasks, checks, review

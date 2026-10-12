@@ -213,7 +213,7 @@ test('README banner contains only the Foundry logo and name on a self-contained 
       if (images.length === 1) assert.equal(attr(node, 'alt'), 'Foundry');
     }
   });
-  assert.equal(images[0], 'https://raw.githubusercontent.com/dabhiram13/foundry/main/site/assets/foundry-banner.svg');
+  assert.equal(images[0], 'https://foundry-two-tan.vercel.app/assets/foundry-banner.svg');
   assert.equal(images.length, 6);
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
   for (const [name, value] of [['ci', 'checks'], ['npm', `v${manifest.version}`], ['node', manifest.engines.node.replaceAll('<', '&lt;').replaceAll('>', '&gt;')], ['license', manifest.license], ['docs', 'read']]) {

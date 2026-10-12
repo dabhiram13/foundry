@@ -36,6 +36,8 @@ new wording and banner at mobile, tablet and desktop widths.
 - COPY-4: Site tests, full project checks, dependency audit, diff check and
   pre-commit security checks pass. Browser checks cover changed public copy
   and banner fit without replacing framework checks.
+- COPY-5: The README image URL is publicly reachable and serves the current
+  logo/name-only SVG. Check the public response against the repository asset.
 
 ## Exclusions and release boundaries
 

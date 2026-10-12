@@ -39,8 +39,8 @@ the beginner installation journey. Link to canonical repository sources.
 
 Terminal setup and using OpenCode from source have separate guides. Make it clear
 which version each needs; do not describe source features as part of npm 0.5.1.
-The README banner is read directly
-from the GitHub source asset so identity updates do not wait for site deployment.
+The README uses the publicly served banner asset, like its badges. Check that
+the URL is reachable without signing in; private GitHub raw URLs can return 404.
 
 Use concise titles, descriptive links and direct answers. Each page has a
 description in `site/content-map.mjs`. The build adds canonical URLs and a

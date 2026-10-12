@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { atomicJson, atomicWrite, canonicalJson, digest, exists, FoundryError, now } from './fs.js';
 import { readBoundedText } from './factory-contract.js';
 import type { CheckConfig, RunState } from './lifecycle.js';
+import { planPolicies, taskPlanSchema, type TaskPlan } from './work-plan.js';
 
 const documentPath = z.string().min(1).max(1024).refine(
   value => !value.startsWith('/') && !value.includes('\\') && !value.includes('\0')
@@ -11,19 +12,27 @@ const documentPath = z.string().min(1).max(1024).refine(
 );
 const sha256 = z.string().regex(/^[a-f0-9]{64}$/);
 export const scopedBindingSchema = z.object({ contract: documentPath, approval_sha256: sha256.optional() }).strict();
-const contractSchema = z.object({
+export const contractSchema = z.object({
   schema_version: z.literal(1),
   criteria: z.array(z.object({
     id: z.string().regex(/^[A-Z][A-Z0-9_-]{1,63}$/),
     requirement: z.string().trim().min(1).max(10_000),
     checks: z.array(z.string().regex(/^[A-Za-z0-9_-]+$/)).max(20),
   }).strict()).min(1).max(200),
+  plan: taskPlanSchema.optional(),
 }).strict().superRefine((value, context) => {
   if (new Set(value.criteria.map(item => item.id)).size !== value.criteria.length) {
     context.addIssue({ code: 'custom', message: 'Acceptance IDs must be unique' });
   }
   if (value.criteria.some(item => new Set(item.checks).size !== item.checks.length)) {
     context.addIssue({ code: 'custom', message: 'A criterion cannot repeat a check' });
+  }
+  if (value.plan) {
+    const ids = new Set(value.criteria.map(criterion => criterion.id));
+    const covered = new Set(value.plan.tasks.flatMap(task => task.criteria));
+    if ([...covered].some(criterion => !ids.has(criterion)) || [...ids].some(criterion => !covered.has(criterion))) {
+      context.addIssue({ code: 'custom', message: 'Tasks must cover all acceptance criteria and reference only known criteria' });
+    }
   }
 });
 const enrollmentSchema = z.object({
@@ -43,6 +52,8 @@ export interface ScopeReview {
   contract: { path: string; sha256: string };
   criteria: Array<{ id: string; requirement: string; checks: string[]; mapped: boolean }>;
   checks: CheckConfig[];
+  plan?: TaskPlan;
+  specialists?: Awaited<ReturnType<typeof planPolicies>>;
   approval: { status: ScopeApprovalStatus; revision: string | null; approved_at: string | null; method: 'manual_cli' | null; sha256: string | null };
   blockers: string[];
 }
@@ -87,7 +98,9 @@ export async function inspectScope(root: string, state: RunState, checks: CheckC
   const settings = checks.map(({ name, command, cwd, timeout, required, inputs, environment, test_report }) => ({
     name, command, cwd, timeout, required, inputs, environment, ...(test_report === undefined ? {} : { test_report }),
   }));
-  const revision = digest(canonicalJson({ schema_version: 1, run_id: state.run_id, spec, contract: contractRef, checks: settings }));
+  const specialists = contract.value.plan ? await planPolicies(root, contract.value.plan) : undefined;
+  const revision = digest(canonicalJson({ schema_version: 1, run_id: state.run_id, spec, contract: contractRef, checks: settings,
+    ...(specialists ? { specialists } : {}) }));
   const blockers: string[] = [];
   const configured = new Map(checks.map(check => [check.name, check]));
   const criteria = contract.value.criteria.map(criterion => {
@@ -118,6 +131,7 @@ export async function inspectScope(root: string, state: RunState, checks: CheckC
   }
   return {
     schema_version: 1, kind: 'scope_review', run_id: state.run_id, revision,
+    ...(contract.value.plan ? { plan: contract.value.plan, specialists } : {}),
     spec: { ...spec, text: specification.text }, contract: contractRef, criteria, checks: settings, approval, blockers,
   };
 }

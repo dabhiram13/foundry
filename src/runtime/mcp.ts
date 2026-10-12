@@ -4,8 +4,10 @@ import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 import { FoundryError, rejectSymlinkComponents } from '../core/fs.js';
 import {
-  complete, pauseOrResume, recover, reviewScope, start, verify, workContext,
+  complete, finishTask, pauseOrResume, prepareAssignment, recordWorkReview, recover,
+  reviewScope, saveTaskPlan, specialists, start, verify, workContext,
 } from '../core/lifecycle.js';
+import { taskPlanSchema, workReviewSchema } from '../core/work-plan.js';
 
 function result(value: unknown, isError = false): CallToolResult {
   const structuredContent = JSON.parse(JSON.stringify(value)) as JSONObject;
@@ -45,6 +47,35 @@ export async function serveMcp(rootInput: string, version: string): Promise<void
     description: 'Read the exact proposed specification, criteria and configured checks for owner review. This does not approve anything.',
     inputSchema: empty, annotations: readOnly,
   }, async () => guarded(() => reviewScope(root)));
+  server.registerTool('foundry_specialists', {
+    description: 'List the neutral specialist roles available in this project. No provider runs.',
+    inputSchema: empty, annotations: readOnly,
+  }, async () => guarded(() => specialists(root)));
+  server.registerTool('foundry_assignment', {
+    description: 'Prepare a Planner, next ready Builder or Reviewer assignment for the host client. Read-only; no model or checks run.',
+    inputSchema: z.object({ stage: z.enum(['planner', 'builder', 'reviewer']) }).strict(), annotations: readOnly,
+  }, async ({ stage }) => guarded(() => prepareAssignment(root, stage)));
+  server.registerTool('foundry_save_plan', {
+    description: 'Save a bounded task plan into the existing scope contract. Changes require renewed terminal approval.',
+    inputSchema: snapshot.extend({ plan: taskPlanSchema }).strict(), annotations: mutation,
+  }, async ({ plan, snapshot_revision }) => guarded(async () => {
+    await saveTaskPlan(root, plan, snapshot_revision);
+    return workContext(root);
+  }));
+  server.registerTool('foundry_task_done', {
+    description: 'Record the next ready task with actual current passing evidence. Does not claim semantic correctness.',
+    inputSchema: snapshot.extend({ task_id: z.string().regex(/^[A-Z][A-Z0-9_-]{1,63}$/) }).strict(), annotations: mutation,
+  }, async ({ task_id, snapshot_revision }) => guarded(async () => {
+    await finishTask(root, task_id, snapshot_revision);
+    return workContext(root);
+  }));
+  server.registerTool('foundry_record_review', {
+    description: 'Save host-reported observations for every approved criterion and findings. Gaps, unverified criteria and blocking findings block completion.',
+    inputSchema: snapshot.extend({ report: workReviewSchema }).strict(), annotations: mutation,
+  }, async ({ report, snapshot_revision }) => guarded(async () => {
+    await recordWorkReview(root, report, snapshot_revision);
+    return workContext(root);
+  }));
   server.registerTool('foundry_start', {
     description: 'Propose contracted scoped work using project-relative documents. The owner must approve the reviewed revision through the terminal.',
     inputSchema: snapshot.extend({ slug: z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/),

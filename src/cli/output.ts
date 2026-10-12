@@ -8,6 +8,10 @@ export function renderWorkContext(context: WorkContext): string {
   const lines = [run ? `${run.slug}${run.historical ? ' (completed history)' : ''}` : 'No scoped work yet.'];
   if (run) lines.push(`Saved progress: ${run.saved_status}`, `Specification: ${run.spec.path}`);
   if (context.scope) lines.push(`Scope approval: ${context.scope_approval}`, `Coverage: ${context.requirements_coverage === 'checks_passed' ? 'Mapped required checks passed.' : context.requirements_coverage}`);
+  if (context.plan) {
+    lines.push('Tasks:', ...context.plan.tasks.map(task => `  ${task.id}: ${task.status} — ${task.title} (${task.role})`),
+      `Specialist review: ${context.plan.review.status} (${context.plan.reviewer_role}; host reported)`);
+  }
   const evidence = {
     current: 'Required checks passed for the current inputs.',
     missing: 'No verification recorded.',
@@ -23,6 +27,14 @@ export function renderScopeReview(scope: ScopeReview): string {
   const lines = [`Specification: ${scope.spec.path}`, scope.spec.text.trim(), '', 'Acceptance criteria:'];
   for (const criterion of scope.criteria) {
     lines.push(`${criterion.id}: ${criterion.requirement}`, `  Checks: ${criterion.checks.join(', ') || 'not mapped'}`);
+  }
+  if (scope.plan) {
+    lines.push('', `Planner: ${scope.plan.planner_role}; reviewer: ${scope.plan.reviewer_role}`, 'Proposed tasks:');
+    for (const task of scope.plan.tasks) lines.push(`${task.id}: ${task.title} (${task.role})`,
+      `  ${task.instructions}`, `  Criteria: ${task.criteria.join(', ')}; after: ${task.depends_on.join(', ') || 'none'}`);
+    lines.push('Selected specialist policies:', ...scope.specialists!.flatMap(policy => [
+      `${policy.name}: ${policy.description} (${policy.sandbox})`, policy.instructions,
+    ]));
   }
   lines.push('', 'Configured checks:');
   for (const check of scope.checks) {

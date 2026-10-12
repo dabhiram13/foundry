@@ -69,7 +69,8 @@ test('MCP exposes one project, protocol stdout and no approval or provider tools
   const connection = await client(t, root);
   const catalog = await connection.listTools();
   assert.deepEqual(catalog.tools.map(tool => tool.name).sort(), [
-    'foundry_complete', 'foundry_context', 'foundry_pause', 'foundry_recover', 'foundry_resume', 'foundry_review', 'foundry_start', 'foundry_verify',
+    'foundry_assignment', 'foundry_complete', 'foundry_context', 'foundry_pause', 'foundry_record_review', 'foundry_recover',
+    'foundry_resume', 'foundry_review', 'foundry_save_plan', 'foundry_specialists', 'foundry_start', 'foundry_task_done', 'foundry_verify',
   ]);
   assert.equal(catalog.tools.find(tool => tool.name === 'foundry_context')?.annotations?.readOnlyHint, true);
   assert.equal(catalog.tools.find(tool => tool.name === 'foundry_verify')?.annotations?.destructiveHint, true);

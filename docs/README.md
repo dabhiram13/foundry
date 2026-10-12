@@ -1,31 +1,30 @@
 # Foundry documentation
 
-Foundry is a product-building framework for your AI. It carries Research, Plan,
-Design, Build and Review through saved assignments, approvals and evidence.
-Your AI supplies reasoning and coding tools; Foundry coordinates the work.
+Foundry helps you research, plan, design, build and review software. It saves
+progress and pauses for your approval. Use it with your coding tool or a provider
+you choose.
 
 ## Choose your starting point
 
 | You want to | Start here | Availability |
 | --- | --- | --- |
-| Work inside your coding client | [OpenCode connection](CONNECTED-CLIENT.md) | Source preview; not in npm 0.5.1 |
-| Run a product journey from Foundry's terminal | [Install and first project](GETTING-STARTED.md) | Published npm CLI with a selected provider adapter |
-| Track a change without connecting an AI | [Existing repositories](RUNTIME.md) | Manual scoped work |
+| Work inside your coding tool | [OpenCode connection](CONNECTED-CLIENT.md) | From source; not in npm 0.5.1 |
+| Build from Foundry's terminal | [Install and first project](GETTING-STARTED.md) | npm package with a provider you choose |
+| Track a change yourself | [Existing repositories](RUNTIME.md) | Local work and checks |
 
-The connected source supports Research → Plan approval → Design approval →
-Builders → Reviewer → local handoff. A live model-driven trial remains
-unqualified. Homebrew distribution is not available. No path deploys automatically.
+The OpenCode connection has not been tested with a live model. Homebrew is not
+available. Foundry does not publish or deploy your product.
 
 ## Use Foundry
 
 1. [Install and build your first project](GETTING-STARTED.md) or
-   [build inside your coding client](CONNECTED-CLIENT.md).
-2. [How Foundry works](WORKFLOW.md) - what Foundry does, what the AI does, and
+   [build inside your coding tool](CONNECTED-CLIENT.md).
+2. [How Foundry works](WORKFLOW.md) - what Foundry does, what your coding tool does, and
    what stays under your control.
 3. [Command reference](COMMANDS.md) - look up a command when you need it.
 
-You need Node.js 24 or newer and Git. To run AI work, choose a compatible provider,
-install its runtime and authorize the access it needs.
+You need Node.js 24 or newer and Git. For terminal builds, choose a compatible provider
+and follow its setup and sign-in instructions.
 
 ## When you need more detail
 

@@ -37,9 +37,9 @@ command reference. More options, Develop Foundry itself and Security & licenses
 are collapsed by default. Keep contributor builds and release commands out of
 the beginner installation journey. Link to canonical repository sources.
 
-The published first-project path and connected coding-client source preview
-have separate guides. Keep availability visible at each entry point; do not
-describe source features as part of npm 0.5.1. The README banner is read directly
+Terminal setup and using OpenCode from source have separate guides. Make it clear
+which version each needs; do not describe source features as part of npm 0.5.1.
+The README banner is read directly
 from the GitHub source asset so identity updates do not wait for site deployment.
 
 Use concise titles, descriptive links and direct answers. Each page has a

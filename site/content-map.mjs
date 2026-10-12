@@ -32,13 +32,13 @@ export function pageUrl(slug) {
 }
 
 export const descriptions = {
-  index: 'Build products with Foundry. Choose the published terminal workflow or the connected coding-client source preview, with saved progress and your approvals.',
-  'getting-started': 'Install Foundry with npm, connect your AI provider, create a project and approve its plan and design before building.',
-  'connected-client': 'Connect OpenCode to Foundry from source. Research, plan, design, build and review a small product using your coding client and terminal approvals.',
+  index: 'Research, plan, design, build and review with Foundry. Use the npm package or build from source for OpenCode.',
+  'getting-started': 'Install Foundry with npm, set up a provider and approve your project plan and design before building.',
+  'connected-client': 'Build Foundry from source and use it inside OpenCode. Research, plan, design, build and review with your approval.',
   commands: 'Find Foundry terminal commands for creating projects, running stages, approving plans, configuring providers and recovering work.',
   runtime: 'Add Foundry to an existing repository, track a change, run checks and recover interrupted work.',
-  providers: 'Choose an AI provider and model for Foundry. Configure adapters, capabilities, billing and the shared process protocol.',
-  workflow: 'Understand how Foundry coordinates Research, Plan, Design, Build, Test and Ship with approval gates and saved evidence.',
+  providers: 'Set up a provider and model for terminal work. Learn how connections, account access and costs work.',
+  workflow: 'Research, plan, design, build and review software in clear steps, with saved progress and your approval.',
   'workflow-contracts': 'Learn how Foundry validates saved records, binds approvals to document revisions and records checks and recovery.',
   customization: 'Configure Foundry project folders, provider selection, specialist roles, billing consent and required checks.',
   validation: 'Run Foundry runtime, package, website, catalog and security tests with local fixtures and reproducible commands.',

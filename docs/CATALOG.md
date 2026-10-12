@@ -1,14 +1,13 @@
 # Roles and reference catalog
 
-Foundry ships a neutral role catalog at `.foundry/roles.json`. `foundry roles`
-lists the roles available to the runtime. Stage assignments are project
-configuration; each role describes work and requested permissions.
+Foundry includes 28 specialist roles in `.foundry/roles.json`. Run `foundry roles`
+to list them. Each role defines a job and the permissions it asks for.
 
-The 28 role definitions are not 28 automatically running agents. Adapter mode
-uses relevant stage roles through your selected provider. Connected work sends
-the selected role's instructions, inputs and expected output to your existing
-coding client, which may follow them sequentially or use native subagents.
-The same client reporting several roles is not independent model verification.
+Roles do not run all at once. From the terminal, your chosen provider follows
+the roles needed for each stage. In OpenCode, your coding tool receives the
+selected role's instructions, inputs and expected result. It can do the work
+itself or use its own subagents. Multiple role reports from the same coding
+tool are not independent reviews.
 See [the product workflow](WORKFLOW.md) and [connected setup](CONNECTED-CLIENT.md).
 
 The repository includes optional skills and recipes for contributors. Read their

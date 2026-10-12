@@ -4,13 +4,13 @@ Foundry's runtime is one Node 24+ executable. [Install it with npm](GETTING-STAR
 then use `init` for a clean repository or the explicit migration flow for a
 legacy workspace.
 
-`init` adds Foundry's local files; it does not start AI work. The `work` commands
+`init` adds Foundry's local files; it does not start building. The `work` commands
 track a change you or a coding tool implement, then run configured checks.
-For the guided AI product workflow, use [your first project](GETTING-STARTED.md).
+For a guided product build, use [your first project](GETTING-STARTED.md).
 
 To work inside OpenCode, use [the connected source preview](CONNECTED-CLIENT.md).
-It supports Research, Plan and Design approvals, Builders and Reviewer in this
-same scoped lifecycle. Your coding client supplies the reasoning and edits.
+Use it for research, planning, design, building and review. Your coding tool does
+the work; Foundry saves progress and waits for your approvals.
 Published npm 0.5.1 does not include scoped context, exact scope approval or the
 connection; use the source launcher for those commands.
 

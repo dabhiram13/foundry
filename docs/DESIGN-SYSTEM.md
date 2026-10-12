@@ -51,6 +51,8 @@ The favicon-sized mark is a simplified vector silhouette extracted from the
 approved generated horse. It is intentionally quiet at small sizes; dense
 engraving belongs in the large illustrations. The wordmark is outlined
 Cormorant typesetting. README banner and social image reuse the same identity.
+The self-contained README banner contains only the horse logo and Foundry
+wordmark on ink, with a scarlet logo field. It has no tagline or stage labels.
 
 ## Provenance boundary
 
@@ -73,9 +75,8 @@ The actual CLI names its final stages Test and Ship; Ship creates a local
 handoff rather than deploying. Specialist roles are assignments executed through
 the selected runtime, not automatically spawned independent agents.
 
-The OpenCode source preview supports Research → Plan approval → Design approval
-→ Builders → Reviewer → local handoff. It uses the host's model and coding tools,
-not another launched AI runtime. Published npm 0.5.1 and the source preview are
-separate paths; the connected journey has not been qualified with a live model.
-Homebrew is planned, not an available installation method.
+Building from source adds Research → Plan approval → Design approval → Builders
+→ Reviewer → local handoff inside OpenCode, with its existing model and tools.
+This connection is not in npm 0.5.1 and has not been tested with a live model.
+Homebrew is not available.
 Keep those distinctions visible; checks are supporting evidence, not the product.

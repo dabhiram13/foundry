@@ -1,15 +1,15 @@
 # How Foundry works
 
-**Foundry manages the process. Your connected AI tool does the AI work.
-You decide what to approve.** Install it using the [first-project guide](GETTING-STARTED.md).
+**Foundry organizes the steps. Your coding tool or provider does the work.
+You approve the plan and design.** Install it using the [first-project guide](GETTING-STARTED.md).
 
 ## The three parts
 
 | Part | What it does |
 | --- | --- |
-| Foundry | Creates project folders, prepares specialist work, saves results, runs checks and waits for approval. Adapter mode calls your selected provider; a connected client does the reasoning itself. |
-| AI provider | Reads the supplied context and uses its tools to research, plan or change code. You choose the adapter and model, and authorize its runtime separately. |
-| Your project | Holds the code, documents, Git history and private progress records on your computer. Cloud AI still receives the prompts and project content sent to it. |
+| Foundry | Creates project folders, assigns work, saves results, runs checks and waits for approval. |
+| Coding tool or provider | Uses its tools to research, plan and change code. Use your OpenCode model and account, or set up a provider for terminal work. |
+| Your project | Holds the code, documents, Git history and private progress records on your computer. Cloud providers receive the prompts and project content sent to them. |
 
 Specialist roles supply instructions for each job and share the project's
 provider connection.
@@ -24,8 +24,8 @@ are part of the exact scope you approve. Smaller changes can omit preparation
 and keep Planner → approved tasks → Builders → Reviewer. See
 [connected work](COMMANDS.md#connected-specialist-work).
 For setup and an owner-facing example, use [the connected-client guide](CONNECTED-CLIENT.md).
-This path is merged source, not published npm 0.5.1; live model-driven work
-remains unqualified. Homebrew installation is not available.
+This connection is in the source code, not npm 0.5.1. It has not been tested
+with a live model. Homebrew is not available.
 
 ## What it is built with
 
@@ -38,7 +38,7 @@ The website is a separate **Astro/Starlight static site**, with React components
 on the landing page.
 See the [code layout](ARCHITECTURE.md) if you want to develop Foundry itself.
 
-## New product through a provider adapter
+## Build a product from the terminal
 
 ```text
 Your idea → Research → Plan → Your approval → Design → Your approval

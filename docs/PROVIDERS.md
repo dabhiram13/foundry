@@ -1,17 +1,16 @@
-# Connect your AI tool
+# Set up a provider
 
 Foundry sends tasks to an AI tool you have installed and authorized. Each
 project uses one connection shared by its specialist roles.
 
-This guide describes **adapter mode**, including the published npm CLI. In the
-[connected OpenCode source preview](CONNECTED-CLIENT.md), the host already owns
-the model, sign-in, conversation, tools and billing. That path does not use an
-adapter or launch a second provider runtime behind the MCP connection.
+This guide covers provider setup for the **terminal**, including npm 0.5.1.
+Using [OpenCode from source](CONNECTED-CLIENT.md)? Keep its existing model,
+account and tools instead.
 
 ## Choose a provider and model
 
-Foundry uses adapters rather than a fixed model or AI vendor. Each adapter
-connects a runtime and declares the operations it supports. List connections
+An adapter connects Foundry to a provider's tools and lists what it can do.
+Foundry is not tied to one model or provider. List connections
 with `foundry providers`, then choose one with `--adapter NAME` when creating
 a project. Foundry does not silently choose a provider or switch to another one.
 

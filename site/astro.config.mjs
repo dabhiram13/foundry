@@ -11,7 +11,7 @@ export default defineConfig({
   markdown: { processor: unified({ remarkPlugins: [links, focusableTables] }) },
   integrations: [starlight({
     title: 'Foundry docs',
-    description: 'Install Foundry, build from your terminal, and keep control of your projects.',
+    description: 'Install Foundry, plan the work and build software step by step.',
     favicon: '/assets/foundry-mark.svg',
     customCss: ['./src/styles/docs.css'],
     components: { SiteTitle: './src/components/SiteTitle.astro' },
@@ -20,13 +20,13 @@ export default defineConfig({
       { label: 'Use Foundry', items: [
         { label: 'Overview', link: '/docs/' },
         { label: 'Install & first project', slug: 'docs/getting-started' },
-        { label: 'Use your coding client', slug: 'docs/connected-client' },
+        { label: 'Use your coding tool', slug: 'docs/connected-client' },
         { label: 'How Foundry works', slug: 'docs/workflow' },
         { label: 'Command reference', slug: 'docs/commands' },
       ] },
       { label: 'More options', collapsed: true, items: [
         { label: 'Existing projects & recovery', slug: 'docs/runtime' },
-        { label: 'Connect your AI tool', slug: 'docs/providers' },
+        { label: 'Provider setup', slug: 'docs/providers' },
         { label: 'Specialist roles & guides', slug: 'docs/catalog' },
         { label: 'Project settings', slug: 'docs/customization' },
       ] },

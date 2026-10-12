@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dabhiram13/foundry/main/site/assets/foundry-banner.svg" alt="Foundry: research, plan, design, build, review and hand off" width="960" />
+  <img src="https://raw.githubusercontent.com/dabhiram13/foundry/main/site/assets/foundry-banner.svg" alt="Foundry" width="960" />
 </p>
 
 <p align="center">
@@ -10,11 +10,11 @@
   <a href="https://foundry-two-tan.vercel.app/docs/"><img src="https://foundry-two-tan.vercel.app/assets/badge-docs.svg" alt="Read the documentation" /></a>
 </p>
 
-# From idea to product, with your AI.
+# Build from idea to product.
 
-Foundry is a framework for building products with specialist roles, saved
-progress and your approval. Start with an idea or improve an existing repository.
-Your AI does the reasoning and coding; Foundry carries the work between steps.
+Foundry helps you research, plan, design, build and review software. Start with
+an idea or improve an existing project. Use your coding tool or a provider you
+choose. Foundry saves the work and pauses for your approval at important steps.
 
 [Website][website] · [Docs][documentation-index] · [npm][npm-package] ·
 [Contribute][contributing]
@@ -36,20 +36,19 @@ start a project. The guide also covers updates and uninstalling.
 
 ### Choose how to work
 
-| Path | Available now | Who runs the AI |
+| Path | What you can do | What you use |
 | --- | --- | --- |
-| Published npm CLI, **0.5.1** | Terminal product journey through a provider adapter | The runtime you select and authorize |
-| Connected coding client, **source preview** | Research, Plan, Design, Builders and Reviewer in OpenCode | Your existing coding client, with its model and account |
+| npm package, **0.5.1** | Build a product from the terminal | A provider you choose and set up |
+| OpenCode, **from source** | Research, plan, design, build and review inside your coding tool | Your existing model and account |
 
-The connected path is merged into the source, **not published on npm** and
-**not yet qualified with a live model**. Homebrew installation is not available.
-To try it, follow [the connected-client guide][connected-client]; installing npm
-0.5.1 does not add that connection.
+The OpenCode connection is in the source code, **not in npm 0.5.1**. It has not
+been tested with a live model. Homebrew is not available. To try it, follow
+[the OpenCode guide][connected-client].
 
 ## How it works
 
-**Foundry manages the steps. Your connected AI does the AI work. You approve
-the decisions.**
+**Foundry organizes the steps. Your coding tool or provider does the work.
+You approve the plan and design.**
 
 For a new product:
 
@@ -60,7 +59,7 @@ Research → Plan → Design → Build → Test → Ship
 - **You approve the plan and design** before building starts.
 - **Specialist roles focus on each step:** research, planning, design, coding and review.
 - **Work happens in small tasks**, with saved results and checks tied to current code.
-- **Roles are focused assignments**, not 28 agents automatically running at once.
+- **Each role has a specific job.** Roles do not run all at once.
 - **Decisions carry forward**, with the plan, design and review available to the next session.
 
 Your code and history stay in your project. You can stop and recover work when
@@ -68,34 +67,30 @@ needed. **Ship writes a local summary; it does not publish or deploy.**
 Small changes to an existing repository use a [shorter workflow][runtime].
 See the [command reference][commands] for terminal controls and scripting.
 
-### Connected coding client (source preview)
+### Use OpenCode from source
 
-The source checkout can connect **OpenCode** to scoped repository work through
-a local MCP server and project skill. OpenCode keeps your chat, model and account;
-Foundry prepares specialist assignments, saves small dependent tasks, holds the
-approved plan and records checks and review findings. The connected product path is
+Build Foundry from source to use it inside **OpenCode**. OpenCode keeps your
+chat, model and account. Foundry assigns the work, saves tasks and decisions,
+waits for approval and records check results and review findings. The steps are
 **Research → Plan approval → Design approval → relevant Builders → Reviewer → local handoff**.
-Research uses captured sources and checked quotations; Design links implementation
-and interface decisions to requirements. Small changes can keep the shorter
-Planner → approved tasks → Builders path without Research or Design.
-It uses the host's reasoning or native subagents, not a second AI runtime.
-The coding client prepares the brief, check mapping and contract for you.
+Research saves sources and checks quotations. Design explains how each
+requirement will be built. Small changes can skip Research and Design.
+Your coding tool prepares the brief, tasks and required checks for you.
 You review the connection before applying it, then approve Plan and Design in
-your terminal. Follow [the source-preview walkthrough][connected-client].
+your terminal. Follow [the OpenCode guide][connected-client].
 Existing terminal and provider workflows remain available.
 
-## AI providers and your data
+## Providers and your data
 
-In adapter mode, **choose your provider and model**, then install and authorize
-its runtime separately. In connected mode, your coding client keeps model
-selection, sign-in and billing. Follow the
-[setup guide][getting-started] or the [adapter reference][providers].
+From the terminal, **choose your provider and model**, then follow its setup
+and sign-in instructions. In OpenCode, keep your existing model and account.
+Follow the [setup guide][getting-started] or the [provider reference][providers].
 
 Run `foundry providers` to inspect installed commands, declared capabilities and
 configuration sources. Use `foundry providers PROJECT` to inspect a saved project
 by its folder name or ID.
 
-Adapter-driven subscription work requires explicit consent. Cloud providers receive the
+Using a subscription requires your consent. Cloud providers receive the
 prompts and project content sent to them. Foundry is **not a sandbox**. Read the
 [security guide][security].
 

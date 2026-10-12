@@ -44,7 +44,7 @@ test('first-project guide separates terminal use from contributor setup', async 
   assert.ok(guide.indexOf('## Create a project') < guide.indexOf('## Update or uninstall'));
   assert.match(guide, /Commands there start with\s+`\/`/);
   assert.match(guide, /--adapter PROVIDER/);
-  assert.match(guide, /Your selected AI provider performs the AI/);
+  assert.match(guide, /The provider you choose does the work/);
   assert.match(guide, /not inside Foundry/);
 });
 
@@ -119,7 +119,7 @@ test('README links readers to built public documentation pages', async () => {
 test('public landing is pre-rendered and does not load the workspace client', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
   assert.match(html, /An idea\.<br\/>A plan\.<br\/><em>A product\.<\/em>/);
-  assert.match(html, /A framework for building products/);
+  assert.match(html, /Build products, step by step/);
   assert.match(html, /href="\/docs\/"/);
   assert.doesNotMatch(html, /foundry-token|src="\/app.js"|Open local browser view/);
   const script = await readFile(path.join(output, 'public.js'), 'utf8');
@@ -195,18 +195,23 @@ test('landing groups six specialist roles with decorative icons and a catalog li
   assert.ok(catalog);
 });
 
-test('README banner reuses the Foundry wordmark and has a self-contained background', async () => {
+test('README banner contains only the Foundry logo and name on a self-contained background', async () => {
   const banner = await readFile(path.join(root, 'site/assets/foundry-banner.svg'), 'utf8');
   const wordmark = await readFile(path.join(root, 'site/assets/foundry-wordmark.svg'), 'utf8');
   const logoPath = /<path d="([^"]+)"/.exec(wordmark)?.[1];
   assert.ok(logoPath);
   assert.ok(banner.includes(logoPath));
   assert.match(banner, /<rect[^>]+fill="#0a0a09"/);
-  assert.doesNotMatch(banner, /<script|<image|<foreignObject/);
+  assert.doesNotMatch(banner, /<script|<image|<foreignObject|<text\b/);
+  assert.doesNotMatch(banner, /Research|Plan|Design|Build|Review|Handoff|framework for building|YOUR AI|YOUR CODE|OPEN SOURCE/);
+  assert.match(banner, /<title>Foundry<\/title>/);
   const readme = await readFile(path.join(root, 'README.md'), 'utf8');
   const images = [];
   walk(parse(readme), node => {
-    if (node.tagName === 'img') images.push(attr(node, 'src'));
+    if (node.tagName === 'img') {
+      images.push(attr(node, 'src'));
+      if (images.length === 1) assert.equal(attr(node, 'alt'), 'Foundry');
+    }
   });
   assert.equal(images[0], 'https://raw.githubusercontent.com/dabhiram13/foundry/main/site/assets/foundry-banner.svg');
   assert.equal(images.length, 6);
@@ -223,10 +228,13 @@ test('README banner reuses the Foundry wordmark and has a self-contained backgro
   const mark = await readFile(path.join(root, 'site/assets/foundry-mark.svg'), 'utf8');
   const horsePath = /<path d="([^"]+)"/.exec(mark)?.[1];
   assert.ok(horsePath && banner.includes(horsePath), 'banner retains the approved horse mark');
-  assert.match(banner, /viewBox="0 0 1200 340"/);
-  assert.match(banner, /translate\(282 58\) scale\(\.16\)/);
+  assert.match(banner, /viewBox="0 0 1200 260"/);
+  assert.match(banner, /translate\(300 68\) scale\(\.16\)/);
   const width = Number(/viewBox="-30 -30 (\d+) 820"/.exec(wordmark)?.[1]);
-  assert.ok(width * .16 + 282 < 1200, 'outlined wordmark fits within the banner');
+  assert.ok(width * .16 + 300 < 1200, 'outlined wordmark fits within the banner width');
+  assert.ok(820 * .16 + 68 < 260, 'outlined wordmark fits within the banner height');
+  assert.match(banner, /translate\(141\.25 67\.5\) scale\(\.625\)/);
+  assert.ok(114.375 + 240 * .625 < 1200 && 55 + 240 * .625 < 260, 'horse mark fits within the banner');
   assert.match(readme, /^\[license\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/LICENSE$/m);
   assert.doesNotMatch(readme, /^\[[^\]]+\]: (?!https?:\/\/)\S+/m);
   assert.doesNotMatch(readme, /\]\((?!https?:\/\/|#)[^)]+\)/);
@@ -363,19 +371,19 @@ test('product journey remains native, readable and honest about connection bound
   assert.deepEqual(labels, ['Research', 'Plan', 'Design', 'Build', 'Review', 'Handoff']);
   assert.equal(stages.filter(node => attr(node, 'open') !== undefined).length, 1);
   for (const stage of stages) {
-    assert.match(textContent(stage), /Assignment/);
-    assert.match(textContent(stage), /Output/);
+    assert.match(textContent(stage), /Role/);
+    assert.match(textContent(stage), /Result/);
   }
   assert.equal(faqs.length, 5);
   assert.ok(mobileMenu);
-  assert.match(textContent(mobileMenu), /The processSpecialistsDocumentation/);
-  assert.match(html, /28 role definitions/);
-  assert.match(textContent(tree), /OpenCode source preview supports Research, Plan, Design, Builders and Reviewer/);
+  assert.match(textContent(mobileMenu), /How it worksSpecialistsDocumentation/);
+  assert.match(html, /28 specialist roles/);
+  assert.match(textContent(tree), /Build Foundry from source to research, plan, design, build and review inside OpenCode/);
   assert.match(textContent(tree), /not part of npm 0\.5\.1/);
-  assert.match(textContent(tree), /live model-driven product trial remains unqualified/);
+  assert.match(textContent(tree), /not been tested with a live model/);
   assert.doesNotMatch(html, /full specialist journey is not yet exposed/);
-  assert.match(html, /Homebrew distribution is planned, not available/);
-  assert.match(html, /Ship is a local handoff, not automatic deployment/);
+  assert.match(html, /Homebrew is not available/);
+  assert.match(html, /Ship writes a project summary; it does not publish or deploy/);
   assert.doesNotMatch(html, /role="tab"|<canvas|<iframe|Imageory|Spline/);
 });
 
@@ -388,7 +396,7 @@ test('connected setup is reachable and keeps source, checks and owner approval e
     './foundry work approve --revision HASH', './foundry work context --project']) {
     assert.ok(guide.includes(command), `missing connected setup: ${command}`);
   }
-  assert.match(guide, /not part of published npm 0\.5\.1/);
+  assert.match(guide, /not in npm 0\.5\.1/);
   assert.match(guide, /Repeat review and approval for the new revision/);
   assert.match(guide, /Every declared input path must exist/);
   assert.match(guide, /zero-test command/);
@@ -407,6 +415,20 @@ test('active guides reject obsolete connected-journey and distribution claims', 
     assert.doesNotMatch(markdown, /not the\s+whole specialist journey|full specialist journey is not yet exposed/, source);
     assert.doesNotMatch(markdown, /\bbrew\s+install\b/, `${source}: no nonexistent Homebrew install command`);
   }
+});
+
+test('public introductions use plain words instead of AI slogans and runtime jargon', async () => {
+  const forbidden = /Give your AI|Your AI does the|framework for your AI|AI-assisted work|source-preview client connection|second AI runtime|live model-driven.*unqualified|Less improvisation|More intention|The work takes shape/i;
+  for (const source of ['README.md', 'docs/README.md', 'docs/GETTING-STARTED.md',
+    'docs/CONNECTED-CLIENT.md', 'site/src/landing/components/landing.tsx',
+    'site/src/landing/components/product-walkthrough.tsx', 'site/src/pages/index.astro',
+    'site/content-map.mjs']) {
+    assert.doesNotMatch(await readFile(path.join(root, source), 'utf8'), forbidden, source);
+  }
+  const readme = await readFile(path.join(root, 'README.md'), 'utf8');
+  assert.match(readme, /research, plan, design, build and review software/);
+  assert.match(readme, /not in npm 0\.5\.1/);
+  assert.match(readme, /not\s+been tested with a live model/);
 });
 
 function webpDimensions(buffer) {

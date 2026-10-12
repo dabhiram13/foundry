@@ -390,7 +390,7 @@ If the client cancels or disconnects during verification, read context from a
 new session and use its `resume` or `recover` action; no interrupted check counts
 as a pass. Connection and tool/skill discovery were checked with OpenCode 1.19.0,
 using Node 24 and 25 for the Foundry server. SDK and installed-package fixtures
-check the work flow, but a live model-driven run remains unqualified. This does
+check the workflow, but it has not been tested with a live model. This does
 not claim compatibility with every client version or semantic correctness.
 
 ## Provider operations

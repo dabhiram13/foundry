@@ -3,10 +3,9 @@
 You need [Node.js 24 or newer](https://nodejs.org/en/download) (which includes npm) and
 [Git](https://git-scm.com/downloads).
 
-This guide uses **published npm 0.5.1** and an adapter that calls your selected
-provider. Already working inside a coding client? Follow the separate
-[OpenCode source-preview guide](CONNECTED-CLIENT.md), which reuses that client's
-model and account. The connected workflow is not in the published package.
+This guide uses **npm 0.5.1** with a provider you choose. Already using OpenCode?
+See the separate [OpenCode source guide](CONNECTED-CLIENT.md), which uses your
+existing model and account. That connection is not in npm 0.5.1.
 
 ## Install Foundry
 
@@ -24,10 +23,10 @@ When you see `foundry>`, you are **inside Foundry**. Commands there start with
 `/`. Type `/help` for help
 or `/exit` to return to your computer's terminal.
 
-## Connect the AI
+## Choose a provider
 
-Foundry organizes the workflow. **Your selected AI provider performs the AI
-work.** A provider adapter connects that tool to Foundry.
+Foundry organizes the steps. **The provider you choose does the work.** An
+adapter is the connection that lets Foundry use that provider's tools.
 
 Inside Foundry, list the available connections:
 

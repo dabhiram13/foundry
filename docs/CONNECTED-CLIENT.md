@@ -1,12 +1,10 @@
-# Build inside your coding client
+# Build inside your coding tool
 
 Use Foundry inside **OpenCode**, with your existing model, account and coding
-tools. Foundry prepares specialist assignments and saves the decisions and
-evidence; it does not start another AI runtime.
+tools. Foundry assigns the work, saves progress and waits for your approval.
 
-**This is a source preview, not part of published npm 0.5.1.** Connection and
-local protocol checks pass, but a real model-driven product trial remains
-unqualified. Homebrew installation is not available.
+**This connection is in the source code, not in npm 0.5.1.** Local tests pass,
+but it has not been tested with a live model. Homebrew is not available.
 
 ```text
 Your idea → Research → Plan → Your approval
@@ -36,7 +34,7 @@ npm run build:runtime
 The checkout must stay in place: the connection records its absolute launcher
 and Node paths. This does not install a global `foundry` command. Windows users
 can use the same Node program, replacing shell syntax and paths as appropriate;
-this walkthrough does not claim Windows qualification.
+these commands have not been checked on Windows.
 
 ## 2. Choose the product repository
 
@@ -78,8 +76,8 @@ the coding client how to use Foundry. A useful first request is:
 > mark it done today and keep progress after reloading. Use the full connected
 > workflow with Research and Design. First inspect the project and configure
 > real tests with inputs that cover the app. Create the brief and contract for
-> me, including preparation. Show me the Plan and Design and stop for my terminal
-> approval each time. Do not approve, publish or start another AI runtime for me.
+> me, including Research and Design. Show me the Plan and Design and stop for my
+> approval each time. Do not approve or publish for me.
 
 The coding client should call `foundry_context` first, create the project-local
 brief and contract with `preparation: {}`, then request the Research assignment.
@@ -125,10 +123,10 @@ the same filesystem access.
 ## 5. Build, review and try the app
 
 Builders work through the saved dependent tasks. Foundry runs configured checks
-and records current evidence. A Reviewer covers each criterion; unfinished
+and saves the results. The reviewer checks each requirement; unfinished
 tasks, failed checks and stale or blocking reviews prevent completion.
 
-Ask the coding client to provide the app's start command and a local handoff.
+Ask your coding tool for the app's start command and a summary of the work.
 Open the running app, add a habit, mark it done and reload. Check keyboard and
 mobile behavior too. Passing unit tests and a text Design report do not prove
 the rendered interface works or looks right. Your acceptance remains separate.

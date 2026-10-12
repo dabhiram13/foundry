@@ -3,6 +3,7 @@ import { atomicJson, atomicWrite, canonicalJson, digest, exists, FoundryError, n
 import { readBoundedText } from './factory-contract.js';
 import type { CheckConfig, RunState } from './lifecycle.js';
 import { planPolicies, taskPlanSchema, type TaskPlan } from './work-plan.js';
+import { assertPreparationReady, inspectPreparation, preparationPolicies, preparationSchema, type PreparationState } from './work-preparation.js';
 
 const documentPath = z.string().min(1).max(1024).refine(
   value => !value.startsWith('/') && !value.includes('\\') && !value.includes('\0')
@@ -20,6 +21,7 @@ export const contractSchema = z.object({
     checks: z.array(z.string().regex(/^[A-Za-z0-9_-]+$/)).max(20),
   }).strict()).min(1).max(200),
   plan: taskPlanSchema.optional(),
+  preparation: preparationSchema.optional(),
 }).strict().superRefine((value, context) => {
   if (new Set(value.criteria.map(item => item.id)).size !== value.criteria.length) {
     context.addIssue({ code: 'custom', message: 'Acceptance IDs must be unique' });
@@ -54,6 +56,7 @@ export interface ScopeReview {
   checks: CheckConfig[];
   plan?: TaskPlan;
   specialists?: Awaited<ReturnType<typeof planPolicies>>;
+  preparation?: PreparationState;
   approval: { status: ScopeApprovalStatus; revision: string | null; approved_at: string | null; method: 'manual_cli' | null; sha256: string | null };
   blockers: string[];
 }
@@ -98,9 +101,17 @@ export async function inspectScope(root: string, state: RunState, checks: CheckC
   const settings = checks.map(({ name, command, cwd, timeout, required, inputs, environment, test_report }) => ({
     name, command, cwd, timeout, required, inputs, environment, ...(test_report === undefined ? {} : { test_report }),
   }));
-  const specialists = contract.value.plan ? await planPolicies(root, contract.value.plan) : undefined;
+  const policies = [
+    ...(contract.value.plan ? await planPolicies(root, contract.value.plan) : []),
+    ...(contract.value.preparation ? await preparationPolicies(root, contract.value.preparation) : []),
+  ];
+  const specialists = policies.length ? [...new Map(policies.map(policy => [policy.name, policy])).values()] : undefined;
+  const preparation = contract.value.preparation ? await inspectPreparation(root, state, spec.sha256,
+    contract.value.preparation, contract.value.criteria, contract.value.plan) : undefined;
   const revision = digest(canonicalJson({ schema_version: 1, run_id: state.run_id, spec, contract: contractRef, checks: settings,
-    ...(specialists ? { specialists } : {}) }));
+    ...(specialists ? { specialists } : {}), ...(preparation ? { preparation_bindings: {
+      capture: state.research_sources ?? null, research: preparation.research.status, design: preparation.design.status,
+    } } : {}) }));
   const blockers: string[] = [];
   const configured = new Map(checks.map(check => [check.name, check]));
   const criteria = contract.value.criteria.map(criterion => {
@@ -131,12 +142,14 @@ export async function inspectScope(root: string, state: RunState, checks: CheckC
   }
   return {
     schema_version: 1, kind: 'scope_review', run_id: state.run_id, revision,
-    ...(contract.value.plan ? { plan: contract.value.plan, specialists } : {}),
+    ...(contract.value.plan ? { plan: contract.value.plan } : {}), ...(specialists ? { specialists } : {}),
+    ...(preparation ? { preparation } : {}),
     spec: { ...spec, text: specification.text }, contract: contractRef, criteria, checks: settings, approval, blockers,
   };
 }
 
-export function assertScopeReady(scope: ScopeReview | null): void {
+export function assertScopeReady(scope: ScopeReview | null, requirePreparation = true): void {
+  if (requirePreparation) assertPreparationReady(scope);
   if (scope?.blockers.length) throw new FoundryError(scope.blockers.join(' '));
 }
 

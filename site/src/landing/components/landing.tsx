@@ -436,7 +436,9 @@ export function Landing() {
                 <p>
                   No. Its goal is specialist-led product building: research,
                   planning, design, implementation and review. Checks and
-                  current evidence support that journey.
+                  current evidence support that journey. The source-preview
+                  connection now carries Research, Plan, Design, Build and Review
+                  through saved specialist assignments.
                 </p>
               </details>
               <details>

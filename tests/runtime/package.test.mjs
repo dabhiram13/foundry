@@ -262,7 +262,8 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   run(executable, ['work', 'complete', '--project', scoped], { cwd: home, env });
   assert.equal(JSON.parse(run(executable, contextArgs, { cwd: home, env }).stdout).run.historical, true);
 
-  await writeFile(path.join(scoped, 'connected-scope.json'), JSON.stringify({ schema_version: 1, criteria: [{
+  await writeFile(path.join(scoped, 'README.md'), 'The installed fixture tests a single bounded local behavior.');
+  await writeFile(path.join(scoped, 'connected-scope.json'), JSON.stringify({ schema_version: 1, preparation: {}, criteria: [{
     id: 'INSTALL-002', requirement: 'A bundled MCP client can complete checked work.', checks: ['behavior'],
   }] }));
   const preview = JSON.parse(run(executable, ['connect', 'opencode', '--project', scoped, '--dry-run', '--json'], { cwd: home, env }).stdout);
@@ -280,7 +281,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   try {
     await connection.connect(transport);
     const catalog = await connection.listTools();
-    assert.equal(catalog.tools.length, 13);
+    assert.equal(catalog.tools.length, 16);
     assert.equal(catalog.tools.some(tool => tool.name.includes('approve')), false);
     const read = async () => (await connection.callTool({ name: 'foundry_context', arguments: {} })).structuredContent;
     const before = await read();
@@ -288,6 +289,19 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
       snapshot_revision: before.snapshot_revision, slug: 'installed-connected', spec: 'spec.md', contract: 'connected-scope.json',
     } });
     assert.equal(start.isError, false);
+    const researchAssignment = await connection.callTool({ name: 'foundry_assignment', arguments: { stage: 'research' } });
+    assert.equal(researchAssignment.isError, false);
+    assert.equal(researchAssignment.structuredContent.phase, 'select_sources');
+    const captured = await connection.callTool({ name: 'foundry_capture_sources', arguments: {
+      selection: { sources: [{ kind: 'local', location: 'README.md' }] }, snapshot_revision: (await read()).snapshot_revision,
+    } });
+    assert.equal(captured.isError, false);
+    const researched = await connection.callTool({ name: 'foundry_record_research', arguments: {
+      report: { summary: 'Local installed fixture notes.', findings: [{ claim: 'A single local behavior is requested.', source: 'S1',
+        quote: 'The installed fixture tests a single bounded local behavior.' }], limitations: ['Not market evidence.'] },
+      snapshot_revision: (await read()).snapshot_revision,
+    } });
+    assert.equal(researched.isError, false);
     const assignment = await connection.callTool({ name: 'foundry_assignment', arguments: { stage: 'planner' } });
     assert.equal(assignment.isError, false);
     assert.equal(assignment.structuredContent.execution, 'host_client');
@@ -299,6 +313,18 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     assert.equal(planned.isError, false);
     const scope = (await connection.callTool({ name: 'foundry_review', arguments: {} })).structuredContent;
     run(executable, ['work', 'approve', '--revision', scope.revision, '--project', scoped], { cwd: home, env });
+    const designAssignment = await connection.callTool({ name: 'foundry_assignment', arguments: { stage: 'designer' } });
+    assert.equal(designAssignment.isError, false);
+    const designed = await connection.callTool({ name: 'foundry_record_design', arguments: {
+      report: { kind: 'service', summary: 'Keep the installed behavior bounded.', criteria: [{ id: 'INSTALL-002',
+        approach: 'Exercise the bundled command and local MCP tools.', primary_states: 'Idle and successful local completion.',
+        failure_states: 'Failed checks prevent completion.', responsive: 'Not an interface.', accessibility: 'Plain terminal output.' }], assumptions: [] },
+      snapshot_revision: (await read()).snapshot_revision,
+    } });
+    assert.equal(designed.isError, false);
+    assert.equal(designed.structuredContent.scope_approval, 'stale');
+    const designedScope = (await connection.callTool({ name: 'foundry_review', arguments: {} })).structuredContent;
+    run(executable, ['work', 'approve', '--revision', designedScope.revision, '--project', scoped], { cwd: home, env });
     const checked = await connection.callTool({ name: 'foundry_verify', arguments: { snapshot_revision: (await read()).snapshot_revision } });
     assert.equal(checked.isError, false);
     assert.equal(checked.structuredContent.exit_code, 0);

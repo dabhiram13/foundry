@@ -4,10 +4,12 @@ import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 import { FoundryError, rejectSymlinkComponents } from '../core/fs.js';
 import {
-  complete, finishTask, pauseOrResume, prepareAssignment, recordWorkReview, recover,
+  captureWorkSources, complete, finishTask, pauseOrResume, prepareAssignment, recordWorkDesign, recordWorkResearch, recordWorkReview, recover,
   reviewScope, saveTaskPlan, specialists, start, verify, workContext,
 } from '../core/lifecycle.js';
 import { taskPlanSchema, workReviewSchema } from '../core/work-plan.js';
+import { designReportSchema } from '../core/work-preparation.js';
+import { researchReportSchema, researchSelectionSchema } from '../core/research.js';
 
 function result(value: unknown, isError = false): CallToolResult {
   const structuredContent = JSON.parse(JSON.stringify(value)) as JSONObject;
@@ -52,9 +54,31 @@ export async function serveMcp(rootInput: string, version: string): Promise<void
     inputSchema: empty, annotations: readOnly,
   }, async () => guarded(() => specialists(root)));
   server.registerTool('foundry_assignment', {
-    description: 'Prepare a Planner, next ready Builder or Reviewer assignment for the host client. Read-only; no model or checks run.',
-    inputSchema: z.object({ stage: z.enum(['planner', 'builder', 'reviewer']) }).strict(), annotations: readOnly,
+    description: 'Prepare Research, Planner, Design, next ready Builder or Reviewer work for the host client. Read-only; no model or checks run.',
+    inputSchema: z.object({ stage: z.enum(['research', 'planner', 'designer', 'builder', 'reviewer']) }).strict(), annotations: readOnly,
   }, async ({ stage }) => guarded(() => prepareAssignment(root, stage)));
+  server.registerTool('foundry_capture_sources', {
+    description: 'Capture one to five selected public HTTPS or local documentation sources without account cookies. Uses bounded source safety checks; no model runs.',
+    inputSchema: snapshot.extend({ selection: researchSelectionSchema }).strict(),
+    annotations: { ...mutation, openWorldHint: true },
+  }, async ({ selection, snapshot_revision }, context) => guarded(async () => {
+    await captureWorkSources(root, selection, snapshot_revision, context.mcpReq.signal);
+    return workContext(root);
+  }));
+  server.registerTool('foundry_record_research', {
+    description: 'Validate host-reported findings against captured quotes and save Research. Replaces downstream plan/design; renewed terminal approvals are required.',
+    inputSchema: snapshot.extend({ report: researchReportSchema }).strict(), annotations: { ...mutation, destructiveHint: true },
+  }, async ({ report, snapshot_revision }) => guarded(async () => {
+    await recordWorkResearch(root, report, snapshot_revision);
+    return workContext(root);
+  }));
+  server.registerTool('foundry_record_design', {
+    description: 'Save a host-reported Design handoff for every approved criterion. Interface work needs six UX handoffs. Changes require renewed terminal scope approval before building.',
+    inputSchema: snapshot.extend({ report: designReportSchema }).strict(), annotations: mutation,
+  }, async ({ report, snapshot_revision }) => guarded(async () => {
+    await recordWorkDesign(root, report, snapshot_revision);
+    return workContext(root);
+  }));
   server.registerTool('foundry_save_plan', {
     description: 'Save a bounded task plan into the existing scope contract. Changes require renewed terminal approval.',
     inputSchema: snapshot.extend({ plan: taskPlanSchema }).strict(), annotations: mutation,

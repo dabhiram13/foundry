@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { FoundryError, normalizeLocalPath, within } from '../core/fs.js';
-import { approveScope, complete, finishTask, pauseOrResume, prepareAssignment, recordWorkReview, recover, reviewScope,
+import { approveScope, captureWorkSources, complete, finishTask, pauseOrResume, prepareAssignment, recordWorkDesign, recordWorkResearch, recordWorkReview, recover, reviewScope,
   saveTaskPlan, specialists, start, status, verify, workContext } from '../core/lifecycle.js';
 import { readBoundedText } from '../core/factory-contract.js';
 import { context, gate, guide, record } from '../core/workflow.js';
@@ -27,7 +27,10 @@ Usage:
   foundry work review [--project PATH] [--json]
   foundry work approve --revision HASH [--project PATH] [--json]
   foundry work specialists [--project PATH] [--json]
-  foundry work assignment planner|builder|reviewer [--project PATH] [--json]
+  foundry work assignment research|planner|designer|builder|reviewer [--project PATH] [--json]
+  foundry work capture-sources --file PATH --snapshot HASH [--project PATH]
+  foundry work record-research --file PATH --snapshot HASH [--project PATH]
+  foundry work record-design --file PATH --snapshot HASH [--project PATH]
   foundry work save-plan --file PATH --snapshot HASH [--project PATH]
   foundry work task-done TASK_ID --snapshot HASH [--project PATH]
   foundry work record-review --file PATH --snapshot HASH [--project PATH]
@@ -155,9 +158,9 @@ async function runLifecycleCommand(
 
 const PROJECT_OPTION = ['project'] as const;
 
-function assignmentStage(value: string | undefined): 'planner' | 'builder' | 'reviewer' {
-  if (value === 'planner' || value === 'builder' || value === 'reviewer') return value;
-  throw new FoundryError('assignment requires planner, builder or reviewer');
+function assignmentStage(value: string | undefined): 'research' | 'planner' | 'designer' | 'builder' | 'reviewer' {
+  if (value === 'research' || value === 'planner' || value === 'designer' || value === 'builder' || value === 'reviewer') return value;
+  throw new FoundryError('assignment requires research, planner, designer, builder or reviewer');
 }
 
 const WORKFLOW_SPECS: Record<string, OptionSpec> = {
@@ -328,7 +331,7 @@ export async function dispatchProjectCommand(arguments_: string[]): Promise<numb
     }
     return 0;
   }
-  if (['save-plan', 'task-done', 'record-review'].includes(command)) {
+  if (['capture-sources', 'record-research', 'record-design', 'save-plan', 'task-done', 'record-review'].includes(command)) {
     const { positional, options } = parse(rest, { value: [...PROJECT_OPTION, 'snapshot', ...(command === 'task-done' ? [] : ['file'])], positional: command === 'task-done' ? 1 : 0 });
     const root = rootOption(options);
     const snapshot = requiredOption(options, 'snapshot');
@@ -338,7 +341,10 @@ export async function dispatchProjectCommand(arguments_: string[]): Promise<numb
       const relative = normalizeLocalPath(root, requiredOption(options, 'file'));
       const document = await readBoundedText(root, relative, command === 'record-review' ? 128 * 1024 : 256 * 1024);
       const value = JSON.parse(document.text) as unknown;
-      if (command === 'save-plan') await saveTaskPlan(root, value, snapshot);
+      if (command === 'capture-sources') await captureWorkSources(root, value, snapshot);
+      else if (command === 'record-research') await recordWorkResearch(root, value, snapshot);
+      else if (command === 'record-design') await recordWorkDesign(root, value, snapshot);
+      else if (command === 'save-plan') await saveTaskPlan(root, value, snapshot);
       else await recordWorkReview(root, value, snapshot);
     }
     const current = await workContext(root);

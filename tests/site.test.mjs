@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile, stat } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'node:test';
 import { gzipSync } from 'node:zlib';
@@ -118,8 +117,8 @@ test('README links readers to built public documentation pages', async () => {
 
 test('public landing is pre-rendered and does not load the workspace client', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
-  assert.match(html, /An idea\.<br\/>A plan\.<br\/><em>A product\.<\/em>/);
-  assert.match(html, /A framework for building products/);
+  assert.match(html, /Your idea\.<br\/>/);
+  assert.match(html, /A whole team behind it/);
   assert.match(html, /href="\/docs\/"/);
   assert.doesNotMatch(html, /foundry-token|src="\/app.js"|Open local browser view/);
   const script = await readFile(path.join(output, 'public.js'), 'utf8');
@@ -144,6 +143,49 @@ test('landing CSS compiles utilities, local styles and font assets', async () =>
   const fonts = [];
   css.walkAtRules('font-face', rule => rule.walkDecls('src', declaration => fonts.push(declaration.value)));
   assert.ok(fonts.some(value => value.includes('/assets/inter-latin-wght-normal.woff2')));
+});
+
+test('Mist landing separates current installation options from planned capabilities', async () => {
+  const html = await readFile(path.join(output, 'index.html'), 'utf8');
+  const tree = parse(html);
+  const headings = [];
+  const summaries = [];
+  const landmarks = [];
+  walk(tree, node => {
+    if (node.tagName === 'h1') headings.push(textContent(node));
+    if (node.tagName === 'summary') summaries.push(textContent(node));
+    if (node.tagName === 'main') landmarks.push(attr(node, 'id'));
+    if (node.tagName === 'canvas') assert.equal(attr(node, 'aria-hidden'), 'true');
+  });
+  assert.equal(headings.length, 1);
+  assert.deepEqual(landmarks, ['landing-main']);
+  assert.equal(summaries.length, 5, 'FAQ works as native disclosures without JavaScript');
+  for (const copy of ['Source preview', 'not in 0.5.1', 'Not published yet', 'a live model-driven run is not', 'full specialist journey into the connected client is planned', 'do not guarantee correctness']) {
+    assert.ok(textContent(tree).includes(copy), copy);
+  }
+  assert.doesNotMatch(html, /src=["']https?:|imageory\.in|splinecode|<iframe|brew install|data-client-token/);
+  assert.match(html, /type="module" src="\/public\.js"/);
+  assert.match(html, /class="scene-poster"/);
+});
+
+test('Three.js is a separately loaded, licensed scene within a bounded transfer budget', async () => {
+  const script = await readFile(path.join(output, 'public.js'), 'utf8');
+  assert.doesNotMatch(script, /WebGLRenderer|PCFSoftShadowMap|ACESFilmicToneMapping/);
+  assert.match(script, /import\("\.\/chunks\/scene-renderer-/);
+  const chunks = await readdir(path.join(output, 'chunks'));
+  const scenes = chunks.filter(name => name.startsWith('scene-renderer-'));
+  assert.equal(scenes.length, 1, 'only the current scene chunk is shipped');
+  const scene = await readFile(path.join(output, 'chunks', scenes[0]));
+  assert.ok(gzipSync(scene).byteLength <= 165_000, 'Optional scene exceeds 165 kB gzip');
+  const allChunks = await Promise.all(chunks.map(name => readFile(path.join(output, 'chunks', name))));
+  const total = allChunks.reduce((size, chunk) => size + gzipSync(chunk).byteLength, gzipSync(script).byteLength);
+  assert.ok(total <= 250_000, 'Combined interactive landing exceeds 250 kB gzip');
+  assert.match(scene.toString(), /Copyright © 2010-2025 three\.js authors/);
+  assert.match(await readFile(path.join(output, 'assets/licenses/Three-MIT.txt'), 'utf8'), /Permission is hereby granted/);
+  const source = await readFile(path.join(root, 'site/src/landing/components/specialist-scene.tsx'), 'utf8');
+  for (const guard of ['min-width: 768px', 'pointer: fine', 'prefers-reduced-motion: no-preference', 'saveData', 'IntersectionObserver', 'unavailable']) assert.ok(source.includes(guard), guard);
+  assert.match(source, /controller\.current\.dispose\(true\)/);
+  assert.match(source, /key=\{canvasGeneration\}/, 'fresh canvas avoids carrying pixel unpack state to a remounted renderer');
 });
 
 test('landing follows device motion preferences without a separate toggle', async () => {
@@ -191,7 +233,7 @@ test('landing groups six specialist roles with decorative icons and a catalog li
     }
     if (attr(node, 'href') === '/docs/catalog/') catalog = true;
   });
-  assert.deepEqual(roles, ['Research', 'Planning', 'Design', 'Development', 'Testing', 'Review']);
+  assert.deepEqual(roles, ['Research', 'Plan', 'Design', 'Build', 'Review', 'Handoff']);
   assert.ok(catalog);
 });
 
@@ -201,7 +243,7 @@ test('README banner reuses the Foundry wordmark and has a self-contained backgro
   const logoPath = /<path d="([^"]+)"/.exec(wordmark)?.[1];
   assert.ok(logoPath);
   assert.ok(banner.includes(logoPath));
-  assert.match(banner, /<rect[^>]+fill="#0a0a09"/);
+  assert.match(banner, /<rect[^>]+fill="#101010"/);
   assert.doesNotMatch(banner, /<script|<image|<foreignObject/);
   const readme = await readFile(path.join(root, 'README.md'), 'utf8');
   const images = [];
@@ -331,132 +373,4 @@ test('documentation tables remain semantic and keyboard-focusable for horizontal
     });
   }
   assert.ok(tables > 0);
-});
-
-test('product journey remains native, readable and honest about connection boundaries', async () => {
-  const html = await readFile(path.join(output, 'index.html'), 'utf8');
-  const tree = parse(html);
-  const stages = [];
-  const faqs = [];
-  let mobileMenu;
-  walk(tree, node => {
-    if (node.tagName !== 'details') return;
-    const summary = node.childNodes.find(child => child.tagName === 'summary');
-    assert.ok(summary && textContent(summary).trim(), 'native disclosures have names');
-    if (attr(node, 'name') === 'foundry-stages') stages.push(node);
-    if (attr(node, 'class') === 'landing-menu') mobileMenu = node;
-    if (textContent(summary).endsWith('?')) faqs.push(node);
-  });
-  assert.equal(stages.length, 6);
-  const labels = stages.map(node => {
-    let heading;
-    walk(node, child => { if (child.tagName === 'h3') heading = textContent(child); });
-    return heading;
-  });
-  assert.deepEqual(labels, ['Research', 'Plan', 'Design', 'Build', 'Review', 'Handoff']);
-  assert.equal(stages.filter(node => attr(node, 'open') !== undefined).length, 1);
-  for (const stage of stages) {
-    assert.match(textContent(stage), /Assignment/);
-    assert.match(textContent(stage), /Output/);
-  }
-  assert.equal(faqs.length, 5);
-  assert.ok(mobileMenu);
-  assert.match(textContent(mobileMenu), /The processSpecialistsDocumentation/);
-  assert.match(html, /28 role definitions/);
-  assert.match(html, /source preview for scoped work, approval and evidence/);
-  assert.match(html, /full specialist journey is not yet exposed/);
-  assert.match(html, /Homebrew distribution is planned, not available/);
-  assert.match(html, /Ship is a local handoff, not automatic deployment/);
-  assert.doesNotMatch(html, /role="tab"|<canvas|<iframe|Imageory|Spline/);
-});
-
-function webpDimensions(buffer) {
-  assert.equal(buffer.toString('ascii', 0, 4), 'RIFF');
-  assert.equal(buffer.toString('ascii', 8, 12), 'WEBP');
-  for (let offset = 12; offset + 8 < buffer.length;) {
-    const type = buffer.toString('ascii', offset, offset + 4);
-    const data = offset + 8;
-    if (type === 'VP8 ') {
-      assert.equal(buffer.subarray(data + 3, data + 6).toString('hex'), '9d012a');
-      return [buffer.readUInt16LE(data + 6) & 0x3fff, buffer.readUInt16LE(data + 8) & 0x3fff];
-    }
-    if (type === 'VP8X') return [buffer.readUIntLE(data + 4, 3) + 1, buffer.readUIntLE(data + 7, 3) + 1];
-    const size = buffer.readUInt32LE(offset + 4);
-    offset = data + size + (size % 2);
-  }
-  assert.fail('Expected a decodable generated WebP asset');
-}
-
-test('generated art is local, dimensioned, responsive and tied to its provenance hashes', async () => {
-  const manifest = JSON.parse(await readFile(path.join(root, 'site/assets/art/manifest.json'), 'utf8'));
-  assert.equal(manifest.medium, 'AI-generated raster illustrations');
-  assert.match(manifest.reference_boundary, /not embedded or distributed/);
-  assert.match(manifest.clearance, /not a copyright, trademark or exclusivity-clearance guarantee/);
-  assert.deepEqual(manifest.pieces.map(piece => piece.id), ['horse', 'horse-wide', 'research', 'build', 'handoff']);
-  for (const piece of manifest.pieces) {
-    assert.match(piece.master_sha256, /^[0-9a-f]{64}$/);
-    for (const file of piece.files) {
-      const bytes = await readFile(path.join(output, 'assets/art', file.file));
-      assert.equal(createHash('sha256').update(bytes).digest('hex'), file.sha256, file.file);
-      assert.equal(bytes.length, file.bytes, file.file);
-      assert.deepEqual(webpDimensions(bytes), file.size, file.file);
-      assert.ok(bytes.length <= (file.size[0] === 768 ? 550_000 : 850_000), `${file.file}: image byte budget`);
-    }
-  }
-  const images = [];
-  walk(parse(await readFile(path.join(output, 'index.html'), 'utf8')), node => {
-    if (node.tagName === 'img' && attr(node, 'class') === 'foundry-art') images.push(node);
-  });
-  assert.equal(images.length, 4);
-  assert.equal(images.filter(node => attr(node, 'loading') === 'eager').length, 1);
-  assert.equal(attr(images[0], 'fetchpriority'), 'high');
-  for (const node of images) {
-    assert.equal(attr(node, 'width'), '1024');
-    assert.equal(attr(node, 'height'), '1536');
-    assert.ok(attr(node, 'alt')?.length > 30);
-    assert.match(attr(node, 'src'), /^\/assets\/art\/.*-768\.webp$/);
-    const sources = attr(node, 'srcset').split(', ').map(source => source.split(' '));
-    assert.deepEqual(sources.map(source => source[1]), ['768w', '1024w']);
-    for (const [src] of sources) assert.ok((await stat(path.join(output, src))).isFile(), src);
-  }
-});
-
-test('the editorial system keeps local fonts, high contrast and still artwork', async () => {
-  const css = await readFile(path.join(output, 'style.css'), 'utf8');
-  assert.match(css, /cormorant-garamond-latin-600\.ttf/);
-  assert.doesNotMatch(css, /fonts\.googleapis|fonts\.gstatic|https:\/\/.*\.(?:woff2|ttf)/);
-  const source = await readFile(path.join(root, 'site/src/landing/landing.css'), 'utf8');
-  assert.match(source, /\.foundry-art\s*\{[^}]*height: auto;[^}]*aspect-ratio: 2\/3/s);
-  assert.doesNotMatch(source, /\.foundry-art\s*\{[^}]*(?:animation|transform|object-fit: cover)/s);
-  assert.match(source, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(source, /min-height: 44px/);
-  const luminance = hex => {
-    const rgb = hex.match(/[0-9a-f]{2}/g).map(part => parseInt(part, 16) / 255)
-      .map(channel => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
-    return rgb.reduce((sum, value, i) => sum + value * [.2126, .7152, .0722][i], 0);
-  };
-  for (const [foreground, background] of [['f0e6d3', '0a0a09'], ['f0e6d3', 'cd150c'], ['f0e6d3', '70120e'], ['b8aa93', '0a0a09'], ['554a3d', 'f0e6d3']]) {
-    const [light, dark] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
-    assert.ok((light + .05) / (dark + .05) >= 4.5, `${foreground} on ${background}: body contrast`);
-  }
-  const license = await readFile(path.join(output, 'assets/licenses/Cormorant-OFL.txt'), 'utf8');
-  assert.match(license, /Copyright 2015 the Cormorant Project Authors/);
-  assert.match(license, /SIL OPEN FONT LICENSE/);
-});
-
-test('share artwork and SVG identity are self-contained and clearly attributed', async () => {
-  const tree = parse(await readFile(path.join(output, 'index.html'), 'utf8'));
-  const metadata = new Map();
-  walk(tree, node => { if (node.tagName === 'meta') metadata.set(attr(node, 'name') ?? attr(node, 'property'), attr(node, 'content')); });
-  assert.equal(metadata.get('og:image'), 'https://foundry-two-tan.vercel.app/assets/foundry-share.png');
-  assert.equal(metadata.get('twitter:card'), 'summary_large_image');
-  assert.equal(metadata.get('og:image:width'), '1200');
-  const image = await readFile(path.join(output, 'assets/foundry-share.png'));
-  assert.deepEqual([image.readUInt32BE(16), image.readUInt32BE(20)], [1200, 630]);
-  for (const file of ['foundry-mark.svg', 'foundry-wordmark.svg', 'foundry-wordmark-ink.svg', 'foundry-banner.svg']) {
-    const svg = await readFile(path.join(output, 'assets', file), 'utf8');
-    assert.match(svg, /<title>/);
-    assert.doesNotMatch(svg, /<image|<script|<foreignObject|href="https?:/);
-    assert.match(svg, /(?:Not a|No) trademark-clearance claim/);
-  }
 });

@@ -38,7 +38,6 @@ export default defineConfig({
         { label: 'Release process', slug: 'docs/releasing' },
         { label: 'Documentation website', slug: 'docs/documentation' },
         { label: 'Public site sources', slug: 'docs/component-sources' },
-        { label: 'Visual system & artwork', slug: 'docs/design-system' },
       ] },
       { label: 'Security & licenses', collapsed: true, items: [
         { label: 'Security & trust', slug: 'docs/security' },

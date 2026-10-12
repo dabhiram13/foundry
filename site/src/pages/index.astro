@@ -1,9 +1,8 @@
 ---
 import landing from '../../.generated/landing.html?raw';
-const title = 'Foundry - From idea to product';
-const description = 'A product-building workflow for AI-assisted work. Research, plan, design, build, review and hand off with specialist roles, saved progress and your chosen provider.';
+const title = 'Foundry - a product-building workflow for coding agents';
+const description = 'Research, plan, design, build and review with specialist roles, saved progress and your approvals. Explore the published CLI and OpenCode source preview.';
 const canonical = new URL('/', Astro.site).href;
-const shareImage = new URL('/assets/foundry-share.png', Astro.site).href;
 const application = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
@@ -21,7 +20,7 @@ const application = {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0a0a09" />
+    <meta name="theme-color" content="#dce9eb" />
     <meta name="description" content={description} />
     <title>{title}</title>
     <link rel="canonical" href={canonical} />
@@ -29,16 +28,11 @@ const application = {
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:image" content={shareImage} />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Foundry: An idea. A plan. A product. An engraved black horse on a scarlet field." />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content={shareImage} />
+    <meta name="twitter:card" content="summary" />
     <script type="application/ld+json" set:html={JSON.stringify(application)} />
     <link rel="icon" href="/assets/foundry-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/style.css" />
-    <script is:inline src="/public.js" defer></script>
+    <script is:inline type="module" src="/public.js"></script>
   </head>
   <body><div id="foundry-public" set:html={landing} /></body>
 </html>

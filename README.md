@@ -10,10 +10,13 @@
   <a href="https://foundry-two-tan.vercel.app/docs/"><img src="https://foundry-two-tan.vercel.app/assets/badge-docs.svg" alt="Read the documentation" /></a>
 </p>
 
-# Build software from your terminal.
+# A product-building workflow for coding agents.
 
-Start with an idea or an existing project. Foundry helps you plan, write code and
-run checks, with your approval before building a new product.
+Start with an idea or an existing project. Foundry coordinates research,
+planning, design, implementation and review through specialist roles, saved
+progress and your approvals. Checks support the workflow; they are not the
+whole product. The published CLI and the OpenCode source preview are separate
+installation choices; the full connected specialist journey is still planned.
 
 [Website][website] · [Docs][documentation-index] · [npm][npm-package] ·
 [Contribute][contributing]

@@ -16,9 +16,12 @@ provider connection.
 
 Inside an existing coding client, Foundry instead prepares assignments for the
 host's own reasoning and tools. The connected source preview supports
-Planner → saved dependent tasks → relevant Builders → Reviewer → local handoff.
-Tasks and selected role policies are part of the scope you approve. Research
-and Design remain in the adapter-driven product journey for now. See
+Research → Planner → Plan approval → Designer → Design approval → relevant
+Builders → Reviewer → local handoff. Add `preparation: {}` to a scoped contract
+to enable this path. Research quotes captured sources; Design records a proposed
+implementation for each requirement. Tasks, artifacts and selected role policies
+are part of the exact scope you approve. Smaller changes can omit preparation
+and keep Planner → approved tasks → Builders → Reviewer. See
 [connected work](COMMANDS.md#connected-specialist-work).
 
 ## What it is built with

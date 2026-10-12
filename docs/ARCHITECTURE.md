@@ -42,6 +42,8 @@ The product repository contains the application, which can use any stack.
   Builders and Reviewer assignments through that same run and scope approval.
   CLI and MCP share assignment preparation, task progression and review gates;
   the connected host supplies reasoning and tools. No adapter runs behind MCP.
+  Optional preparation connects source-backed Research and requirement-linked
+  Design in the same run, with exact approval after Plan and after Design.
 
 Both reuse state, check, provider and recovery contracts. Noninteractive commands
 return errors when required consent is missing. JSON output supports scripts.
@@ -77,6 +79,7 @@ The controller retains control of approvals and spending rules.
 | `src/core/factory.ts` | Six-stage coordination, task/check/repair loop, review and Ship |
 | `src/core/factory-contract.ts` | Validated state and artifact contracts |
 | `src/core/work-plan.ts` | Connected task/review contracts and historical progress validation |
+| `src/core/work-preparation.ts` | Connected Research/Design artifacts, source integrity and stage gates |
 | `src/core/research.ts` | Bounded source reading, snapshots and quotation validation |
 | `src/core/lifecycle.ts` | Scoped runs, checks, receipts and completion |
 | `src/core/workflow.ts` | Criteria, evidence, decisions and handoff records |

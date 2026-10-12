@@ -8,6 +8,8 @@ export function renderWorkContext(context: WorkContext): string {
   const lines = [run ? `${run.slug}${run.historical ? ' (completed history)' : ''}` : 'No scoped work yet.'];
   if (run) lines.push(`Saved progress: ${run.saved_status}`, `Specification: ${run.spec.path}`);
   if (context.scope) lines.push(`Scope approval: ${context.scope_approval}`, `Coverage: ${context.requirements_coverage === 'checks_passed' ? 'Mapped required checks passed.' : context.requirements_coverage}`);
+  if (context.preparation) lines.push(`Research: ${context.preparation.research.status} (${context.preparation.research.role})`,
+    `Captured sources: ${context.preparation.sources.status}`, `Design: ${context.preparation.design.status} (${context.preparation.design.role}; host reported)`);
   if (context.plan) {
     lines.push('Tasks:', ...context.plan.tasks.map(task => `  ${task.id}: ${task.status} — ${task.title} (${task.role})`),
       `Specialist review: ${context.plan.review.status} (${context.plan.reviewer_role}; host reported)`);
@@ -27,6 +29,12 @@ export function renderScopeReview(scope: ScopeReview): string {
   const lines = [`Specification: ${scope.spec.path}`, scope.spec.text.trim(), '', 'Acceptance criteria:'];
   for (const criterion of scope.criteria) {
     lines.push(`${criterion.id}: ${criterion.requirement}`, `  Checks: ${criterion.checks.join(', ') || 'not mapped'}`);
+  }
+  if (scope.preparation) {
+    lines.push('', `Research: ${scope.preparation.research.status} (${scope.preparation.research.role})`,
+      scope.preparation.research.text ?? 'No readable Research report.',
+      `Design: ${scope.preparation.design.status} (${scope.preparation.design.role}; host reported)`);
+    if (scope.preparation.design.report) lines.push(JSON.stringify(scope.preparation.design.report, null, 2));
   }
   if (scope.plan) {
     lines.push('', `Planner: ${scope.plan.planner_role}; reviewer: ${scope.plan.reviewer_role}`, 'Proposed tasks:');

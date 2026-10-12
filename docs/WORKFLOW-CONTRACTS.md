@@ -37,6 +37,30 @@ receipts. Missing, invalid, stale or blocking reports prevent local completion.
 Reports are host-reported judgments; their presence does not authenticate an
 independent specialist. See [connected work](COMMANDS.md#connected-specialist-work).
 
+An optional `preparation: {}` also connects Research and Design to this same
+run. Research has separate source-selection, capture and synthesis turns. The
+existing bounded reader saves snapshots; reports must quote those captured
+excerpts. Artifacts live under the run's private `preparation/` directory and
+the scope contract names their exact paths and hashes. Scope review exposes
+readable Research and the structured Design handoff, not just opaque references.
+
+Plan approval precedes Design. Design covers each criterion once, with primary
+and failure states, responsiveness and accessibility. Interface work needs six
+text handoffs: user journey, information architecture, wireframes, visual rules,
+component states and validation plan. Saving Design changes the scope revision
+and requires renewed terminal approval before building or checking. These are
+host-reported decisions, not proof of usability or rendered interface quality.
+
+Artifacts bind to the specification and selected role policy. Design also binds
+to the research record and task plan, preserving the approved Plan revision and
+approval hash at submission. Replacing Research removes the old plan and Design;
+changing the plan removes Design. Missing, changed or invalid captures/artifacts
+cannot unlock downstream work. Context reports their missing/invalid/stale/current
+status separately from approval and checks. Frozen source snapshots record what
+was read then; no background refresh or external truth verification is promised.
+Cancellation during capture can leave unreferenced partial files, never accepted
+findings. Retry capture explicitly in the same run; no second controller starts.
+
 ## Checks and review
 
 The scoped work lifecycle records the active run, tasks, checks, review

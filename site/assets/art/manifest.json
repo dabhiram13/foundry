@@ -1,0 +1,168 @@
+{
+  "medium": "AI-generated raster illustrations",
+  "generation": "Created with the session image-generation tool.",
+  "approval": "Owner approved the horse anchor and authorized supporting artwork in the same series.",
+  "reference_boundary": "Owner-supplied third-party images were visual references for the anchor only. They are not embedded or distributed in the website. New supporting scenes used the generated anchor as their sole visual input.",
+  "clearance": "Generation is not a copyright, trademark or exclusivity-clearance guarantee.",
+  "pieces": [
+    {
+      "id": "horse",
+      "title": "Identity",
+      "alt": "A black horse beside a small metalworker and anvil on pale stone against a textured scarlet field.",
+      "master": "foundry-horse-original-master.png",
+      "master_size": [
+        1024,
+        1536
+      ],
+      "master_sha256": "919a6a754b7f261909a37120d73be0de38884a7315de3c1eed4080e44c03e31f",
+      "files": [
+        {
+          "file": "horse-768.webp",
+          "size": [
+            768,
+            1152
+          ],
+          "bytes": 423432,
+          "sha256": "dcc4030e681c95a7258fb90fbbbd8605bc487e0f659790a056b7f6dd4427b9df"
+        },
+        {
+          "file": "horse-1024.webp",
+          "size": [
+            1024,
+            1536
+          ],
+          "bytes": 741244,
+          "sha256": "01b9ae30e248b6df3e16e426060b63290e7af00044e8aaef1787538b86a1dd85"
+        }
+      ]
+    },
+    {
+      "id": "horse-wide",
+      "title": "Landscape",
+      "alt": "A wide engraved composition of the black horse and metalworker against scarlet.",
+      "master": "foundry-horse-wide-master.png",
+      "master_size": [
+        1536,
+        1024
+      ],
+      "master_sha256": "295db4ed0ea757ebb2426146f591bdf83cba9a3ef5f574d7288931e6ff7d77f4",
+      "files": [
+        {
+          "file": "horse-wide-1024.webp",
+          "size": [
+            1024,
+            683
+          ],
+          "bytes": 339892,
+          "sha256": "4f30e562f04160359c0d054eb4038c4239bfdaa6d3c7e4369ed0b1834a8addc3"
+        },
+        {
+          "file": "horse-wide-1536.webp",
+          "size": [
+            1536,
+            1024
+          ],
+          "bytes": 738584,
+          "sha256": "a742a5d94b16ef3d86fc4768cf2628d9b292788ecc12208aadd378d9b9972398"
+        }
+      ]
+    },
+    {
+      "id": "research",
+      "title": "Discovery",
+      "alt": "A cloaked surveyor follows a pale river through a dark valley beneath a scarlet sky.",
+      "master": "foundry-research-master.png",
+      "master_size": [
+        1024,
+        1536
+      ],
+      "master_sha256": "e5e3f8c8f9d75786aea7227e170a70f6954284344bc2abbffec2a201539017e4",
+      "files": [
+        {
+          "file": "research-768.webp",
+          "size": [
+            768,
+            1152
+          ],
+          "bytes": 454344,
+          "sha256": "631d104d65a3a342c6241df6c8870a213c5161335a1c3f20b539a659c343726c"
+        },
+        {
+          "file": "research-1024.webp",
+          "size": [
+            1024,
+            1536
+          ],
+          "bytes": 772352,
+          "sha256": "f9643650ef1521b98fae00726e10d4c57ec1f1f9e2985217f14e16fa97843cbe"
+        }
+      ]
+    },
+    {
+      "id": "build",
+      "title": "Craft",
+      "alt": "Engraved gloved hands use a hammer and tongs to shape an iron block on an anvil.",
+      "master": "foundry-build-master.png",
+      "master_size": [
+        1024,
+        1536
+      ],
+      "master_sha256": "d1ada9d3b2ffde6b8a24452c73280973e9cc088508a35bfe9333051a134da20f",
+      "files": [
+        {
+          "file": "build-768.webp",
+          "size": [
+            768,
+            1152
+          ],
+          "bytes": 473616,
+          "sha256": "301cd2f7fb332d98cc82d1574c2aebe1a7c36b6ceff458949b6a6d35df417400"
+        },
+        {
+          "file": "build-1024.webp",
+          "size": [
+            1024,
+            1536
+          ],
+          "bytes": 787378,
+          "sha256": "f60b1f38d86e1218799d6e85cd55bde50a53de238352244a292546044541fbb0"
+        }
+      ]
+    },
+    {
+      "id": "handoff",
+      "title": "Handoff",
+      "alt": "A metalworker leads a black horse across a pale stone bridge towards a distant doorway.",
+      "master": "foundry-handoff-master.png",
+      "master_size": [
+        1024,
+        1536
+      ],
+      "master_sha256": "067e7b2c9c7a01dde96cf65c177348057cf8fe8453e5b85016c95a52b0e14372",
+      "files": [
+        {
+          "file": "handoff-768.webp",
+          "size": [
+            768,
+            1152
+          ],
+          "bytes": 467788,
+          "sha256": "288356887f32ac026468216cabed8cce16134a0c05c3872fd9306e6eeba6f2e3"
+        },
+        {
+          "file": "handoff-1024.webp",
+          "size": [
+            1024,
+            1536
+          ],
+          "bytes": 789408,
+          "sha256": "d27d07c5325c46652f7040120c722d32a7c2da0a634161fe588c74a76b04db09"
+        }
+      ]
+    }
+  ],
+  "identity": {
+    "wordmark": "Paths typeset from Cormorant Garamond 600 under SIL OFL 1.1",
+    "small_mark": "Vector silhouette extracted from the approved generated horse master; clean small-format shape, no texture at favicon size"
+  }
+}

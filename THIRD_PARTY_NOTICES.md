@@ -18,8 +18,18 @@ supplied source information; absent origins are not claims of new authorship.
 
 The static landing and documentation site retains attribution and license files
 beside applicable assets in `site/assets/licenses/`. Inter variable Latin is
-vendored from `@fontsource-variable/inter` under SIL OFL 1.1; the Foundry mark
-and wordmark are original SVG artwork.
+vendored from `@fontsource-variable/inter` under SIL OFL 1.1. Cormorant Garamond
+600 Latin is a local static subset of the Cormorant variable font, also under
+SIL OFL 1.1. Its copyright and license are retained in
+`site/assets/licenses/Cormorant-OFL.txt`.
+
+The wordmark contains Cormorant glyph outlines, not a new typeface. The horse
+mark is a vector silhouette extracted from the owner-approved AI-generated
+illustration. Landing artwork and the social image use AI-generated scenes;
+the six owner-supplied reference images are not embedded or distributed.
+`site/assets/art/manifest.json` records asset hashes and origins. Neither
+generation nor owner approval is a copyright, trademark or exclusivity-clearance
+guarantee. See `docs/DESIGN-SYSTEM.md` for the visual and provenance boundaries.
 
 Site controls adapt shadcn/ui and Animate UI patterns. Their retained notices
 are in `site/assets/licenses/shadcn-ui.txt` and

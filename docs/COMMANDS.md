@@ -94,6 +94,19 @@ recovers an interrupted TypeScript installation; it does not authorize legacy
 import. Use `migrate` explicitly for legacy workspaces. It requires exactly one
 of `--dry-run` or `--apply`; `--recover` is only valid with `--apply`.
 
+### Project checks (from source)
+
+```text
+foundry setup --project PATH --dry-run [--json]
+foundry setup --project PATH --apply --revision HASH [--json]
+```
+
+Preview existing package test/build scripts and input paths, then save the
+exact reviewed setup revision. No commands run and no dependencies install.
+Existing checks are preserved; stale proposals and active work block changes.
+Empty projects need real scripts first. See [check setup](CUSTOMIZATION.md#checks-and-content).
+These commands are not in npm 0.5.1. Setup does not approve scope or qualify tests.
+
 ## Scoped work
 
 `work` provides one-stage lifecycle operations for a bounded repository change:
@@ -372,6 +385,10 @@ one initialized project and exposes `foundry_context`, `foundry_review`,
 Optional preparation adds `foundry_capture_sources`, `foundry_record_research`
 and `foundry_record_design`. Source capture reads public HTTPS or permitted
 local documents, not accounts or authenticated browser sessions.
+Before new work, `foundry_setup` previews project checks and
+`foundry_apply_setup` saves the exact setup revision with current context.
+It only configures detected project scripts; it runs nothing, keeps existing
+checks and refuses application during active work.
 It does **not** run a model, select a
 provider, authorize billing, approve work or accept a client-selected command.
 An agent may start only contracted scoped work; legacy work remains readable

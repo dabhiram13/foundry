@@ -46,16 +46,30 @@ stale check is not evidence. Product specifications belong in `docs/specs/`;
 runtime logs and private records belong in `.foundry/state/` and are never
 committed as product evidence.
 
-`init` starts a clean repository with an empty check list. Configure actual
-test/build/lint commands before starting a contracted change. Each required
+`init` starts a clean repository with an empty check list. From source, use
+`foundry setup --project PATH --dry-run` to preview existing package scripts.
+Save the reviewed proposal with `foundry setup --project PATH --apply --revision HASH`.
+Setup supports npm, pnpm, Yarn and Bun. It uses `packageManager` when present,
+otherwise the lockfile, with npm as the default. Ambiguous lockfiles require
+an explicit choice. It chooses existing top-level inputs and omits known
+generated folders and Foundry's private data. Review the scripts and inputs;
+add omitted dependencies or outputs to your custom settings when needed.
+
+Setup does not run commands or install anything. It never replaces existing
+checks and refuses changes during active work. Empty projects need real scripts
+first; unsupported project types need custom check configuration. These setup
+commands are not included in npm 0.5.1.
+
+Configure actual test/build/lint commands before starting a contracted change. Each required
 check needs a name, a command array, a working directory, a timeout in seconds
 and declared `inputs`. Paths are project-relative and must exist; include all
 files that affect the result, not only the test files. Node's `--test` returning
 success with zero tests is not meaningful evidence. A unit-test command alone
 does not qualify a web app's rendered interface.
 
-In the connected path, ask the coding client to create scripts and input paths,
-configure the checks and map each criterion before `foundry_start`. Review the
+In the connected path, the coding client previews with `foundry_setup`, creates
+missing real scripts and inputs, then saves the reviewed proposal through
+`foundry_apply_setup`. It maps each criterion before `foundry_start`. Review the
 actual commands at the approval step. Changing their configuration changes the
 scope revision and requires another approval.
 

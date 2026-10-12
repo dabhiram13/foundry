@@ -36,6 +36,11 @@ An empty repository starts with no required check commands. Configure real
 or a contracted run. Initialization does not create an app, discover tests or
 turn an empty test run into evidence.
 
+From source, preview existing package scripts with `foundry setup --project PATH
+--dry-run`, then save the reviewed revision with `--apply --revision HASH`.
+In OpenCode, the coding client handles this step. Empty projects need real
+scripts first. Setup preserves existing checks and runs no commands.
+
 An interrupted TypeScript install can be recovered explicitly:
 
 ```sh

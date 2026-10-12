@@ -30,6 +30,14 @@ Use the Foundry MCP tools for scoped work, not a second AI runtime.
 
 1. Call foundry_context first. Confirm its project is the requested repository.
    Separate saved status, current evidence, approval and next action.
+   Before new work, call foundry_setup to inspect project checks. If scripts are
+   missing, use the host's coding tools to create real test/build scripts and
+   their inputs, then preview again. Do not create a zero-test or no-op default.
+   Review the proposed commands and inputs with the owner. Save a proposed setup
+   through foundry_apply_setup using its exact revision and fresh context.
+   Existing checks remain owner-owned. Setup installs nothing and runs nothing;
+   never replace or weaken checks to make work pass. Unsupported project types
+   need explicitly configured checks. Do not run setup during active work.
 2. For new work, write a short project-local spec and schema-version-1 contract
    with stable criterion IDs mapped to configured required check names. Call
    foundry_start with those paths and the latest snapshot_revision. For new

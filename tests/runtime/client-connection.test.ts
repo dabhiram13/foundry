@@ -69,10 +69,11 @@ test('MCP exposes one project, protocol stdout and no approval or provider tools
   const connection = await client(t, root);
   const catalog = await connection.listTools();
   assert.deepEqual(catalog.tools.map(tool => tool.name).sort(), [
-    'foundry_assignment', 'foundry_capture_sources', 'foundry_complete', 'foundry_context', 'foundry_pause', 'foundry_record_design', 'foundry_record_research', 'foundry_record_review', 'foundry_recover',
-    'foundry_resume', 'foundry_review', 'foundry_save_plan', 'foundry_specialists', 'foundry_start', 'foundry_task_done', 'foundry_verify',
+    'foundry_apply_setup', 'foundry_assignment', 'foundry_capture_sources', 'foundry_complete', 'foundry_context', 'foundry_pause', 'foundry_record_design', 'foundry_record_research', 'foundry_record_review', 'foundry_recover',
+    'foundry_resume', 'foundry_review', 'foundry_save_plan', 'foundry_setup', 'foundry_specialists', 'foundry_start', 'foundry_task_done', 'foundry_verify',
   ]);
   assert.equal(catalog.tools.find(tool => tool.name === 'foundry_context')?.annotations?.readOnlyHint, true);
+  assert.equal(catalog.tools.find(tool => tool.name === 'foundry_setup')?.annotations?.readOnlyHint, true);
   assert.equal(catalog.tools.find(tool => tool.name === 'foundry_verify')?.annotations?.destructiveHint, true);
   const before = await files(root);
   const first = await context(connection);
@@ -82,6 +83,51 @@ test('MCP exposes one project, protocol stdout and no approval or provider tools
   assert.deepEqual(await files(root), before);
   const unknown = await connection.callTool({ name: 'foundry_approve', arguments: {} }).catch(error => ({ isError: true, error }));
   assert.equal(unknown.isError, true);
+});
+
+test('MCP sets up new project scripts and continues through approval and actual checks', async t => {
+  const root = await project(t);
+  await writeFile(path.join(root, '.foundry/project.json'), JSON.stringify({ name: 'empty', checks: [] }));
+  const connection = await client(t, root);
+  const original = await context(connection);
+  const before = await files(root);
+  const missing = await connection.callTool({ name: 'foundry_setup', arguments: {} });
+  assert.equal(missing.isError, false);
+  assert.equal((missing.structuredContent as Record<string, unknown>).status, 'needs_scripts');
+  assert.deepEqual(await files(root), before);
+  await writeFile(path.join(root, 'package.json'), JSON.stringify({ scripts: { test: 'node --test app.test.mjs' } }));
+  await writeFile(path.join(root, 'app.test.mjs'), "import { test } from 'node:test'; import assert from 'node:assert/strict'; import { readFileSync } from 'node:fs'; test('source content', () => assert.equal(readFileSync('source.ts', 'utf8'), 'original'));\n");
+  await writeFile(path.join(root, 'scope.json'), JSON.stringify({ schema_version: 1, criteria: [{ id: 'CLIENT-001', requirement: 'The source retains its agreed content.', checks: ['test'] }] }));
+  const preview = await connection.callTool({ name: 'foundry_setup', arguments: {} });
+  assert.equal(preview.isError, false);
+  const revision = (preview.structuredContent as Record<string, unknown>).revision;
+  const applied = await action(connection, 'foundry_apply_setup', await context(connection), { revision });
+  assert.equal(applied.isError, false);
+  assert.equal(((applied.structuredContent as Record<string, unknown>).setup as Record<string, unknown>).applied, true);
+  const again = await connection.callTool({ name: 'foundry_setup', arguments: {} });
+  assert.equal((await action(connection, 'foundry_apply_setup', original, { revision: (again.structuredContent as Record<string, unknown>).revision })).isError, true);
+  await begin(connection);
+  assert.equal((await action(connection, 'foundry_apply_setup', await context(connection), { revision: (again.structuredContent as Record<string, unknown>).revision })).isError, true);
+  await approve(root);
+  const verified = await action(connection, 'foundry_verify', await context(connection));
+  assert.equal(verified.isError, false);
+  assert.equal((verified.structuredContent as Record<string, unknown>).exit_code, 0);
+  assert.equal((await action(connection, 'foundry_complete', await context(connection))).isError, false);
+});
+
+test('MCP refuses changed setup proposals without touching check settings', async t => {
+  const root = await project(t);
+  await writeFile(path.join(root, '.foundry/project.json'), JSON.stringify({ name: 'empty', checks: [] }));
+  await writeFile(path.join(root, 'package.json'), JSON.stringify({ scripts: { build: 'node build.mjs' } }));
+  const connection = await client(t, root);
+  const preview = await connection.callTool({ name: 'foundry_setup', arguments: {} });
+  const revision = (preview.structuredContent as Record<string, unknown>).revision;
+  await writeFile(path.join(root, 'package.json'), JSON.stringify({ scripts: { build: 'node changed.mjs' } }));
+  const before = await readFile(path.join(root, '.foundry/project.json'), 'utf8');
+  const rejected = await action(connection, 'foundry_apply_setup', await context(connection), { revision });
+  assert.equal(rejected.isError, true);
+  assert.match(JSON.stringify(rejected.structuredContent), /stale/);
+  assert.equal(await readFile(path.join(root, '.foundry/project.json'), 'utf8'), before);
 });
 
 test('a second client continues the same run through manual approval and actual checks', async t => {

@@ -224,6 +224,14 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   const scoped = path.join(home, 'scoped');
   await mkdir(scoped);
   run(executable, ['init', '--project', scoped], { cwd: home, env });
+  const emptySetup = JSON.parse(run(executable, ['setup', '--project', scoped, '--dry-run', '--json'], { cwd: home, env }).stdout);
+  assert.equal(emptySetup.status, 'needs_scripts');
+  await writeFile(path.join(scoped, 'package.json'), JSON.stringify({ scripts: { test: 'node --test app.test.mjs' } }));
+  await writeFile(path.join(scoped, 'app.test.mjs'), "import { test } from 'node:test'; import assert from 'node:assert/strict'; test('installed setup', () => assert.equal(2 + 2, 4));\n");
+  const setup = JSON.parse(run(executable, ['setup', '--project', scoped, '--dry-run', '--json'], { cwd: home, env }).stdout);
+  assert.equal(setup.status, 'proposed');
+  run(executable, ['setup', '--project', scoped, '--apply', '--revision', setup.revision], { cwd: home, env });
+  assert.equal(JSON.parse(await readFile(path.join(scoped, '.foundry/project.json'), 'utf8')).checks[0].name, 'test');
   await writeFile(path.join(scoped, '.foundry/project.json'), JSON.stringify({
     name: 'scoped fixture', checks: [{
       name: 'behavior', command: [process.execPath, '-e', 'process.exit(0)'], inputs: ['spec.md'], required: true,
@@ -281,7 +289,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   try {
     await connection.connect(transport);
     const catalog = await connection.listTools();
-    assert.equal(catalog.tools.length, 16);
+    assert.equal(catalog.tools.length, 18);
     assert.equal(catalog.tools.some(tool => tool.name.includes('approve')), false);
     const read = async () => (await connection.callTool({ name: 'foundry_context', arguments: {} })).structuredContent;
     const before = await read();

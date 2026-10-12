@@ -83,12 +83,40 @@ The coding client should call `foundry_context` first, create the project-local
 brief and contract with `preparation: {}`, then request the Research assignment.
 You do not need to hand-author the internal JSON for this normal path.
 
-An empty repository needs some setup: `init` does not invent tests or required
-checks. The coding client must create real check scripts, configure them in the
-project settings and map each requirement to a required check **before starting
-the contracted run**. Every declared input path must exist. A zero-test command
-or missing input is not meaningful product evidence. See
+The coding client calls `foundry_setup` before starting new work. It previews
+existing test/build scripts and their input paths. For an empty project, it
+creates real scripts and tests first, then previews again. You review the
+proposal; the client saves it through `foundry_apply_setup`, without you writing
+check JSON. Existing checks are kept, and setup runs no commands or installs.
+
+`init` does not invent an app, tests or required checks. The client must map
+each requirement to a required check **before starting the contracted run**.
+Every declared input path must exist. A zero-test command or missing input is
+not meaningful product evidence. Non-package projects need custom checks. See
 [check configuration](CUSTOMIZATION.md#checks-and-content).
+
+To inspect and save detected checks yourself, use the source launcher:
+
+```sh
+./foundry setup --project /absolute/path/to/habit-tracker --dry-run
+./foundry setup --project /absolute/path/to/habit-tracker --apply --revision HASH
+```
+
+Use the setup revision shown by the preview for `HASH`. This saves settings;
+it does not approve a Plan or Design, run tests or claim they cover every need.
+
+### Refresh an existing source connection
+
+After updating and rebuilding the checkout, refresh the project's managed
+runtime and skill. Owner settings and records stay in place:
+
+```sh
+./foundry init --project /absolute/path/to/habit-tracker --update
+./foundry connect opencode --project /absolute/path/to/habit-tracker --dry-run
+./foundry connect opencode --project /absolute/path/to/habit-tracker --apply
+```
+
+Restart OpenCode in the product directory to load the updated tools.
 
 Research selects one to five public HTTPS pages or permitted local documents.
 You can supply a source, such as [MDN's localStorage guide](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage).

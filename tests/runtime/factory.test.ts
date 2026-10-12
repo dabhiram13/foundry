@@ -12,7 +12,7 @@ import {
 } from '../../src/core/factory-contract.js';
 import { installWorkspace } from '../../src/core/install.js';
 import { ProjectService } from '../../src/core/projects.js';
-import { complete as lifecycleComplete, recover as lifecycleRecover } from '../../src/core/lifecycle.js';
+import { complete as lifecycleComplete, recover as lifecycleRecover, setupChecks } from '../../src/core/lifecycle.js';
 import { digest, withProcessLock } from '../../src/core/fs.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -349,6 +349,16 @@ test('Factory rejects adapters without structured research support before starti
   configuration.adapters[0].capabilities = configuration.adapters[0].capabilities.filter((item: string) => item !== 'structured_output');
   await writeFile(file, JSON.stringify(configuration));
   await assert.rejects(initFactory(root, { name: 'Research readiness', idea: 'Require structured handoffs.', adapter: 'fixture' }), /structured_output/);
+});
+
+test('check setup cannot alter an initialized product journey', async t => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initFactory(root, { name: 'Existing product', idea: 'Keep current checks unchanged.', adapter: 'fixture' });
+  const before = await readFile(path.join(root, '.foundry/project.json'), 'utf8');
+  const proposal = await setupChecks(root, 'dry-run');
+  await assert.rejects(setupChecks(root, 'apply', proposal.revision), /during active work/);
+  assert.equal(await readFile(path.join(root, '.foundry/project.json'), 'utf8'), before);
 });
 
 test('cancellation during research synthesis retains the stage and requires explicit recovery', async t => {

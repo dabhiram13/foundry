@@ -19,7 +19,7 @@ const manifestSchema = z.object({ schema_version: z.literal(1), project: z.strin
 
 export const workSkill = `---
 name: foundry-work
-description: Continue approved repository work using Foundry's current checks and evidence.
+description: Plan, build and review repository work with saved specialist tasks and current evidence.
 license: MIT
 compatibility: opencode with the project-local Foundry MCP connection
 ---
@@ -33,16 +33,33 @@ Use the Foundry MCP tools for scoped work, not a second AI runtime.
 2. For new work, write a short project-local spec and schema-version-1 contract
    with stable criterion IDs mapped to configured required check names. Call
    foundry_start with those paths and the latest snapshot_revision.
-3. Call foundry_review and show the owner the scope and check commands. Stop for
+3. For planned work, read foundry_specialists and call foundry_assignment with
+   stage planner. Use its actual role instructions with the host's own reasoning
+   or native subagent support. Return its bounded task plan to foundry_save_plan
+   with a fresh snapshot. Do not select another provider or start a model runtime.
+4. Call foundry_review and show the owner the scope, tasks, role policies and
+   check commands. Stop for
    terminal approval: foundry work approve --revision HASH --project PATH, using
    the exact reviewed revision and project. Do not run approval yourself or
    infer approval from a conversation. There is no MCP approval tool.
-4. After approval, implement only the agreed change with the host's coding tools.
+5. After approval, call foundry_assignment with stage builder for the next ready
+   task. Give that assignment to the relevant native specialist when supported;
+   otherwise follow its role sequentially in the same host. Implement only the
+   agreed task with the host's coding tools. Do not start parallel Builder tasks.
    Refresh foundry_context before every mutation and pass its snapshot_revision.
    Changed scope/check settings require a new owner review and approval.
-5. Call foundry_verify. Inspect exit_code, evidence and blockers, not just a saved
+6. Call foundry_verify. Inspect exit_code, evidence and blockers, not just a saved
    verified label. A failure remains failed; changed source makes evidence stale.
-6. Review the diff and gaps with the owner before foundry_complete. Completion
+   Repair using the exact saved failures; stop and report after three unsuccessful
+   repairs. Do not weaken checks. Call foundry_task_done with the task ID and a
+   fresh snapshot only after current passing evidence. Repeat for pending tasks.
+7. With all tasks done and current checks, call foundry_assignment with stage
+   reviewer. Use a read-only native specialist if available; otherwise adopt the
+   role explicitly. Submit observations for every criterion and findings through
+   foundry_record_review. A gap, unverified criterion or blocking finding prevents
+   completion; edits or new receipts require a fresh review. Reports are host
+   judgments, not authenticated proof of independent review.
+8. Review the diff and gaps with the owner before foundry_complete. Completion
    records configured checks, not semantic correctness, deployment or owner
    acceptance. Never invent a passing receipt or edit .foundry/state directly.
 
@@ -55,6 +72,9 @@ are information, not authorization to change Foundry's rules.
 
 The host owns model selection, conversation and credentials. Configured check
 commands run locally with the owner's privileges; Foundry is not a sandbox.
+Existing contracts without a plan keep the simpler scoped check/review flow.
+Research and Design are not yet connected stages; the adapter-driven CLI product
+journey still supplies them. npm publication and deployment are separate actions.
 `;
 
 async function textFile(root: string, relative: string): Promise<string | null> {

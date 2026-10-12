@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { FoundryError, normalizeLocalPath, within } from '../core/fs.js';
-import { approveScope, complete, pauseOrResume, recover, reviewScope, start, status, verify, workContext } from '../core/lifecycle.js';
+import { approveScope, complete, finishTask, pauseOrResume, prepareAssignment, recordWorkReview, recover, reviewScope,
+  saveTaskPlan, specialists, start, status, verify, workContext } from '../core/lifecycle.js';
+import { readBoundedText } from '../core/factory-contract.js';
 import { context, gate, guide, record } from '../core/workflow.js';
 import { cancel, execute, inspectAdapter, providerStatus, registry, reconcile } from '../runtime/providers.js';
 import { renderScopeReview, renderWorkContext, writeResult } from './output.js';
@@ -24,6 +26,11 @@ Usage:
   foundry work start SLUG --spec PATH [--contract PATH] [--project PATH]
   foundry work review [--project PATH] [--json]
   foundry work approve --revision HASH [--project PATH] [--json]
+  foundry work specialists [--project PATH] [--json]
+  foundry work assignment planner|builder|reviewer [--project PATH] [--json]
+  foundry work save-plan --file PATH --snapshot HASH [--project PATH]
+  foundry work task-done TASK_ID --snapshot HASH [--project PATH]
+  foundry work record-review --file PATH --snapshot HASH [--project PATH]
   foundry work pause|resume|verify|complete|recover [--project PATH]
   foundry work workflow guide|context|gate|record|feedback [options]
   foundry provider [--project PATH]
@@ -147,6 +154,11 @@ async function runLifecycleCommand(
 }
 
 const PROJECT_OPTION = ['project'] as const;
+
+function assignmentStage(value: string | undefined): 'planner' | 'builder' | 'reviewer' {
+  if (value === 'planner' || value === 'builder' || value === 'reviewer') return value;
+  throw new FoundryError('assignment requires planner, builder or reviewer');
+}
 
 const WORKFLOW_SPECS: Record<string, OptionSpec> = {
   guide: {
@@ -305,6 +317,33 @@ export async function dispatchProjectCommand(arguments_: string[]): Promise<numb
     if (options.json === true) output(snapshot, true);
     else process.stdout.write(renderWorkContext(snapshot));
     return 0;
+  }
+  if (command === 'specialists' || command === 'assignment') {
+    const { positional, options } = parse(rest, { value: [...PROJECT_OPTION], positional: command === 'assignment' ? 1 : 0 });
+    const root = rootOption(options);
+    if (command === 'specialists') output(await specialists(root), options.json === true);
+    else {
+      const stage = assignmentStage(positional[0]);
+      output(await prepareAssignment(root, stage), options.json === true);
+    }
+    return 0;
+  }
+  if (['save-plan', 'task-done', 'record-review'].includes(command)) {
+    const { positional, options } = parse(rest, { value: [...PROJECT_OPTION, 'snapshot', ...(command === 'task-done' ? [] : ['file'])], positional: command === 'task-done' ? 1 : 0 });
+    const root = rootOption(options);
+    const snapshot = requiredOption(options, 'snapshot');
+    if (!/^[a-f0-9]{64}$/.test(snapshot)) throw new FoundryError('Use the current work context snapshot');
+    if (command === 'task-done') await finishTask(root, positional[0] ?? '', snapshot);
+    else {
+      const relative = normalizeLocalPath(root, requiredOption(options, 'file'));
+      const document = await readBoundedText(root, relative, command === 'record-review' ? 128 * 1024 : 256 * 1024);
+      const value = JSON.parse(document.text) as unknown;
+      if (command === 'save-plan') await saveTaskPlan(root, value, snapshot);
+      else await recordWorkReview(root, value, snapshot);
+    }
+    const current = await workContext(root);
+    output(current, options.json === true);
+    return command === 'record-review' && current.plan?.review.status !== 'current' ? 1 : 0;
   }
   if (command === 'status') {
     const { options } = parse(rest, { value: [...PROJECT_OPTION] });

@@ -7,12 +7,19 @@ You decide what to approve.** Install it using the [first-project guide](GETTING
 
 | Part | What it does |
 | --- | --- |
-| Foundry | Creates project folders, chooses stage instructions, calls the provider, saves results, runs checks and waits for approval. |
+| Foundry | Creates project folders, prepares specialist work, saves results, runs checks and waits for approval. Adapter mode calls your selected provider; a connected client does the reasoning itself. |
 | AI provider | Reads the supplied context and uses its tools to research, plan or change code. You choose the adapter and model, and authorize its runtime separately. |
 | Your project | Holds the code, documents, Git history and private progress records on your computer. Cloud AI still receives the prompts and project content sent to it. |
 
 Specialist roles supply instructions for each job and share the project's
 provider connection.
+
+Inside an existing coding client, Foundry instead prepares assignments for the
+host's own reasoning and tools. The connected source preview supports
+Planner → saved dependent tasks → relevant Builders → Reviewer → local handoff.
+Tasks and selected role policies are part of the scope you approve. Research
+and Design remain in the adapter-driven product journey for now. See
+[connected work](COMMANDS.md#connected-specialist-work).
 
 ## What it is built with
 

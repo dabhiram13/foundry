@@ -20,7 +20,10 @@ Contracts without preparation keep their existing shorter workflow.
   research, covers each criterion once, and records implementation, primary and
   failure states, responsiveness and accessibility. UI work includes a user
   journey, information architecture, wireframes, visual rules, component states
-  and validation plan as bounded text handoffs, not proof of rendered UI quality.
+  and validation plan. The [visible-design extension](visual-design-handoff.md)
+  also requires a real app preview, frozen rendered states, an explicit UI
+  specialist and final visual comparisons. These remain evidence for owner
+  judgment, not automatic proof of rendered UI quality.
 - RD-04: Plan approval is required before Design submission. Saving Design
   changes the exact scope revision and requires another terminal approval.
   Builders, verification, task completion, review and completion require current

@@ -41,8 +41,8 @@ start a project. The guide also covers updates and uninstalling.
 | npm package, **0.5.1** | Build a product from the terminal | A provider you choose and set up |
 | OpenCode, **from source** | Research, plan, design, build and review inside your coding tool | Your existing model and account |
 
-The OpenCode connection is in the source code, **not in npm 0.5.1**. It has not
-been tested with a live model. Homebrew is not available. To try it, follow
+The OpenCode connection is in the source code, **not in npm 0.5.1**. The new
+visual workflow has local test coverage, not a live-model trial. Homebrew is not available. To try it, follow
 [the OpenCode guide][connected-client].
 
 ## How it works
@@ -73,8 +73,12 @@ Build Foundry from source to use it inside **OpenCode**. OpenCode keeps your
 chat, model and account. Foundry assigns the work, saves tasks and decisions,
 waits for approval and records check results and review findings. The steps are
 **Research → Plan approval → Design approval → relevant Builders → Reviewer → local handoff**.
-Research saves sources and checks quotations. Design explains how each
-requirement will be built. Small changes can skip Research and Design.
+Research saves sources and checks quotations. Interface Design includes a
+running app preview, components and captured mobile/desktop states for your
+approval. A named UI specialist implements it; review compares the result with
+the approved views as well as checking behavior. Foundry saves the evidence,
+not a judgment of good taste. Service work needs no images. Small changes can
+skip Research and Design.
 Your coding tool prepares the brief and tasks, then previews project checks.
 For a new project, it creates real tests first. You do not write check JSON.
 You review the connection before applying it, then approve Plan and Design in

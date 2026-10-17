@@ -33,6 +33,16 @@ include continuation in a second client and installed candidate-package behavior
 These are local protocol tests, **not a live-model product trial** or proof that
 the model follows each role correctly.
 
+Interface fixtures use synthetic PNGs to test capture bounds, hashes, dimensions,
+source snapshots, component/state mapping, mobile/desktop coverage, exact Design
+approval and final visual comparison. They reject missing or changed evidence,
+unsafe paths and blocked/unverified reviews. Service fixtures still complete
+without images. The PNG fixtures are not screenshots of a product, and must
+never be presented as visual-quality evidence. A guided trial exercised the
+earlier lifecycle; this rendered-preview extension still needs a live-model
+product trial and an owner visual review. A same-brief one-shot comparison has
+not been run. No learning or self-improvement engine is included.
+
 ## Public website checks
 
 Static checks validate every generated page, local link and anchor, search

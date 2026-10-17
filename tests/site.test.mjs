@@ -380,7 +380,7 @@ test('product journey remains native, readable and honest about connection bound
   assert.match(html, /28 specialist roles/);
   assert.match(textContent(tree), /Build Foundry from source to research, plan, design, build and review inside OpenCode/);
   assert.match(textContent(tree), /not part of npm 0\.5\.1/);
-  assert.match(textContent(tree), /not been tested with a live model/);
+  assert.match(textContent(tree), /new visual workflow has local test coverage, not a live-model trial/);
   assert.doesNotMatch(html, /full specialist journey is not yet exposed/);
   assert.match(html, /Homebrew is not available/);
   assert.match(html, /Ship writes a project summary; it does not publish or deploy/);
@@ -429,7 +429,9 @@ test('public introductions use plain words instead of AI slogans and runtime jar
   const readme = await readFile(path.join(root, 'README.md'), 'utf8');
   assert.match(readme, /research, plan, design, build and review software/);
   assert.match(readme, /not in npm 0\.5\.1/);
-  assert.match(readme, /not\s+been tested with a live model/);
+  assert.match(readme, /new\s+visual workflow has local test coverage, not a live-model trial/);
+  assert.match(readme, /running app preview, components and captured mobile\/desktop states/);
+  assert.match(readme, /Service work needs no images/);
 });
 
 function webpDimensions(buffer) {

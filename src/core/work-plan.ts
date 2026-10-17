@@ -4,6 +4,7 @@ import { readBoundedText } from './factory-contract.js';
 import { loadRoles, type RolePolicy } from './roles.js';
 import type { RunState } from './lifecycle.js';
 import type { ScopeReview } from './scope.js';
+import { inspectVisualReview, validateVisualReview, visualReviewSchema } from './work-visual.js';
 
 const id = z.string().regex(/^[A-Z][A-Z0-9_-]{1,63}$/);
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -11,6 +12,7 @@ const role = z.string().regex(/^[a-z][a-z0-9-]{0,79}$/);
 export const taskPlanSchema = z.object({
   planner_role: role.default('planner'),
   reviewer_role: role.default('quality-gate'),
+  ui_builder_role: role.optional(),
   tasks: z.array(z.object({
     id, title: z.string().trim().min(1).max(300),
     instructions: z.string().trim().min(1).max(4000),
@@ -32,6 +34,7 @@ export type TaskPlan = z.infer<typeof taskPlanSchema>;
 
 export const workReviewSchema = z.object({
   summary: z.string().trim().min(1).max(4000),
+  visual: visualReviewSchema.optional(),
   criteria: z.array(z.object({
     id, assessment: z.enum(['met', 'gap', 'unverified']),
     observation: z.string().trim().min(1).max(2000),
@@ -68,7 +71,7 @@ export type TaskProgress = z.infer<typeof taskProgressSchema>;
 
 export async function planPolicies(root: string, plan: TaskPlan): Promise<RolePolicy[]> {
   const roles = await loadRoles(root);
-  const names = [...new Set([plan.planner_role, plan.reviewer_role, ...plan.tasks.map(task => task.role)])];
+  const names = [...new Set([plan.planner_role, plan.reviewer_role, ...(plan.ui_builder_role ? [plan.ui_builder_role] : []), ...plan.tasks.map(task => task.role)])];
   const policies = names.map(name => {
     const policy = roles.find(candidate => candidate.name === name);
     if (!policy) throw new FoundryError(`Unknown specialist role: ${name}`);
@@ -76,6 +79,10 @@ export async function planPolicies(root: string, plan: TaskPlan): Promise<RolePo
   });
   if (policies.find(policy => policy.name === plan.reviewer_role)?.sandbox !== 'read-only') {
     throw new FoundryError('The reviewer role must be read-only');
+  }
+  if (plan.ui_builder_role && (policies.find(policy => policy.name === plan.ui_builder_role)?.sandbox !== 'workspace-write'
+    || !plan.tasks.some(task => task.role === plan.ui_builder_role))) {
+    throw new FoundryError('Assign UI work to the selected writable UI specialist');
   }
   for (const task of plan.tasks) {
     if (policies.find(policy => policy.name === task.role)?.sandbox !== 'workspace-write') {
@@ -86,6 +93,7 @@ export async function planPolicies(root: string, plan: TaskPlan): Promise<RolePo
 }
 
 export function validateReview(report: WorkReview, scope: ScopeReview): void {
+  validateVisualReview(report.visual, scope.preparation?.design.report?.preview, scope.preparation?.design.record?.sha256);
   const ids = new Set(scope.criteria.map(criterion => criterion.id));
   if (report.criteria.length !== ids.size || report.criteria.some(criterion => !ids.has(criterion.id))
     || report.findings.some(finding => !ids.has(finding.criterion_id))) {
@@ -129,15 +137,18 @@ export async function plannedWork(root: string, state: RunState, scope: ScopeRev
       if (digest(bytes.bytes) !== progress.review.sha256) throw new FoundryError('Review record changed');
       report = workReviewSchema.parse(JSON.parse(bytes.text));
       validateReview(report, scope);
+      if (report.visual) await inspectVisualReview(root, progress.review.path.slice(0, -'.json'.length), report.visual);
       reviewStatus = !evidenceCurrent || scope.approval.status !== 'current'
         || progress.review.approval_sha256 !== scope.approval.sha256
         || progress.review.inputs_revision !== inputsRevision || progress.review.receipt_sha256 !== receiptSha256
         || tasks.some(task => task.status !== 'done') ? 'stale'
         : report.criteria.some(criterion => criterion.assessment !== 'met') || report.findings.some(finding => finding.blocking)
+          || report.visual?.comparisons.some(comparison => comparison.assessment !== 'met')
           ? 'blocked' : 'current';
     } catch { reviewStatus = 'invalid'; }
   }
   return { revision: scope.revision, planner_role: scope.plan.planner_role, reviewer_role: scope.plan.reviewer_role,
+    ui_builder_role: scope.plan.ui_builder_role ?? null,
     tasks, next_task: nextTask?.id ?? null, review: { status: reviewStatus, report, record: progress.review?.path ?? null,
       attribution: 'host_reported' as const } };
 }
@@ -152,5 +163,6 @@ export function assertPlanComplete(plan: PlannedWork): void {
 
 export function renderPlanHandoff(plan: PlannedWork): string {
   if (!plan) return '';
-  return `\n## Tasks\n\n${plan.tasks.map(task => `- ${task.id}: ${task.title} (${task.role}; ${task.criteria.join(', ')})`).join('\n')}\n\n## Host-reported specialist review\n\n${plan.review.report?.summary ?? 'Not recorded'}\n\n${plan.review.report?.criteria.map(criterion => `- ${criterion.id}: ${criterion.assessment} — ${criterion.observation}`).join('\n')}\n\n${plan.review.report?.findings.map(finding => `- ${finding.criterion_id}: ${finding.message} (${finding.blocking ? 'blocking' : 'nonblocking'})`).join('\n')}\n\nReview record: ${plan.review.record}\n`;
+  const visual = plan.review.report?.visual;
+  return `\n## Tasks\n\n${plan.tasks.map(task => `- ${task.id}: ${task.title} (${task.role}; ${task.criteria.join(', ')})`).join('\n')}\n\n## Host-reported specialist review\n\n${plan.review.report?.summary ?? 'Not recorded'}\n\n${plan.review.report?.criteria.map(criterion => `- ${criterion.id}: ${criterion.assessment} — ${criterion.observation}`).join('\n')}\n\n${plan.review.report?.findings.map(finding => `- ${finding.criterion_id}: ${finding.message} (${finding.blocking ? 'blocking' : 'nonblocking'})`).join('\n')}\n\nReview record: ${plan.review.record}\n${visual ? `\n### Visual comparison\n\nDesign: ${visual.design_sha256}\n\n${visual.summary}\n\n${visual.comparisons.map(image => `- ${image.screen}/${image.state} ${image.width}x${image.height}: ${image.assessment} - ${image.observation}; ${image.path} (sha256 ${image.sha256})`).join('\n')}\n` : ''}`;
 }

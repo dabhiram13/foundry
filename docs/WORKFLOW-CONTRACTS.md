@@ -47,9 +47,29 @@ readable Research and the structured Design handoff, not just opaque references.
 Plan approval precedes Design. Design covers each criterion once, with primary
 and failure states, responsiveness and accessibility. Interface work needs six
 text handoffs: user journey, information architecture, wireframes, visual rules,
-component states and validation plan. Saving Design changes the scope revision
-and requires renewed terminal approval before building or checking. These are
-host-reported decisions, not proof of usability or rendered interface quality.
+component states and validation plan. It also needs a working preview in the
+product app, a chosen design system, component source/state mappings, screen
+routes and criterion links, plus mobile/desktop PNGs and captured screen states.
+The approved task plan explicitly names a writable `ui_builder_role` and assigns
+the screen criteria to it. That can be the existing `designer` specialist; the
+host still performs the work rather than Foundry starting another agent runtime.
+
+Saving Design freezes bounded component-source and image copies under the run,
+changes the scope revision, and requires renewed terminal approval before
+building or checking. Preview URLs and original files may change; the baseline
+does not. Altered or missing saved copies invalidate Design. Foundry does not
+open a browser, start a server or verify that the images came from that URL.
+The Designer follows its selected role's write permissions for preview work,
+after Plan approval and before production integration.
+
+Final interface review names the exact Design hash and compares each approved
+screen/state/viewport with a current captured image and an observation. Final
+images are frozen separately. A missing comparison, changed saved image, gap or
+unverified view blocks completion, even when functional checks pass. Review
+still binds to the workspace, approval and receipts. Screenshots and judgments
+are host reported, not automatic proof of taste, usability or owner acceptance.
+Service-only work needs no images. Older text-only interface handoffs must be
+replaced and reapproved; they are not silently upgraded.
 
 Artifacts bind to the specification and selected role policy. Design also binds
 to the research record and task plan, preserving the approved Plan revision and

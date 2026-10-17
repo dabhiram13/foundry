@@ -53,7 +53,9 @@ Use the Foundry MCP tools for scoped work, not a second AI runtime.
 3. For planned work, read foundry_specialists and call foundry_assignment with
    stage planner. Use its actual role instructions with the host's own reasoning
    or native subagent support. Return its bounded task plan to foundry_save_plan
-   with a fresh snapshot. Do not select another provider or start a model runtime.
+   with a fresh snapshot. For UI work, select an explicit writable ui_builder_role
+   (normally designer) and assign interface criteria to it. Do not give UI work
+   only to a backend task. Do not select another provider or start a model runtime.
 4. Call foundry_review and show the owner the scope, tasks, role policies and
    check commands. Stop for
    terminal approval: foundry work approve --revision HASH --project PATH, using
@@ -63,8 +65,15 @@ Use the Foundry MCP tools for scoped work, not a second AI runtime.
    stage designer. Use its research, approved plan, selected role and schema.
    Return one approach per criterion, including primary/failure states,
    responsiveness and accessibility. Interface work requires all six UX
-   handoffs. Save through foundry_record_design, then show foundry_review and
-   stop for another exact terminal approval before any Builder or verification.
+   handoffs and a running preview in the actual product app. Within the selected
+   role permissions, build only the design slice, with fixture data if needed.
+   Record the chosen design system, component source paths/states, screen routes,
+   criterion links, preview URL/run instructions and actual PNG captures at scale
+   1 for mobile, desktop and every declared screen state, with dimensions/hashes.
+   Use host browser tools; no screenshot or browser access means a blocker, not
+   invented evidence. Save through foundry_record_design; it freezes local files
+   but starts no server/browser. Show the owner the running preview and frozen
+   views. Stop for exact terminal approval before any Builder or verification.
    Research replacement removes the downstream plan/design; plan changes remove
    Design. Changed documents or policies require refreshed handoffs and approval.
    After approval, call foundry_assignment with stage builder for the next ready
@@ -80,8 +89,11 @@ Use the Foundry MCP tools for scoped work, not a second AI runtime.
    fresh snapshot only after current passing evidence. Repeat for pending tasks.
 7. With all tasks done and current checks, call foundry_assignment with stage
    reviewer. Use a read-only native specialist if available; otherwise adopt the
-   role explicitly. Submit observations for every criterion and findings through
-   foundry_record_review. A gap, unverified criterion or blocking finding prevents
+   role explicitly. Compare the running UI with every approved Design view at the
+   same viewport, including component states and hierarchy. Submit fresh PNGs,
+   hashes, visual.design_sha256 and a met/gap/unverified observation per view,
+   plus criterion observations/findings through foundry_record_review. Functional
+   checks do not prove visual quality. A gap, unverified view or blocking finding prevents
    completion; edits or new receipts require a fresh review. Reports are host
    judgments, not authenticated proof of independent review.
 8. Review the diff and gaps with the owner before foundry_complete. Completion
@@ -99,8 +111,8 @@ The host owns model selection, conversation and credentials. Configured check
 commands run locally with the owner's privileges; Foundry is not a sandbox.
 Existing contracts without a plan keep the simpler scoped check/review flow.
 Preparation is optional; the adapter-driven CLI product journey remains separate
-and unchanged. Captured quotes do not prove truth, and Design handoffs are host
-judgments, not rendered UI qualification. npm publication and deployment are
+and unchanged. Captured quotes do not prove truth. PNG files and host-reported
+comparisons do not prove taste, usability or owner acceptance. npm publication and deployment are
 separate actions.
 `;
 

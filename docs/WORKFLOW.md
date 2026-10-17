@@ -18,14 +18,14 @@ Inside an existing coding client, Foundry instead prepares assignments for the
 host's own reasoning and tools. The connected source preview supports
 Research → Planner → Plan approval → Designer → Design approval → relevant
 Builders → Reviewer → local handoff. Add `preparation: {}` to a scoped contract
-to enable this path. Research quotes captured sources; Design records a proposed
-implementation for each requirement. Tasks, artifacts and selected role policies
+to enable this path. Research quotes captured sources; interface Design includes
+a running preview and captured states, not just text. Tasks, artifacts and selected role policies
 are part of the exact scope you approve. Smaller changes can omit preparation
 and keep Planner → approved tasks → Builders → Reviewer. See
 [connected work](COMMANDS.md#connected-specialist-work).
 For setup and an owner-facing example, use [the connected-client guide](CONNECTED-CLIENT.md).
-This connection is in the source code, not npm 0.5.1. It has not been tested
-with a live model. Homebrew is not available.
+This connection is in the source code, not npm 0.5.1. The new visual workflow
+has local test coverage, not a live-model trial. Homebrew is not available.
 
 ## What it is built with
 
@@ -117,9 +117,15 @@ Source discovery uses the provider's tools. Research uses the same
 Connected Research uses the same reader and quotation checks, but saves artifacts
 under the scoped run's `preparation/` directory rather than the adapter product's
 Factory directory. The host performs source selection and synthesis, submitting
-each result with the current snapshot. Connected Design is a structured text
-handoff, not generated screens or proof of rendered UI quality. Its approval
-changes the scope revision before Builders can continue.
+each result with the current snapshot. Connected interface Design also needs a
+running preview in the real product app, a component/state map and captured
+desktop/mobile views. Foundry freezes bounded local source and PNG copies for
+approval. The host starts the preview and uses its browser tools; Foundry does
+neither. The owner must look at the preview before approving the exact revision.
+Review compares the running result with every approved view, alongside functional
+checks. Files and reported observations are evidence to inspect, not proof of
+good design or owner satisfaction. Service-only Design does not need a preview.
+See the [preview contract](COMMANDS.md#interface-preview-and-visual-review).
 
 ## Scoped repository work
 

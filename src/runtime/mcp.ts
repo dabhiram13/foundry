@@ -83,7 +83,7 @@ export async function serveMcp(rootInput: string, version: string): Promise<void
     return workContext(root);
   }));
   server.registerTool('foundry_record_design', {
-    description: 'Save a host-reported Design handoff for every approved criterion. Interface work needs six UX handoffs. Changes require renewed terminal scope approval before building.',
+    description: 'Save Design for every approved criterion. Interfaces require six UX handoffs, a real app preview, component sources/states and mobile/desktop PNGs with hashes. Freezes local evidence; does not launch a browser/server. Requires renewed terminal approval.',
     inputSchema: snapshot.extend({ report: designReportSchema }).strict(), annotations: mutation,
   }, async ({ report, snapshot_revision }) => guarded(async () => {
     await recordWorkDesign(root, report, snapshot_revision);
@@ -104,7 +104,7 @@ export async function serveMcp(rootInput: string, version: string): Promise<void
     return workContext(root);
   }));
   server.registerTool('foundry_record_review', {
-    description: 'Save host-reported observations for every approved criterion and findings. Gaps, unverified criteria and blocking findings block completion.',
+    description: 'Save observations for every approved criterion. Interface review must compare every frozen Design view with current PNG evidence against its exact Design hash. Freezes local evidence. Gaps, unverified views and blocking findings prevent completion.',
     inputSchema: snapshot.extend({ report: workReviewSchema }).strict(), annotations: mutation,
   }, async ({ report, snapshot_revision }) => guarded(async () => {
     await recordWorkReview(root, report, snapshot_revision);

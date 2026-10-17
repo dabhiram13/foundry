@@ -35,9 +35,15 @@ export function renderScopeReview(scope: ScopeReview): string {
       scope.preparation.research.text ?? 'No readable Research report.',
       `Design: ${scope.preparation.design.status} (${scope.preparation.design.role}; host reported)`);
     if (scope.preparation.design.report) lines.push(JSON.stringify(scope.preparation.design.report, null, 2));
+    const preview = scope.preparation.design.report?.preview;
+    if (preview) lines.push('', `Open the running app before approval: ${preview.url}`, preview.instructions,
+      `Design system: ${preview.design_system}`, 'Frozen visual baseline:',
+      ...preview.screenshots.map(image => `  ${image.screen}/${image.state} ${image.width}x${image.height}: ${image.path}`),
+      'Review the screens and component states. Foundry checks evidence files, not design quality.');
   }
   if (scope.plan) {
     lines.push('', `Planner: ${scope.plan.planner_role}; reviewer: ${scope.plan.reviewer_role}`, 'Proposed tasks:');
+    if (scope.plan.ui_builder_role) lines.push(`UI specialist: ${scope.plan.ui_builder_role}`);
     for (const task of scope.plan.tasks) lines.push(`${task.id}: ${task.title} (${task.role})`,
       `  ${task.instructions}`, `  Criteria: ${task.criteria.join(', ')}; after: ${task.depends_on.join(', ') || 'none'}`);
     lines.push('Selected specialist policies:', ...scope.specialists!.flatMap(policy => [

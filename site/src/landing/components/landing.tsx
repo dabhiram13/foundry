@@ -72,7 +72,7 @@ export function Landing() {
         <div className="landing-install"><div className="install-heading"><span><Terminal aria-hidden="true" /> Install and open</span><span>npm / Node.js 24+</span></div>
           <pre aria-label="Installation commands"><code>{install}</code></pre>
           <div className="install-copy"><CopyButton content={install} label="Copy commands" /><span>The first installs. The second opens.</span></div>
-          <div className="install-note"><p><strong>npm package: 0.5.1.</strong> Use the terminal to build a product with a provider you choose and set up.</p><p><strong>Already using OpenCode?</strong> Build Foundry from source to research, plan, design, build and review inside OpenCode. Keep your existing model and account.</p><p>The connection is not part of npm 0.5.1. It has not been tested with a live model.</p><a href={`${docs}/connected-client/`}>Use Foundry in OpenCode <ArrowUpRight aria-hidden="true" /></a></div>
+          <div className="install-note"><p><strong>npm package: 0.5.1.</strong> Use the terminal to build a product with a provider you choose and set up.</p><p><strong>Already using OpenCode?</strong> Build Foundry from source to research, plan, design, build and review inside OpenCode. Keep your existing model and account.</p><p>The connection is not part of npm 0.5.1. The new visual workflow has local test coverage, not a live-model trial.</p><a href={`${docs}/connected-client/`}>Use Foundry in OpenCode <ArrowUpRight aria-hidden="true" /></a></div>
           <div className="install-bottom"><a href={`${docs}/runtime/`}>Bring an existing repository <ArrowRight aria-hidden="true" /></a><span>Homebrew is not available.</span></div>
         </div>
       </section>

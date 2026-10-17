@@ -242,11 +242,83 @@ Research -> Planner -> Plan approval -> Designer -> Design approval
    with `id`, `approach`, `primary_states`, `failure_states`, `responsive` and
    `accessibility`. An interface also requires `ux` with `user_journey`,
    `information_architecture`, `wireframes`, `visual_rules`, `component_states`
-   and `validation_plan`. These are bounded text handoffs, not rendered assets.
+   and `validation_plan`, plus the [rendered preview](#interface-preview-and-visual-review)
+   below. The selected Designer may write the preview within its role permissions
+   after Plan approval, but must not continue into production integration yet.
 5. Save with `work record-design --file PATH --snapshot HASH` or
    `foundry_record_design` with `report`. Review the new exact scope and approve
    it through the terminal again. Builders and verification remain blocked
    until Research, Design and scope approval are all current.
+
+#### Interface preview and visual review
+
+For interface work, the Plan names `ui_builder_role`, normally `designer`, and
+assigns the interface criteria to tasks for that writable specialist. Service
+work can omit the field and all visual evidence. Classification and specialist
+selection are host decisions for the owner to inspect, not automatic detection.
+
+Interface Design adds `preview` to the existing report:
+
+```json
+{
+  "url": "http://127.0.0.1:5173/booking",
+  "instructions": "Run the product dev script and open /booking. Use the supplied test booking.",
+  "design_system": "Use the adopted product type, spacing, controls and colors.",
+  "components": [{ "name": "BookingForm", "source": "src/BookingForm.tsx", "screen": "BOOKING", "states": ["ready", "error"] }],
+  "screens": [{ "id": "BOOKING", "route": "/booking", "criteria": ["BOOK-01"], "states": ["ready", "error"] }],
+  "screenshots": [
+    { "screen": "BOOKING", "state": "ready", "width": 390, "height": 844, "path": "evidence/booking-mobile.png", "sha256": "ACTUAL_FILE_SHA256" },
+    { "screen": "BOOKING", "state": "ready", "width": 1280, "height": 800, "path": "evidence/booking-desktop.png", "sha256": "ACTUAL_FILE_SHA256" },
+    { "screen": "BOOKING", "state": "error", "width": 390, "height": 844, "path": "evidence/booking-error.png", "sha256": "ACTUAL_FILE_SHA256" }
+  ]
+}
+```
+
+Replace placeholders with the actual 64-character lowercase SHA-256 file hashes
+and approved criterion IDs. The host prepares the report from its assignment
+schema; owners do not need to type this JSON. Use the real app, with fixture data
+if needed, not a standalone design showcase. Capture the changed controls and
+relevant primary, empty, loading, error and focus states. Component states map
+to captured screen states. Each screen needs at least one mobile view (width
+240-480) and desktop view (width 1024-3840), and every declared state needs an
+image. Heights are 240-2160. Images must match those dimensions at scale 1.
+
+The host starts the preview, exercises the app with its own browser tools and
+shows the owner before approval. Foundry never starts or fetches the URL. URLs
+must be HTTPS or loopback HTTP, without embedded credentials; do not include
+secrets or sensitive data in URLs, source snapshots or captures. An unavailable
+browser or preview is a blocker, not permission to fabricate evidence.
+
+Use ordinary project-relative source and screenshot files, not hidden files,
+state paths, symlinks or paths outside the project. Captures use non-interlaced
+8-bit RGB/RGBA PNG, up to 8 MiB each and 32 MiB total. There are at most 12
+screens, 24 captures and 32 component entries. Component sources are bounded
+UTF-8 text, at most 256 KiB each. Foundry freezes copies, checks hashes, image
+chunks and pixel dimensions, and binds them to Design. Later original-file edits
+do not alter the baseline. Missing or changed saved copies invalidate it.
+
+Final Review keeps its criterion observations and adds `visual`:
+
+```json
+{
+  "design_sha256": "EXACT_DESIGN_RECORD_SHA256_FROM_CONTEXT",
+  "summary": "Compared the running app with the approved screen views.",
+  "comparisons": [
+    { "screen": "BOOKING", "state": "ready", "width": 390, "height": 844,
+      "path": "evidence/final-booking-mobile.png", "sha256": "ACTUAL_FILE_SHA256",
+      "assessment": "met", "observation": "Describe the actual comparison, including hierarchy, controls, layout and state behavior." }
+  ]
+}
+```
+
+Add **every** approved screen/state/width/height exactly once, not just the single
+illustrative comparison above. Use the saved Design record hash from
+`preparation.design.record.sha256` in context, not the overall scope revision.
+Take current captures in the running result. Foundry freezes them separately;
+it does not compute a pixel score or claim to judge good design. `gap` and
+`unverified` observations block completion; functional checks must still pass.
+Workspace, approval, Design or receipt changes require a fresh review. The local
+handoff includes both the baseline and final evidence paths and hashes.
 
 The host uses each assignment's actual role instructions and output schema;
 the owner need not manually author result JSON in a connected session. CLI
@@ -407,8 +479,10 @@ If the client cancels or disconnects during verification, read context from a
 new session and use its `resume` or `recover` action; no interrupted check counts
 as a pass. Connection and tool/skill discovery were checked with OpenCode 1.19.0,
 using Node 24 and 25 for the Foundry server. SDK and installed-package fixtures
-check the workflow, but it has not been tested with a live model. This does
-not claim compatibility with every client version or semantic correctness.
+check the workflow. An earlier guided live-model trial exercised the lifecycle;
+the new rendered Design and visual review gates still need a live product trial.
+This does not claim compatibility with every client version, visual quality or
+semantic correctness.
 
 ## Provider operations
 

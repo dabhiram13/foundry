@@ -5,6 +5,7 @@ import { publicSourceUrl, renderResearchReport, researchReportSchema } from './r
 import { roleByName, type RolePolicy } from './roles.js';
 import type { RunState } from './lifecycle.js';
 import type { TaskPlan } from './work-plan.js';
+import { inspectPreview, previewSchema, previewSourceSchema, type PreviewSource } from './work-visual.js';
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const role = z.string().regex(/^[a-z][a-z0-9-]{0,79}$/);
@@ -30,6 +31,7 @@ export const designReportSchema = z.object({
     user_journey: text, information_architecture: text, wireframes: text,
     visual_rules: text, component_states: text, validation_plan: text,
   }).strict().optional(),
+  preview: previewSchema.optional(),
   assumptions: z.array(text).max(20),
 }).strict().superRefine((report, context) => {
   if (new Set(report.criteria.map(item => item.id)).size !== report.criteria.length) {
@@ -37,6 +39,12 @@ export const designReportSchema = z.object({
   }
   if (report.kind === 'interface' && !report.ux) {
     context.addIssue({ code: 'custom', message: 'Interface design needs all six UX handoffs' });
+  }
+  if (report.kind === 'interface' && !report.preview) {
+    context.addIssue({ code: 'custom', message: 'Interface Design needs a running preview with components, states and desktop/mobile screenshots' });
+  }
+  if (report.kind === 'service' && report.preview) {
+    context.addIssue({ code: 'custom', message: 'Use interface Design for a visual preview' });
   }
   if (Buffer.byteLength(JSON.stringify(report)) > 128 * 1024) {
     context.addIssue({ code: 'custom', message: 'Design exceeds 128 KiB' });
@@ -66,6 +74,7 @@ const designRecordSchema = z.object({
   schema_version: z.literal(1), spec_sha256: hash, policy_sha256: hash,
   research_sha256: hash, plan_sha256: hash,
   approved_plan_revision: hash, approved_plan_sha256: hash, report: designReportSchema,
+  preview_sources: z.array(previewSourceSchema).max(32).optional(),
 }).strict();
 export type PreparationRef = z.infer<typeof preparationRefSchema>;
 export const policyRevision = (policy: RolePolicy): string => digest(canonicalJson(policy));
@@ -103,10 +112,17 @@ export async function readSourceCapture(root: string, state: RunState) {
   return collection;
 }
 
-export function validateDesign(report: DesignReport, criteria: Array<{ id: string }>): void {
+export function validateDesign(report: DesignReport, criteria: Array<{ id: string }>, plan?: TaskPlan): void {
   const ids = new Set(criteria.map(criterion => criterion.id));
   if (report.criteria.length !== ids.size || report.criteria.some(item => !ids.has(item.id))) {
     throw new FoundryError('Design every approved criterion exactly once');
+  }
+  if (report.preview) {
+    const uiCriteria = new Set(report.preview.screens.flatMap(screen => screen.criteria));
+    if ([...uiCriteria].some(id => !ids.has(id))) throw new FoundryError('Preview screens must reference approved criteria');
+    if (!plan?.ui_builder_role || [...uiCriteria].some(id => !plan.tasks.some(task => task.role === plan.ui_builder_role && task.criteria.includes(id)))) {
+      throw new FoundryError('Assign every preview criterion to the approved writable UI specialist (ui_builder_role)');
+    }
   }
 }
 
@@ -147,10 +163,14 @@ export async function inspectPreparation(root: string, state: RunState, specSha2
   let designStatus: ArtifactStatus = 'missing';
   let designProblem: string | null = null;
   let designReport: DesignReport | null = null;
+  let previewSources: PreviewSource[] = [];
   if (preparation.design) {
     try {
       const design = designRecordSchema.parse(await record(root, state.run_id, preparation.design, 'design'));
-      validateDesign(design.report, criteria);
+      validateDesign(design.report, criteria, plan);
+      if (design.report.preview) await inspectPreview(root, preparation.design.path.slice(0, -'/design.json'.length),
+        design.report.preview, design.preview_sources ?? []);
+      previewSources = design.preview_sources ?? [];
       designReport = design.report;
       designStatus = researchStatus === 'current' && plan && design.spec_sha256 === specSha256
         && design.policy_sha256 === policyRevision(designPolicy)
@@ -162,6 +182,7 @@ export async function inspectPreparation(root: string, state: RunState, specSha2
     sources: { status: sourceStatus, problem: sourceProblem, capture: state.research_sources ?? null, collection },
     research: { status: researchStatus, problem: researchProblem, role: preparation.research_role, record: preparation.research ?? null, text: researchText },
     design: { status: designStatus, role: preparation.design_role, record: preparation.design ?? null, report: designReport,
+      preview_sources: previewSources,
       problem: designProblem, attribution: 'host_reported' as const },
   };
 }
@@ -194,6 +215,11 @@ export function renderPreparationHandoff(preparation?: PreparationState): string
     ]),
     ...(design.ux ? ['### UX handoffs', '', ...Object.entries(design.ux).map(([name, value]) => `${name}: ${value}`), ''] : []),
     '### Assumptions', '', ...design.assumptions.map(assumption => `- ${assumption}`), '',
-    'These are captured sources and host-reported decisions, not independent market or rendered UI qualification.', '',
+    ...(design.preview ? ['### Approved interface preview', '', `Preview: ${design.preview.url}`,
+      design.preview.instructions, `Design system: ${design.preview.design_system}`,
+      ...design.preview.components.map(component => `- ${component.name}: ${component.source}; states: ${component.states.join(', ')}`),
+      ...preparation.design.preview_sources.map(source => `- Source snapshot: ${source.path} -> ${source.snapshot} (sha256 ${source.sha256})`),
+      ...design.preview.screenshots.map(image => `- ${image.screen}/${image.state} ${image.width}x${image.height}: ${image.path} (sha256 ${image.sha256})`), ''] : []),
+    'Sources and rendered evidence are host reported. The owner judges design quality; captured files do not prove usability or acceptance.', '',
   ].join('\n');
 }

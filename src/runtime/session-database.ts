@@ -176,10 +176,12 @@ export class SessionDatabase {
         );
         if (Number(changed.changes) !== 1) throw new SessionError('revision_conflict');
         if (transition.priorEffects !== 'keep') {
-          const status = { claim: 'claimed', confirm: 'confirmed', cancel: 'canceled', uncertain: 'uncertain' }[transition.priorEffects];
+          const status = { claim: 'claimed', confirm: 'confirmed', cancel: 'canceled', 'cancel-pause': 'canceled', uncertain: 'uncertain' }[transition.priorEffects];
           const old = this.readEffects(session.id).filter((effect) => effect.status === 'pending' || effect.status === 'claimed' || effect.status === 'uncertain');
           for (const effect of old) {
             if (transition.priorEffects === 'claim' && effect.status !== 'pending') continue;
+            if (transition.priorEffects === 'cancel-pause' && (effect.kind !== 'pause' || effect.status !== 'pending'
+              || !('executionId' in session.state) || effect.executionId !== session.state.executionId)) continue;
             const updated = effectSchema.parse({ ...effect, status });
             this.db.prepare('UPDATE effects SET status=?, payload=? WHERE id=?').run(status, JSON.stringify(updated), effect.id);
           }

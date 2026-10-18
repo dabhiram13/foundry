@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+export const SESSION_EVENT_LIMIT = 100_000;
+export const SESSION_CONTROL_RESERVE = 8;
+
 export const sessionIdSchema = z.uuid().brand<'SessionId'>();
 const executionIdSchema = z.uuid().brand<'ExecutionId'>();
 const requestIdSchema = z.uuid().brand<'RequestId'>();
@@ -62,7 +65,7 @@ export const sessionSchema = z.strictObject({
   turnsUsed: counterSchema,
   outputBytes: counterSchema.max(2_097_152),
   revision: counterSchema,
-  sequence: counterSchema.max(100_000),
+  sequence: counterSchema.max(SESSION_EVENT_LIMIT + SESSION_CONTROL_RESERVE),
   fence: counterSchema,
   createdAt: timeSchema,
   updatedAt: timeSchema,

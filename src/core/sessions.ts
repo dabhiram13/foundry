@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
-  SessionError, sessionStateSchema,
+  SessionError, sessionStateSchema, SESSION_EVENT_LIMIT, SESSION_CONTROL_RESERVE,
   type ManagedSession, type SessionActor, type SessionCommand, type SessionEffect,
   type SessionEvent, type SessionState,
 } from './session-contract.js';
@@ -9,7 +9,7 @@ export type SessionTransition = {
   session: ManagedSession;
   events: Array<SessionEvent['data']>;
   effects: SessionEffect[];
-  priorEffects: 'keep' | 'claim' | 'confirm' | 'cancel' | 'uncertain';
+  priorEffects: 'keep' | 'claim' | 'confirm' | 'cancel' | 'cancel-pause' | 'uncertain';
 };
 
 type ActiveState = Extract<SessionState, { status: 'running' | 'pausing' | 'stopping' }>;
@@ -97,6 +97,7 @@ export function transitionSession(
       if ('lease' in state) {
         if (Date.parse(state.lease.expiresAt) <= clock) throw new SessionError('recovery_required');
         next.state = { ...state, status: 'stopping' };
+        priorEffects = 'cancel-pause';
         intent('stop', state.executionId);
       } else {
         next.state = { status: 'stopped' };
@@ -167,7 +168,9 @@ export function transitionSession(
     events.push({ kind: 'state', state: next.state });
   }
   next.sequence += events.length;
-  if (next.sequence > 100_000 || next.revision > Number.MAX_SAFE_INTEGER || next.fence > Number.MAX_SAFE_INTEGER) {
+  const control = ['session.stop', 'execution.confirm', 'execution.unknown', 'execution.expire', 'execution.reconcile'].includes(command.type);
+  const eventLimit = SESSION_EVENT_LIMIT + (control ? SESSION_CONTROL_RESERVE : 0);
+  if (next.sequence > eventLimit || next.revision > Number.MAX_SAFE_INTEGER || next.fence > Number.MAX_SAFE_INTEGER) {
     throw new SessionError('budget_exhausted');
   }
   next.updatedAt = at;

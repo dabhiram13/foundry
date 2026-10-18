@@ -8,7 +8,8 @@ import { Worker } from 'node:worker_threads';
 import os from 'node:os';
 import path from 'node:path';
 import { test, type TestContext } from 'node:test';
-import { SessionError, sessionCommandSchema, sessionSchema, type SessionActor, type SessionCommand } from '../../src/core/session-contract.js';
+import { SessionError, SESSION_EVENT_LIMIT, sessionCommandSchema, sessionSchema, type SessionActor, type SessionCommand } from '../../src/core/session-contract.js';
+import { transitionSession } from '../../src/core/sessions.js';
 import { sessionReplySchema } from '../../src/runtime/session-rpc.js';
 import { SessionStore } from '../../src/runtime/session-store.js';
 
@@ -36,8 +37,10 @@ async function fixture(t: TestContext) {
   return { store, create, directory, open };
 }
 
-function command(create: SessionCommand, type: string, expectedRevision: number, fields = {}): SessionCommand {
-  return sessionCommandSchema.parse({ type, sessionId: create.sessionId, requestId: randomUUID(), expectedRevision, ...fields });
+function command(create: SessionCommand, type: string, expectedRevision: number, fields = {}): Exclude<SessionCommand, { type: 'session.create' }> {
+  const input = sessionCommandSchema.parse({ type, sessionId: create.sessionId, requestId: randomUUID(), expectedRevision, ...fields });
+  assert.ok(input.type !== 'session.create');
+  return input;
 }
 
 test('managed creation persists an idle session and queue intent without launching an executor', async (t) => {
@@ -267,13 +270,69 @@ test('stop supersedes pause and a late completion cannot overwrite the accepted 
   const { store, create, supervisor, execution } = await running(t);
   await store.accept(command(create, 'session.pause', 2), owner);
   await store.accept(command(create, 'session.stop', 3), owner);
+  assert.deepEqual((await store.effects(create.sessionId, owner)).map(({ kind, status }) => [kind, status]), [
+    ['start', 'claimed'], ['pause', 'canceled'], ['stop', 'pending'],
+  ]);
   for (const result of [{ kind: 'paused', checkpointId: randomUUID() }, { kind: 'candidate', candidateDigest: hash }]) {
     await assert.rejects(store.accept(command(create, 'execution.confirm', 4, { ...execution, resourcesStopped: true, effectsKnown: true, result }), supervisor), errorCode('invalid_state'));
   }
   assert.equal((await store.get(create.sessionId, owner)).state.status, 'stopping');
   await store.accept(command(create, 'execution.confirm', 4, { ...execution, resourcesStopped: true, effectsKnown: true, result: { kind: 'stopped' } }), supervisor);
   assert.equal((await store.get(create.sessionId, owner)).state.status, 'stopped');
-  assert.ok((await store.effects(create.sessionId, owner)).every((effect) => effect.status === 'confirmed'));
+  assert.deepEqual((await store.effects(create.sessionId, owner)).map(({ kind, status }) => [kind, status]), [
+    ['start', 'confirmed'], ['pause', 'canceled'], ['stop', 'confirmed'],
+  ]);
+});
+
+test('a superseded pause stays canceled after restart and repeated Stop', async (t) => {
+  const { store, create, supervisor, execution, open } = await running(t);
+  await store.accept(command(create, 'session.pause', 2), owner);
+  const stop = command(create, 'session.stop', 3);
+  const receipt = await store.accept(stop, owner);
+  await store.close();
+  const reopened = await open();
+  assert.deepEqual(await reopened.accept(stop, owner), receipt);
+  assert.deepEqual((await reopened.effects(create.sessionId, owner)).filter(effect => effect.status === 'pending').map(effect => effect.kind), ['stop']);
+  await reopened.accept(command(create, 'execution.confirm', 4, { ...execution, resourcesStopped: true, effectsKnown: true, result: { kind: 'stopped' } }), supervisor);
+  assert.equal((await reopened.effects(create.sessionId, owner)).find(effect => effect.kind === 'pause')?.status, 'canceled');
+});
+
+test('exhausted output and heartbeat events leave capacity for a confirmed Stop', async (t) => {
+  const { store, create, supervisor, execution } = await running(t);
+  const session = sessionSchema.parse({ ...await store.get(create.sessionId, owner), sequence: SESSION_EVENT_LIMIT });
+  const clock = Date.parse(session.updatedAt);
+  for (const input of [
+    command(create, 'execution.output', session.revision, { ...execution, text: 'No capacity.' }),
+    command(create, 'execution.heartbeat', session.revision, { ...execution, leaseSeconds: 60 }),
+  ]) assert.throws(() => transitionSession(session, input, supervisor, clock), errorCode('budget_exhausted'));
+  const stopping = transitionSession(session, command(create, 'session.stop', session.revision), owner, clock).session;
+  const stopped = transitionSession(stopping, command(create, 'execution.confirm', stopping.revision, {
+    ...execution, resourcesStopped: true, effectsKnown: true, result: { kind: 'stopped' },
+  }), supervisor, clock).session;
+  assert.equal(stopped.state.status, 'stopped');
+  assert.equal(sessionSchema.parse(stopped).sequence, SESSION_EVENT_LIMIT + 2);
+});
+
+test('event exhaustion still permits lease expiration, inspection and Stop', async (t) => {
+  const { store, create } = await running(t);
+  const session = sessionSchema.parse({ ...await store.get(create.sessionId, owner), sequence: SESSION_EVENT_LIMIT });
+  assert.ok(session.state.status === 'running');
+  const executionId = session.state.executionId;
+  const clock = Date.parse(session.state.lease.expiresAt) + 1;
+  const inspector: SessionActor = { kind: 'inspector', id: randomUUID() };
+  const recovery = transitionSession(session, command(create, 'execution.expire', session.revision, {
+    executionId,
+  }), inspector, clock).session;
+  const inspected = transitionSession(recovery, command(create, 'execution.reconcile', recovery.revision, {
+    executionId, inspectionDigest: hash, resourcesStopped: true, effectsKnown: true,
+  }), inspector, clock).session;
+  assert.equal(inspected.state.status, 'failed');
+  assert.throws(() => transitionSession(inspected, command(create, 'session.retry', inspected.revision, {
+    failedExecutionId: executionId,
+  }), owner, clock), errorCode('budget_exhausted'));
+  const stopped = transitionSession(inspected, command(create, 'session.stop', inspected.revision), owner, clock).session;
+  assert.equal(stopped.state.status, 'stopped');
+  assert.equal(sessionSchema.parse(stopped).sequence, SESSION_EVENT_LIMIT + 4);
 });
 
 test('an executor candidate waits for independent core verification and cannot complete a task', async (t) => {

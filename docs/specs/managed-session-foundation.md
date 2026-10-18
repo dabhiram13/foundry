@@ -40,6 +40,7 @@ verification before a task can complete.
 - SESSION-04: State revision and event sequence are separate. Heartbeats and
   bounded visible output do not continually stale owner controls. Cursor pages
   are ordered, bounded and gap-free; invalid/future cursors fail explicitly.
+  The normal event budget leaves bounded capacity for stop and recovery.
 - SESSION-05: An active project binding has one managed session. Creation does
   not launch anything. Terminal stop releases this claim; uncertainty does not.
 - SESSION-06: Executions require an instance, a random lease token and an

@@ -1,96 +1,69 @@
-import type { MouseEvent } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, Code, GitBranch, LayoutTemplate, ListChecks, Search, ShieldCheck, Terminal } from 'lucide-react';
-import { CopyButton } from './ui/animate-ui';
+import { useEffect, useRef } from 'react';
+import { ArrowRight, ArrowUpRight, BookOpen, Check, Code, GitBranch, LayoutTemplate, ListChecks, Menu, Search, ShieldCheck } from 'lucide-react';
 import { ProductWalkthrough } from './product-walkthrough';
+import { Button } from './ui/button';
+import { CopyButton } from './ui/copy-button';
 
-const repository = 'https://github.com/dabhiram13/foundry';
-const docs = '/docs';
 const install = 'npm install -g @dabhiram13/foundry\nfoundry';
+const github = 'https://github.com/dabhiram13/foundry';
 const specialists = [
-  { name: 'Research', description: 'Understand the problem and save useful sources.', icon: Search },
-  { name: 'Planning', description: 'Choose what to build and break it into tasks.', icon: ListChecks },
-  { name: 'Design', description: 'Plan screens, flows and how they work.', icon: LayoutTemplate },
-  { name: 'Development', description: 'Write code in small, testable changes.', icon: Code },
-  { name: 'Testing', description: 'Run checks on the code that was built.', icon: Check },
-  { name: 'Review', description: 'Find gaps and record what is ready.', icon: ShieldCheck },
+  { name: 'Research', description: 'Find useful sources. Understand the problem before choosing a solution.', icon: Search },
+  { name: 'Planning', description: 'Turn the brief into requirements, tasks and ways to check the result.', icon: ListChecks },
+  { name: 'Design', description: 'Work through screens, flows and component states before integration.', icon: LayoutTemplate },
+  { name: 'Development', description: 'Build the interface and backend in small, testable changes.', icon: Code },
+  { name: 'Testing', description: 'Run the checks that matter for the code and the user journey.', icon: Check },
+  { name: 'Review', description: 'Compare the result with the plan. Record what still needs attention.', icon: ShieldCheck },
+];
+const questions = [
+  { title: 'Does Foundry replace my coding tool?', answer: <>Not today. Use the terminal with a provider adapter, or connect the source version to your coding client. Managed coding sessions and a workspace are in development, not part of the published package.</> },
+  { title: 'Is it just for running checks?', answer: <>No. Foundry connects research, planning, design, implementation and review. Checks are one part of the process, alongside your decisions and approvals.</> },
+  { title: 'Which provider can I use?', answer: <>Choose a compatible provider adapter for the terminal. The connected source preview uses your coding client’s model and tools. See the <a href="/docs/providers/">provider guide</a> for the actual requirements.</> },
+  { title: 'Does my code stay on my computer?', answer: <>Foundry saves work locally. Your selected provider may receive code and task context. Local execution is not a sandbox: commands run with your account’s permissions. Check the provider and project settings before starting.</> },
+  { title: 'Will Foundry publish the product for me?', answer: <>No. Handoff saves a local summary of the work and checks. Publishing, deployment and release decisions remain yours.</> },
 ];
 
-export function Art({ name, alt, eager = false }: { name: string; alt: string; eager?: boolean }) {
-  return <img className="foundry-art" src={`/assets/art/${name}-768.webp`}
-    srcSet={`/assets/art/${name}-768.webp 768w, /assets/art/${name}-1024.webp 1024w`}
-    sizes="(max-width: 760px) calc(100vw - 40px), (max-width: 1200px) 45vw, 540px"
-    width="1024" height="1536" alt={alt} loading={eager ? 'eager' : 'lazy'}
-    fetchPriority={eager ? 'high' : 'auto'} decoding="async" />;
-}
-
-function closeMenu(event: MouseEvent<HTMLAnchorElement>) {
-  event.currentTarget.closest('details')?.removeAttribute('open');
+function Brand() {
+  return <a className="landing-brand" href="/" aria-label="Foundry home"><img src="/assets/foundry-mark.svg" width="30" height="30" alt="" /><span>Foundry</span></a>;
 }
 
 export function Landing() {
+  const menu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    function escape(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || !menu.current?.open) return;
+      menu.current.open = false;
+      menu.current.querySelector('summary')?.focus();
+    }
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, []);
+
   return <div className="landing-page">
-    <a className="landing-skip" href="#landing-main">Skip to content</a>
-    <header className="landing-header"><div className="landing-shell landing-header-inner">
-      <a className="landing-brand" href="#landing-main" aria-label="Foundry home"><img className="landing-mark" src="/assets/foundry-mark.svg" width="36" height="36" alt="" /><img src="/assets/foundry-wordmark.svg" width="146" height="30" alt="Foundry" /></a>
-      <nav className="landing-nav" aria-label="Introduction"><a href="#landing-workflow">How it works</a><a href="#landing-specialists">Specialists</a><a href={`${docs}/`}>Docs <ArrowUpRight aria-hidden="true" /></a><a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a></nav>
-      <a className="foundry-button landing-open" href="#landing-install">Start building <ArrowDown aria-hidden="true" /></a>
-      <details className="landing-menu" onKeyDown={event => { if (event.key === 'Escape') { event.currentTarget.removeAttribute('open'); event.currentTarget.querySelector('summary')?.focus(); } }}>
-        <summary>Menu <span className="menu-lines" aria-hidden="true" /></summary>
-        <nav aria-label="Mobile introduction"><a href="#landing-workflow" onClick={closeMenu}>How it works</a><a href="#landing-specialists" onClick={closeMenu}>Specialists</a><a href={`${docs}/`}>Documentation <ArrowUpRight aria-hidden="true" /></a><a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a><a href="#landing-install" onClick={closeMenu}>Start building <ArrowDown aria-hidden="true" /></a></nav>
-      </details>
+    <a className="skip-link" href="#landing-main">Skip to content</a>
+    <header className="landing-header"><div className="landing-shell header-inner">
+      <Brand />
+      <nav className="desktop-nav" aria-label="Main navigation"><a href="#landing-workflow">How it works</a><a href="#landing-specialists">Specialists</a><a href="/docs/">Docs</a></nav>
+      <div className="header-actions"><a className="source-link" href={github}>GitHub <ArrowUpRight aria-hidden="true" /></a><Button asChild size="sm"><a href="#landing-install">Get started <ArrowRight aria-hidden="true" /></a></Button></div>
+      <details className="mobile-menu" ref={menu}><summary><Menu aria-hidden="true" /><span className="sr-only">Menu</span></summary><nav aria-label="Mobile navigation" onClick={event => { if (event.target instanceof Element && event.target.closest('a') && menu.current) menu.current.open = false; }}><a href="#landing-workflow">How it works</a><a href="#landing-specialists">Specialists</a><a href="/docs/">Documentation</a><a href={github}>GitHub <ArrowUpRight aria-hidden="true" /></a><a href="#landing-install">Get started <ArrowRight aria-hidden="true" /></a></nav></details>
     </div></header>
-    <main id="landing-main" tabIndex={-1}>
-      <section className="landing-shell landing-hero" aria-labelledby="landing-title">
-        <div className="landing-hero-copy"><p className="foundry-eyebrow"><span className="brand-square" aria-hidden="true" /> Build products, step by step</p>
-          <h1 id="landing-title">An idea.<br />A plan.<br /><em>A product.</em></h1>
-          <p className="landing-intro">Research the problem, plan the work and build in small steps. Foundry keeps decisions, code and checks together.</p>
-          <div className="landing-hero-actions"><a className="foundry-button" href="#landing-install">Start building <ArrowDown aria-hidden="true" /></a><a className="foundry-link" href="#landing-workflow">See the steps <ArrowRight aria-hidden="true" /></a></div>
-          <p className="landing-local-note">Open source. Your tools. Your code.<br />Node.js 24+ and Git.</p>
-        </div>
-        <figure className="landing-hero-figure"><Art name="horse" eager alt="An engraved black horse stands beside a small metalworker and anvil on pale stone against a textured scarlet field." /><figcaption>FOUNDRY / BUILD PRODUCTS</figcaption></figure>
+    <main id="landing-main" className="landing-shell">
+      <section className="landing-hero" aria-labelledby="landing-title">
+        <p className="eyebrow"><GitBranch aria-hidden="true" /> Open source. Built around your code.</p>
+        <h1 id="landing-title">A clear path<br />from idea to product.</h1>
+        <p className="landing-intro">Research, plan, design, build and review software.<br className="desktop-break" /> Keep the decisions and the work together, from the first brief to the final checks.</p>
+        <div className="hero-actions"><Button asChild size="lg"><a href="#landing-install">Install Foundry <ArrowRight aria-hidden="true" /></a></Button><Button asChild variant="outline" size="lg"><a href="/docs/"><BookOpen aria-hidden="true" /> Read the docs</a></Button></div>
+        <p className="hero-note">Your tools. Your project. You decide what ships.</p>
       </section>
-      <div className="landing-stage-band" aria-label="Product-building stages"><ol className="landing-shell">{['Research', 'Plan', 'Design', 'Build', 'Review', 'Handoff'].map((stage, index) => <li key={stage}><span>{String(index + 1).padStart(2, '0')}</span>{stage}<ArrowRight aria-hidden="true" /></li>)}</ol></div>
-      <section className="landing-shell landing-workflow" id="landing-workflow" tabIndex={-1} aria-labelledby="workflow-title">
-        <div className="landing-section-heading"><p className="foundry-eyebrow">01 / How it works</p><h2 id="workflow-title">Plan first.<br /><em>Build next.</em></h2><p>Start with the problem. Approve the plan and design, then build and check the result.</p></div>
-        <div className="landing-workflow-grid"><figure><Art name="research" alt="A small cloaked surveyor looks across a dark valley, following a pale winding river beneath a scarlet sky." /><figcaption>RESEARCH / UNDERSTAND THE PROBLEM</figcaption></figure><ProductWalkthrough /></div>
+      <section id="landing-install" className="install-section" aria-labelledby="install-title">
+        <div className="install-heading"><div><p className="section-label">Start here</p><h2 id="install-title">Small install. Real work.</h2></div><p>Node 24 or newer, npm and Git.<br />Choose your provider when you create a project.</p></div>
+        <div className="install-panel"><div className="command-heading"><span><span className="command-dot" aria-hidden="true" /> Terminal</span><CopyButton text={install} /></div><pre tabIndex={0} aria-label="Installation commands"><code>{install}</code></pre></div>
+        <div className="availability" aria-label="Available versions"><div><span className="availability-label">Terminal <span className="badge">Published</span></span><p>npm 0.5.1. Research to local handoff.</p><a href="/docs/getting-started/">Installation guide <ArrowUpRight aria-hidden="true" /></a></div><div><span className="availability-label">Coding client <span className="badge">Source preview</span></span><p>Use your client’s model, tools and account. Not in npm 0.5.1.</p><a href="/docs/connected-client/">Connect from source <ArrowUpRight aria-hidden="true" /></a></div><div><span className="availability-label">Managed workspace <span className="badge">In development</span></span><p>Not in the published package. Homebrew is not available.</p><a href="/docs/architecture/">What exists today <ArrowUpRight aria-hidden="true" /></a></div></div>
       </section>
-      <section className="landing-paper" id="landing-specialists" tabIndex={-1} aria-labelledby="specialists-title"><div className="landing-shell landing-specialists">
-        <div className="specialists-copy"><p className="foundry-eyebrow">02 / A role for each job</p><h2 id="specialists-title">One project.<br /><em>The right roles.</em></h2><p>Use research, planning, design, development and review roles. Each receives a clear task and the work saved so far.</p>
-          <ul className="specialist-grid">{specialists.map(({ name, description, icon: Icon }) => <li key={name}><Icon aria-hidden="true" /><h3>{name}</h3><p>{description}</p></li>)}</ul>
-          <p className="specialist-note">28 specialist roles. Your coding tool or chosen provider follows their instructions. They do not run all at once.</p>
-          <a className="foundry-link" href={`${docs}/catalog/`}>Meet the specialists <ArrowUpRight aria-hidden="true" /></a>
-        </div>
-        <figure><Art name="build" alt="Engraved gloved hands hold a hammer and tongs, shaping a small iron block on an anvil." /><figcaption>BUILD / SMALL CHANGES</figcaption></figure>
-      </div></section>
-      <section className="landing-shell landing-evidence" aria-labelledby="evidence-title">
-        <div className="landing-section-heading"><p className="foundry-eyebrow">03 / Save progress</p><h2 id="evidence-title">Save the work.<br /><em>Check the result.</em></h2></div>
-        <div className="evidence-grid"><article><ListChecks aria-hidden="true" /><h3>Approve what matters.</h3><p>Review the plan and design before building. Changes to them need a new approval.</p></article><article><GitBranch aria-hidden="true" /><h3>Pick up where you stopped.</h3><p>Saved decisions and task progress help you continue in a later session.</p></article><article><ShieldCheck aria-hidden="true" /><h3>Know what was checked.</h3><p>Check results belong to the code they tested. Changed code needs fresh checks.</p></article></div>
-        <p className="evidence-note">Checks show what passed on the tested code. Review the product too. Foundry does not isolate commands from your computer.</p>
-      </section>
-      <section className="landing-shell landing-setup" id="landing-install" tabIndex={-1} aria-labelledby="install-title">
-        <div><p className="foundry-eyebrow">04 / Get started</p><h2 id="install-title">Install.<br /><em>Start building.</em></h2><p>Use Foundry from the terminal, or build it from source to use inside OpenCode.</p><a className="foundry-link" href={`${docs}/getting-started/`}>First-project guide <ArrowUpRight aria-hidden="true" /></a></div>
-        <div className="landing-install"><div className="install-heading"><span><Terminal aria-hidden="true" /> Install and open</span><span>npm / Node.js 24+</span></div>
-          <pre aria-label="Installation commands"><code>{install}</code></pre>
-          <div className="install-copy"><CopyButton content={install} label="Copy commands" /><span>The first installs. The second opens.</span></div>
-          <div className="install-note"><p><strong>npm package: 0.5.1.</strong> Use the terminal to build a product with a provider you choose and set up.</p><p><strong>Already using OpenCode?</strong> Build Foundry from source to research, plan, design, build and review inside OpenCode. Keep your existing model and account.</p><p>The connection is not part of npm 0.5.1. The new visual workflow has local test coverage, not a live-model trial.</p><a href={`${docs}/connected-client/`}>Use Foundry in OpenCode <ArrowUpRight aria-hidden="true" /></a></div>
-          <div className="install-bottom"><a href={`${docs}/runtime/`}>Bring an existing repository <ArrowRight aria-hidden="true" /></a><span>Homebrew is not available.</span></div>
-        </div>
-      </section>
-      <section className="landing-shell landing-faq" aria-labelledby="questions-title">
-        <div><p className="foundry-eyebrow">Questions</p><h2 id="questions-title">Before<br /><em>you begin.</em></h2></div>
-        <div className="faq-list">
-          <details><summary>Does Foundry replace my coding tool?</summary><p>No. Foundry organizes the steps and saves progress. In OpenCode, you keep your model, account and coding tools. From the terminal, you choose and set up a provider.</p></details>
-          <details><summary>Is it just for running checks?</summary><p>No. Foundry helps with research, planning, design, coding and review. Checks and approvals are part of those steps. Small changes can use a shorter path.</p></details>
-          <details><summary>Which provider can I use?</summary><p>In OpenCode, use the model you already selected. In the terminal, choose an available connection with <code>foundry providers</code> and sign in to its provider. Foundry does not choose a provider or switch models for you.</p><a href={`${docs}/providers/`}>Provider guide <ArrowUpRight aria-hidden="true" /></a></details>
-          <details><summary>Does my code stay on my computer?</summary><p>Your files and Git history stay in your project folder. Cloud providers receive the prompts and selected project content sent to them. Keep secrets out of prompts.</p></details>
-          <details><summary>Will Foundry publish the product for me?</summary><p>No. Foundry writes a summary in your project. You decide when and where to publish. Provider costs and usage limits still apply.</p></details>
-        </div>
-      </section>
-      <section className="landing-shell landing-handoff" aria-labelledby="handoff-title">
-        <div><p className="foundry-eyebrow">Start a project</p><h2 id="handoff-title">Start with<br /><em>your idea.</em></h2><p>Build a new product or improve an existing project. Keep the plan, code and results together.</p><a className="foundry-button" href="#landing-install">Start with Foundry <ArrowUpRight aria-hidden="true" /></a></div>
-        <figure><Art name="handoff" alt="A metalworker leads a black horse across a pale stone bridge towards a distant doorway in a dark ridge." /><figcaption>HANDOFF / REVIEW THE RESULTS</figcaption></figure>
-      </section>
+      <section id="landing-workflow" className="workflow-section section-grid" aria-labelledby="workflow-title"><div className="section-heading"><p className="section-label">How it works</p><h2 id="workflow-title">Build products,<br />step by step.</h2><p>Start a new product or make a change to an existing repository. Review the important decisions before the next stage.</p><a className="text-link" href="/docs/workflow/">Explore the workflow <ArrowRight aria-hidden="true" /></a></div><ProductWalkthrough /></section>
+      <section id="landing-specialists" className="specialists-section" aria-labelledby="specialists-title"><div className="section-intro"><div><p className="section-label">The right focus for each step</p><h2 id="specialists-title">Different work.<br />Different specialists.</h2></div><p>Each assignment has a clear job and a result to review. In the connected workflow, your coding client carries out the assignments. Role names are not separate running agents.</p></div><ul className="specialist-grid">{specialists.map(({ name, description, icon: Icon }) => <li key={name}><Icon aria-hidden="true" /><h3>{name}</h3><p>{description}</p></li>)}</ul><a className="text-link" href="/docs/catalog/">View all specialist roles <ArrowRight aria-hidden="true" /></a></section>
+      <section className="evidence-section section-grid" aria-labelledby="evidence-title"><div className="section-heading"><p className="section-label">Keep the thread</p><h2 id="evidence-title">Less starting over.<br />More moving forward.</h2><p>The next session should know what was decided, what changed and what still needs work.</p></div><dl className="evidence-list"><div><dt><ShieldCheck aria-hidden="true" /> Approvals before action</dt><dd>Review the exact Plan and Design. Changed decisions need a fresh approval.</dd></div><div><dt><GitBranch aria-hidden="true" /> Progress you can pick up</dt><dd>Save tasks, decisions and handoff notes so another session can continue.</dd></div><div><dt><ListChecks aria-hidden="true" /> Checks against real changes</dt><dd>Keep passing results tied to the code they tested. Changed inputs need fresh checks.</dd></div></dl></section>
+      <section className="faq-section section-grid" aria-labelledby="faq-title"><div className="section-heading"><p className="section-label">A few useful details</p><h2 id="faq-title">Before you begin.</h2><p>More questions?<br /><a className="text-link" href="/docs/">Start with the docs <ArrowUpRight aria-hidden="true" /></a></p></div><div className="faq-list">{questions.map(question => <details key={question.title}><summary>{question.title}<span className="disclosure-icon" aria-hidden="true">+</span></summary><div className="faq-answer">{question.answer}</div></details>)}</div></section>
     </main>
-    <footer className="landing-footer"><div className="landing-shell"><div className="landing-footer-top"><a className="landing-brand" href="#landing-main" aria-label="Foundry home"><img src="/assets/foundry-wordmark.svg" width="180" height="37" alt="Foundry" /></a><nav aria-label="Resources"><a href={`${docs}/`}>Documentation</a><a href={repository}>GitHub <ArrowUpRight aria-hidden="true" /></a><a href={`${docs}/notices/`}>Licenses &amp; origins</a></nav></div><div className="landing-footer-bottom"><span>Open source. Runs on your computer.</span><span><a href={`${docs}/component-sources/`}>Artwork credits</a></span></div></div></footer>
+    <footer className="landing-footer"><div className="landing-shell footer-inner"><div><Brand /><p>A little structure for the work ahead.</p></div><nav aria-label="Footer navigation"><a href="/docs/">Documentation</a><a href={github}>GitHub <ArrowUpRight aria-hidden="true" /></a><a href={`${github}/blob/main/LICENSE`}>MIT License</a><a href="/docs/component-sources/">Component sources</a></nav></div></footer>
   </div>;
 }

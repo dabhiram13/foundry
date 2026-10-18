@@ -18,20 +18,18 @@ supplied source information; absent origins are not claims of new authorship.
 
 The static landing and documentation site retains attribution and license files
 beside applicable assets in `site/assets/licenses/`. Inter variable Latin is
-vendored from `@fontsource-variable/inter` under SIL OFL 1.1. Cormorant Garamond
-600 Latin is a local static subset of the Cormorant variable font, also under
-SIL OFL 1.1. Its copyright and license are retained in
-`site/assets/licenses/Cormorant-OFL.txt`.
+vendored from `@fontsource-variable/inter` under SIL OFL 1.1. Its notice is
+retained in `site/assets/licenses/Inter-OFL.txt` and applies to the outlined
+Foundry name as well as the font file.
 
-The wordmark contains Cormorant glyph outlines, not a new typeface. The horse
+The wordmark contains Inter glyph outlines, not a new typeface. The horse
 mark is a vector silhouette extracted from the owner-approved AI-generated
-illustration. Landing artwork and the social image use AI-generated scenes;
-the six owner-supplied reference images are not embedded or distributed.
-`site/assets/art/manifest.json` records asset hashes and origins. Neither
+illustration. The former artwork scenes are no longer shipped; owner-supplied
+reference images were not embedded or distributed. Neither
 generation nor owner approval is a copyright, trademark or exclusivity-clearance
 guarantee. See `docs/DESIGN-SYSTEM.md` for the visual and provenance boundaries.
 
-Site controls adapt shadcn/ui and Animate UI patterns. Their retained notices
-are in `site/assets/licenses/shadcn-ui.txt` and
-`site/assets/animate-ui.LICENSE.md`. The Animate UI license includes its Commons
-Clause restriction. See `docs/COMPONENT-SOURCES.md` for source references.
+Site controls adapt shadcn/ui under the MIT notice in
+`site/assets/licenses/shadcn-ui.txt`. The former Animate UI components were
+removed, not relicensed. Their historical notices remain with those revisions.
+See `docs/COMPONENT-SOURCES.md` for current source references.

@@ -46,7 +46,7 @@ export const descriptions = {
   catalog: 'Explore Foundry specialist roles, their permissions and the optional reference skills available to contributors.',
   qualification: 'Test a Foundry provider integration with local protocol checks and a controlled live project.',
   'component-sources': 'Find the components, styles, fonts and source licenses used by the Foundry landing page and documentation.',
-  'design-system': 'Use the Foundry scarlet, ink and paper visual system, local engraved artwork, typography and accessible controls.',
+  'design-system': 'Use Foundry’s neutral visual system: shared colors, Inter typography, consistent controls and accessible component states.',
   architecture: 'Explore the Foundry TypeScript architecture: shared CLI core, project lifecycle, provider adapters and saved records.',
   provenance: 'Find source attribution and licensing records for material included in and adapted by Foundry.',
   releasing: 'Prepare, test and publish a Foundry npm release from an approved source revision and verified package tarball.',

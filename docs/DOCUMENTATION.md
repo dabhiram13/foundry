@@ -30,6 +30,11 @@ The tests validate generated pages, links, anchors, metadata, landing markup
 and asset budgets. For website UI changes, also check desktop and mobile layouts,
 keyboard navigation, search, theme controls and reduced motion.
 
+The landing and docs share neutral colors in `site/src/styles/tokens.css`.
+Keep native search, theme and disclosure behavior when changing their style.
+See [component sources](COMPONENT-SOURCES.md) for the source-to-control mapping
+and [the visual system](DESIGN-SYSTEM.md) for states, type and spacing.
+
 ## Navigation and links
 
 The sidebar starts with Use Foundry: overview, installation, how it works and

@@ -1,24 +1,34 @@
 # Public site component sources
 
-The landing page uses React components in `site/src/landing`. Documentation
-uses Astro/Starlight, with shared styles in `site/src/styles/docs.css`.
+The landing uses source-owned React components in `site/src/landing`.
+Documentation uses Astro/Starlight and its native Pagefind search. Both share
+the [visual system](DESIGN-SYSTEM.md) and `site/src/styles/tokens.css`.
 
-The scarlet/ink/paper identity is defined in [the visual system](DESIGN-SYSTEM.md).
-The landing content is server-rendered and hydrated; native stage, FAQ and
-mobile-menu disclosures work without JavaScript. Clipboard feedback uses the
-retained control below. Artwork is still, local WebP with responsive sources;
-there is no remote embed, WebGL scene, CSS grain filter or font-service request.
+## Component mapping
 
-The portrait horse, discovery, craft and handoff scenes are AI-generated.
-The wide horse variant, SVG identity and share image extend the same system.
-The manifest in `site/assets/art/manifest.json` records source boundaries,
-dimensions and hashes. Supplied reference images are not shipped. Cormorant
-Garamond 600 supplies the local display font and outlined wordmark; its SIL OFL
-license and source record are in `site/assets/licenses/`.
+| Public component | Source or design reference | Implementation |
+| --- | --- | --- |
+| Actions and navigation | [shadcn Button](https://ui.shadcn.com/docs/components/radix/button) | Local `ui/button.tsx`, Radix Slot, class-variance-authority; native buttons or anchors. |
+| Copy commands | [Button](https://ui.shadcn.com/docs/components/radix/button) | Original local `ui/copy-button.tsx`, with written success/failure and retry. No tooltip or motion dependency. |
+| Stage and FAQ | [Accordion](https://ui.shadcn.com/docs/components/radix/accordion) | Native details/summary with matching visual/state recipes, not the Radix Accordion keyboard API. |
+| Mobile menu | [Collapsible](https://ui.shadcn.com/docs/components/radix/collapsible) | Native disclosure plus Escape/focus return. Not a modal. |
+| Installation and content | [Card](https://ui.shadcn.com/docs/components/radix/card), [Separator](https://ui.shadcn.com/docs/components/radix/separator) | Semantic sections and dividers, not imported Card widgets. |
+| Availability | [Badge](https://ui.shadcn.com/docs/components/radix/badge) | Passive text labels for published, source preview and in-development work. |
+| Docs search and theme | [Starlight overrides](https://starlight.astro.build/reference/overrides/), [Pagefind UI](https://pagefind.app/docs/ui-usage/), [Input](https://ui.shadcn.com/docs/components/radix/input) | Preserve native components and style actual controls in `site/src/styles/docs.css`. No duplicate search engine. |
+| Colors and typography | [shadcn theming](https://ui.shadcn.com/docs/theming) | Local semantic tokens, local Inter, system monospace. Notion is a density reference, not a dependency. |
 
-The retained controls adapt Animate UI patterns in
-`site/src/landing/components/ui/animate-ui.tsx` under the license in
-`site/assets/animate-ui.LICENSE.md`, and shadcn source under
-`site/assets/licenses/shadcn-ui.txt`. Shared styles are in
-`site/src/landing/controls.css`. Third-party fonts and asset attribution remain
-beside the assets and in `THIRD_PARTY_NOTICES.md`.
+shadcn source is MIT licensed; its notice is retained in
+`site/assets/licenses/shadcn-ui.txt`. Icons come from the installed Lucide
+package. This is one control system, not a mix of component kits.
+
+## Identity and assets
+
+The small horse silhouette comes from the previously approved generated Foundry
+identity. The name uses Inter glyph outlines under SIL OFL 1.1, not a new font.
+The README banner contains only that mark and name. The social image uses the
+same neutral identity. Assets and font notices are local in `site/assets`.
+
+The old illustration scenes, display font and Animate UI primitives are no
+longer shipped. Their history and source boundaries are recorded in
+[provenance](PROVENANCE.md). Generation and owner approval are not copyright,
+trademark or exclusivity-clearance guarantees.

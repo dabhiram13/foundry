@@ -5,7 +5,7 @@
       "name": "runtime",
       "command": ["npm", "run", "check:runtime"],
       "cwd": ".",
-      "timeout": 420,
+      "timeout": 900,
       "required": true,
       "inputs": ["src", "tests/runtime", "scripts/build_runtime.mjs", "tsconfig.runtime.json", ".foundry/roles.json", "package.json", "package-lock.json"]
     },

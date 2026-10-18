@@ -1,33 +1,17 @@
-/* Retained public controls; workspace-only compositions are not shipped. */
-[data-slot=button] { min-height: 40px; border-radius: var(--radius-control); letter-spacing: -.015em; }
-[data-slot=button][data-size=lg] { min-height: 48px; padding-inline: 22px; font-size: 14px; }
-[data-slot=button][data-size=sm] { min-height: 36px; }
-[data-slot=button][data-size=icon] { min-width: 44px; }
-[data-slot=button]:not(:disabled):active { transform: none; }
-[data-slot=button][data-variant=default] { position: relative; overflow: hidden; box-shadow: none; }
-.copy-icon { display: inline-flex; width: 18px; height: 18px; flex-shrink: 0; }
-.studio-disclosure { border-top: 1px solid var(--border); margin-top: 20px; }
-.studio-disclosure h3 { margin: 0; }
-.studio-disclosure > div > h3 > button { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 52px; text-align: left; cursor: pointer; font-size: 13px; font-weight: 600; }
-.studio-disclosure > div > h3 > button svg { width: 16px; height: 16px; transition: transform var(--motion-selection); }
-.studio-disclosure > div > h3 > button[data-state=open] svg { transform: rotate(180deg); }
-.disclosure-content { overflow: hidden; }
-.disclosure-content > div { padding-bottom: 16px; }
-.disclosure-content[data-state=open] { animation: accordion-open .24s ease-out; }
-.disclosure-content[data-state=closed] { animation: accordion-close .2s ease-in; }
-@keyframes accordion-open { from { height: 0; opacity: .3; } to { height: var(--radix-accordion-content-height); opacity: 1; } }
-@keyframes accordion-close { from { height: var(--radix-accordion-content-height); opacity: 1; } to { height: 0; opacity: 0; } }
-[data-slot=tabs-trigger] { isolation: isolate; }
-[data-slot=tabs-trigger][data-state=active] { background: transparent; }
-.tab-label { display: inline-flex; align-items: center; justify-content: inherit; gap: inherit; position: relative; z-index: 1; min-width: 0; }
-.tab-label svg { width: 17px; height: 17px; flex-shrink: 0; }
-.tab-highlight { position: absolute; inset: 3px; border-radius: var(--radius-control); background: var(--foundry-selected); border: 1px solid var(--foundry-accent-line); z-index: 0; pointer-events: none; }
-[data-slot=tooltip-content][data-state=delayed-open] { animation: none; }
-.copy-control { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.copy-error { font-size: 12px; color: var(--foundry-error); }
-@media (max-width: 740px) {
-  [data-slot=button], [data-slot=button][data-size=sm] { min-height: 44px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: 0ms !important; scroll-behavior: auto !important; }
-}
+.foundry-button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 8px; border: 1px solid transparent; border-radius: var(--radius-control); font: inherit; font-size: 14px; font-weight: 500; line-height: 20px; text-decoration: none; white-space: nowrap; cursor: pointer; transition: background-color 140ms, color 140ms, border-color 140ms; }
+.foundry-button svg { width: 16px; height: 16px; flex-shrink: 0; pointer-events: none; }
+.foundry-button.button-primary { background: var(--primary); color: var(--primary-foreground); }
+.button-primary:hover { background: #38383e; }
+.button-primary:active { background: #52525b; }
+.button-outline { background: var(--card); color: var(--foreground); border-color: var(--border); }
+.button-outline:hover, .button-ghost:hover { background: var(--muted); border-color: #a1a1aa; }
+.button-outline:active, .button-ghost:active { background: var(--accent); }
+.button-ghost { color: var(--foreground); background: transparent; }
+.button-default, .button-small { min-height: 44px; padding: 10px 14px; }
+.button-large { min-height: 46px; padding: 12px 20px; }
+.button-icon { min-width: 44px; min-height: 44px; }
+.foundry-button:disabled, .foundry-button[aria-disabled='true'] { cursor: not-allowed; opacity: .55; }
+.foundry-button:focus-visible, a:focus-visible, summary:focus-visible, pre:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+.copy-control { display: flex; align-items: flex-end; flex-direction: column; gap: 8px; max-width: 65%; }
+.copy-status { font-size: 12px; line-height: 1.6; text-align: right; }
+.copy-error { color: var(--destructive); max-width: 320px; }

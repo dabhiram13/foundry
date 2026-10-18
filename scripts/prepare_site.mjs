@@ -47,8 +47,7 @@ const cssOutput = path.join(publicDir, 'style.css');
 const css = await postcss([tailwindcss({ base: root, optimize: { minify: true } })])
   .process(await readFile(cssInput, 'utf8'), { from: cssInput, to: cssOutput, map: false });
 await writeFile(cssOutput, css.css.replace(/\r?\n$/, ''));
-const notice = await readFile(path.join(root, 'site/assets/animate-ui.LICENSE.md'), 'utf8')
-  + '\n' + await readFile(path.join(root, 'site/assets/licenses/shadcn-ui.txt'), 'utf8');
+const notice = await readFile(path.join(root, 'site/assets/licenses/shadcn-ui.txt'), 'utf8');
 const options = { bundle: true, tsconfig: path.join(root, 'tsconfig.json'), banner: { js: `/*! ${notice} */` } };
 await build({ ...options, entryPoints: [path.join(root, 'site/src/landing/public-entry.tsx')], outfile: path.join(publicDir, 'public.js'), format: 'iife', platform: 'browser', minify: true });
 const render = path.join(generated, 'render.cjs');

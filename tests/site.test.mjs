@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { test } from 'node:test';
 import { gzipSync } from 'node:zlib';
@@ -118,8 +117,8 @@ test('README links readers to built public documentation pages', async () => {
 
 test('public landing is pre-rendered and does not load the workspace client', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
-  assert.match(html, /An idea\.<br\/>A plan\.<br\/><em>A product\.<\/em>/);
-  assert.match(html, /Build products, step by step/);
+  assert.match(html, /A clear path<br\/>from idea to product\./);
+  assert.match(html, /Build products,<br\/>step by step\./);
   assert.match(html, /href="\/docs\/"/);
   assert.doesNotMatch(html, /foundry-token|src="\/app.js"|Open local browser view/);
   const script = await readFile(path.join(output, 'public.js'), 'utf8');
@@ -134,7 +133,7 @@ test('landing CSS compiles utilities, local styles and font assets', async () =>
   const css = postcss.parse(await readFile(path.join(output, 'style.css'), 'utf8'));
   const selectors = new Set();
   css.walkRules(rule => selectors.add(rule.selector));
-  for (const selector of ['.flex', '.landing-page', '.landing-shell']) {
+  for (const selector of ['.foundry-button', '.landing-page', '.landing-shell']) {
     assert.ok(selectors.has(selector), `missing compiled selector: ${selector}`);
   }
   css.walkAtRules(rule => {
@@ -153,7 +152,7 @@ test('landing follows device motion preferences without a separate toggle', asyn
   for (const content of [html, script, css]) {
     assert.doesNotMatch(content, /Quiet motion|motion-toggle|motion-switch|foundry\.motion/);
   }
-  assert.match(script, /prefers-reduced-motion/);
+  assert.doesNotMatch(script, /MotionConfig|AnimatePresence|whileTap/);
   assert.match(css, /prefers-reduced-motion/);
 });
 
@@ -201,7 +200,7 @@ test('README banner contains only the Foundry logo and name on a self-contained 
   const logoPath = /<path d="([^"]+)"/.exec(wordmark)?.[1];
   assert.ok(logoPath);
   assert.ok(banner.includes(logoPath));
-  assert.match(banner, /<rect[^>]+fill="#0a0a09"/);
+  assert.match(banner, /<rect[^>]+fill="#fafafa"/);
   assert.doesNotMatch(banner, /<script|<image|<foreignObject|<text\b/);
   assert.doesNotMatch(banner, /Research|Plan|Design|Build|Review|Handoff|framework for building|YOUR AI|YOUR CODE|OPEN SOURCE/);
   assert.match(banner, /<title>Foundry<\/title>/);
@@ -229,12 +228,13 @@ test('README banner contains only the Foundry logo and name on a self-contained 
   const horsePath = /<path d="([^"]+)"/.exec(mark)?.[1];
   assert.ok(horsePath && banner.includes(horsePath), 'banner retains the approved horse mark');
   assert.match(banner, /viewBox="0 0 1200 260"/);
-  assert.match(banner, /translate\(300 68\) scale\(\.16\)/);
-  const width = Number(/viewBox="-30 -30 (\d+) 820"/.exec(wordmark)?.[1]);
-  assert.ok(width * .16 + 300 < 1200, 'outlined wordmark fits within the banner width');
-  assert.ok(820 * .16 + 68 < 260, 'outlined wordmark fits within the banner height');
-  assert.match(banner, /translate\(141\.25 67\.5\) scale\(\.625\)/);
-  assert.ok(114.375 + 240 * .625 < 1200 && 55 + 240 * .625 < 260, 'horse mark fits within the banner');
+  const [, width, height] = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(wordmark).map(Number);
+  assert.ok(width > height && height > 0, 'outlined wordmark has valid bounds');
+  const scale = 76 / height;
+  const groupWidth = 134 + width * scale;
+  assert.ok(groupWidth < 1200 && 104 < 260, 'centered identity fits within the banner');
+  assert.match(wordmark, /Inter glyph outlines, SIL OFL 1\.1/);
+  assert.doesNotMatch(banner + wordmark, /Cormorant|#cd150c/);
   assert.match(readme, /^\[license\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/LICENSE$/m);
   assert.doesNotMatch(readme, /^\[[^\]]+\]: (?!https?:\/\/)\S+/m);
   assert.doesNotMatch(readme, /\]\((?!https?:\/\/|#)[^)]+\)/);
@@ -348,6 +348,16 @@ test('documentation tables remain semantic and keyboard-focusable for horizontal
   assert.ok(tables > 0);
 });
 
+test('docs standalone search and code-copy targets retain 44px bounds in both input modes', async () => {
+  const css = await readFile(path.join(root, 'site/src/styles/docs.css'), 'utf8');
+  for (const selector of ['site-search > button', '.expressive-code .copy button']) {
+    const rule = css.slice(css.indexOf(selector + ' {')).split('}')[0];
+    assert.match(rule, /min-width: 44px/, selector);
+    assert.match(rule, /min-height: 44px/, selector);
+  }
+  assert.match(css, /\.expressive-code \.frame \.ec-line \.code\s*\{[^}]*padding-inline-end: calc\(44px \+ 1rem\)/);
+});
+
 test('product journey remains native, readable and honest about connection boundaries', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
   const tree = parse(html);
@@ -359,8 +369,8 @@ test('product journey remains native, readable and honest about connection bound
     const summary = node.childNodes.find(child => child.tagName === 'summary');
     assert.ok(summary && textContent(summary).trim(), 'native disclosures have names');
     if (attr(node, 'name') === 'foundry-stages') stages.push(node);
-    if (attr(node, 'class') === 'landing-menu') mobileMenu = node;
-    if (textContent(summary).endsWith('?')) faqs.push(node);
+    if (attr(node, 'class') === 'mobile-menu') mobileMenu = node;
+    if (textContent(summary).replace(/[+−]\s*$/, '').trim().endsWith('?')) faqs.push(node);
   });
   assert.equal(stages.length, 6);
   const labels = stages.map(node => {
@@ -377,10 +387,10 @@ test('product journey remains native, readable and honest about connection bound
   assert.equal(faqs.length, 5);
   assert.ok(mobileMenu);
   assert.match(textContent(mobileMenu), /How it worksSpecialistsDocumentation/);
-  assert.match(html, /28 specialist roles/);
-  assert.match(textContent(tree), /Build Foundry from source to research, plan, design, build and review inside OpenCode/);
-  assert.match(textContent(tree), /not part of npm 0\.5\.1/);
-  assert.match(textContent(tree), /new visual workflow has local test coverage, not a live-model trial/);
+  assert.match(textContent(tree), /Role names are not separate running agents/);
+  assert.match(textContent(tree), /Not in npm 0\.5\.1/);
+  assert.match(textContent(tree), /Managed workspace\s+In development/);
+  assert.match(textContent(tree), /running preview and captured desktop and mobile views/);
   assert.doesNotMatch(html, /full specialist journey is not yet exposed/);
   assert.match(html, /Homebrew is not available/);
   assert.match(html, /Ship writes a project summary; it does not publish or deploy/);
@@ -434,77 +444,37 @@ test('public introductions use plain words instead of AI slogans and runtime jar
   assert.match(readme, /Service work needs no images/);
 });
 
-function webpDimensions(buffer) {
-  assert.equal(buffer.toString('ascii', 0, 4), 'RIFF');
-  assert.equal(buffer.toString('ascii', 8, 12), 'WEBP');
-  for (let offset = 12; offset + 8 < buffer.length;) {
-    const type = buffer.toString('ascii', offset, offset + 4);
-    const data = offset + 8;
-    if (type === 'VP8 ') {
-      assert.equal(buffer.subarray(data + 3, data + 6).toString('hex'), '9d012a');
-      return [buffer.readUInt16LE(data + 6) & 0x3fff, buffer.readUInt16LE(data + 8) & 0x3fff];
-    }
-    if (type === 'VP8X') return [buffer.readUIntLE(data + 4, 3) + 1, buffer.readUIntLE(data + 7, 3) + 1];
-    const size = buffer.readUInt32LE(offset + 4);
-    offset = data + size + (size % 2);
-  }
-  assert.fail('Expected a decodable generated WebP asset');
-}
-
-test('generated art is local, dimensioned, responsive and tied to its provenance hashes', async () => {
-  const manifest = JSON.parse(await readFile(path.join(root, 'site/assets/art/manifest.json'), 'utf8'));
-  assert.equal(manifest.medium, 'AI-generated raster illustrations');
-  assert.match(manifest.reference_boundary, /not embedded or distributed/);
-  assert.match(manifest.clearance, /not a copyright, trademark or exclusivity-clearance guarantee/);
-  assert.deepEqual(manifest.pieces.map(piece => piece.id), ['horse', 'horse-wide', 'research', 'build', 'handoff']);
-  for (const piece of manifest.pieces) {
-    assert.match(piece.master_sha256, /^[0-9a-f]{64}$/);
-    for (const file of piece.files) {
-      const bytes = await readFile(path.join(output, 'assets/art', file.file));
-      assert.equal(createHash('sha256').update(bytes).digest('hex'), file.sha256, file.file);
-      assert.equal(bytes.length, file.bytes, file.file);
-      assert.deepEqual(webpDimensions(bytes), file.size, file.file);
-      assert.ok(bytes.length <= (file.size[0] === 768 ? 550_000 : 850_000), `${file.file}: image byte budget`);
-    }
-  }
-  const images = [];
-  walk(parse(await readFile(path.join(output, 'index.html'), 'utf8')), node => {
-    if (node.tagName === 'img' && attr(node, 'class') === 'foundry-art') images.push(node);
-  });
-  assert.equal(images.length, 4);
-  assert.equal(images.filter(node => attr(node, 'loading') === 'eager').length, 1);
-  assert.equal(attr(images[0], 'fetchpriority'), 'high');
-  for (const node of images) {
-    assert.equal(attr(node, 'width'), '1024');
-    assert.equal(attr(node, 'height'), '1536');
-    assert.ok(attr(node, 'alt')?.length > 30);
-    assert.match(attr(node, 'src'), /^\/assets\/art\/.*-768\.webp$/);
-    const sources = attr(node, 'srcset').split(', ').map(source => source.split(' '));
-    assert.deepEqual(sources.map(source => source[1]), ['768w', '1024w']);
-    for (const [src] of sources) assert.ok((await stat(path.join(output, src))).isFile(), src);
-  }
-});
-
-test('the editorial system keeps local fonts, high contrast and still artwork', async () => {
+test('neutral public system uses local fonts and no obsolete production art or motion', async () => {
+  const html = await readFile(path.join(output, 'index.html'), 'utf8');
+  const script = await readFile(path.join(output, 'public.js'), 'utf8');
   const css = await readFile(path.join(output, 'style.css'), 'utf8');
-  assert.match(css, /cormorant-garamond-latin-600\.ttf/);
+  assert.match(css, /inter-latin-wght-normal\.woff2/);
+  assert.doesNotMatch(html + css + script, /assets\/art\/|cormorant-garamond|MotionConfig|AnimatePresence/);
   assert.doesNotMatch(css, /fonts\.googleapis|fonts\.gstatic|https:\/\/.*\.(?:woff2|ttf)/);
   const source = await readFile(path.join(root, 'site/src/landing/landing.css'), 'utf8');
-  assert.match(source, /\.foundry-art\s*\{[^}]*height: auto;[^}]*aspect-ratio: 2\/3/s);
-  assert.doesNotMatch(source, /\.foundry-art\s*\{[^}]*(?:animation|transform|object-fit: cover)/s);
   assert.match(source, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(source, /min-height: 44px/);
+  assert.doesNotMatch(source, /linear-gradient|backdrop-filter|\.foundry-art/);
+  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(manifest.devDependencies.motion, undefined);
+  assert.equal(manifest.devDependencies['tw-animate-css'], undefined);
+  for (const asset of ['assets/art', 'assets/cormorant-garamond-latin-600.ttf', 'assets/animate-ui.LICENSE.md']) {
+    assert.equal(await stat(path.join(output, asset)).catch(() => null), null, `${asset}: not shipped`);
+  }
+  assert.ok(gzipSync(script).byteLength < 100_000, 'neutral public JS stays below 100 kB gzip');
+});
+
+test('shared palette has readable body, primary, link, error and focus contrast in both themes', async () => {
   const luminance = hex => {
     const rgb = hex.match(/[0-9a-f]{2}/g).map(part => parseInt(part, 16) / 255)
       .map(channel => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
     return rgb.reduce((sum, value, i) => sum + value * [.2126, .7152, .0722][i], 0);
   };
-  for (const [foreground, background] of [['f0e6d3', '0a0a09'], ['f0e6d3', 'cd150c'], ['f0e6d3', '70120e'], ['b8aa93', '0a0a09'], ['554a3d', 'f0e6d3']]) {
+  for (const [foreground, background] of [['18181b', 'fafafa'], ['61616b', 'fafafa'], ['61616b', 'ffffff'], ['ffffff', '18181b'], ['2563eb', 'fafafa'], ['b91c1c', 'ffffff'], ['fafafa', '101012'], ['a1a1aa', '101012'], ['a1a1aa', '18181b'], ['18181b', 'f4f4f5'], ['93c5fd', '18181b'], ['fca5a5', '18181b']]) {
     const [light, dark] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
     assert.ok((light + .05) / (dark + .05) >= 4.5, `${foreground} on ${background}: body contrast`);
   }
-  const license = await readFile(path.join(output, 'assets/licenses/Cormorant-OFL.txt'), 'utf8');
-  assert.match(license, /Copyright 2015 the Cormorant Project Authors/);
+  const license = await readFile(path.join(output, 'assets/licenses/Inter-OFL.txt'), 'utf8');
   assert.match(license, /SIL OPEN FONT LICENSE/);
 });
 

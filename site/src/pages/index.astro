@@ -1,6 +1,6 @@
 ---
 import landing from '../../.generated/landing.html?raw';
-const title = 'Foundry - From idea to product';
+const title = 'Foundry - A clear path from idea to product';
 const description = 'Research, plan, design, build and review software with Foundry. Save progress and use your coding tool or a provider you choose.';
 const canonical = new URL('/', Astro.site).href;
 const shareImage = new URL('/assets/foundry-share.png', Astro.site).href;
@@ -21,7 +21,7 @@ const application = {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0a0a09" />
+    <meta name="theme-color" content="#fafafa" />
     <meta name="description" content={description} />
     <title>{title}</title>
     <link rel="canonical" href={canonical} />
@@ -32,7 +32,7 @@ const application = {
     <meta property="og:image" content={shareImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Foundry: An idea. A plan. A product. An engraved black horse on a scarlet field." />
+    <meta property="og:image:alt" content="Foundry. A clear path from idea to product. The horse mark and Foundry name on a neutral background." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content={shareImage} />
     <script type="application/ld+json" set:html={JSON.stringify(application)} />

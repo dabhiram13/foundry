@@ -13,6 +13,7 @@ import {
 import { readBoundedBytes } from '../core/factory-contract.js';
 import { requireRuntimeWorkspace } from '../core/lifecycle.js';
 import { providerEnvironment } from './environment.js';
+import { assertNoManagedClaim, withWorkspaceMutation } from '../core/workspace-ownership.js';
 
 const CAPABILITIES = ['jsonl', 'structured_output', 'resume', 'cancel', 'permissions', 'tools', 'browser', 'model_selection', 'reasoning_selection'] as const;
 const BILLING_MODES = ['subscription', 'api', 'local'] as const;
@@ -887,7 +888,7 @@ export async function execute(
   const identifier = taskId ?? randomUUID();
   taskPath(root, identifier);
   const lock = providerPath(root, `leases/${identifier}.lock`);
-  return withProcessLock(lock, async () => {
+  return withWorkspaceMutation(root, 'provider', () => withProcessLock(lock, async () => {
     let task: JsonRecord;
     let attempt: JsonRecord;
     return withRegistryLock(root, async () => {
@@ -962,7 +963,7 @@ export async function execute(
         return saved;
       });
     });
-  });
+  }));
 }
 
 function summarizeUsage(attempts: JsonRecord[]): JsonRecord {
@@ -1004,6 +1005,7 @@ async function saveTask(root: string, task: JsonRecord): Promise<void> {
 
 export async function cancel(rootInput: string, taskId: string): Promise<JsonRecord> {
   const root = await requireRuntimeWorkspace(rootInput, 'cancel a provider task');
+  await assertNoManagedClaim(root);
   return withRegistryLock(root, async () => {
     const task = await loadTask(root, taskId);
     if (task.status !== 'running') throw new FoundryError('Task is not running; inspect status or reconcile it');
@@ -1015,7 +1017,7 @@ export async function cancel(rootInput: string, taskId: string): Promise<JsonRec
 export async function reconcile(rootInput: string, taskId: string, acknowledgeStopped = false): Promise<JsonRecord> {
   const root = await requireRuntimeWorkspace(rootInput, 'reconcile a provider task');
   taskPath(root, taskId);
-  return withProcessLock(providerPath(root, `leases/${taskId}.lock`), async () => withRegistryLock(root, async () => {
+  return withWorkspaceMutation(root, 'provider', () => withProcessLock(providerPath(root, `leases/${taskId}.lock`), async () => withRegistryLock(root, async () => {
     const task = await loadTask(root, taskId);
     if (!['running', 'unknown'].includes(String(task.status))) return task;
     task.status = acknowledgeStopped ? 'interrupted' : 'unknown';
@@ -1038,7 +1040,7 @@ export async function reconcile(rootInput: string, taskId: string, acknowledgeSt
     }
     await saveTask(root, task);
     return task;
-  }));
+  })));
 }
 
 export async function providerStatus(rootInput: string, taskId?: string): Promise<JsonRecord | JsonRecord[]> {

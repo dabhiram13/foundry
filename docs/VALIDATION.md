@@ -56,8 +56,24 @@ checkout. No intent is dispatched by these tests.
 Supervisor and inspector fixtures are trusted application-code stand-ins. They
 do not prove an executor actually stops, a provider respects permissions, or
 core checks can be bypassed. A candidate remains awaiting verification. Live
-executor conformance, authenticated transport, real project edits/checks and
-workspace containment remain unqualified. See the [session specification](specs/managed-session-foundation.md).
+executor conformance, authenticated transport and workspace containment remain
+unqualified. The bridge below adds local project edits and checks, not live-model
+execution. See the [session specification](specs/managed-session-foundation.md).
+
+## Managed-task bridge checks
+
+The internal bridge fixtures use a disposable TypeScript project, not a model.
+They write an incorrect implementation, run real Node behavioral tests and the
+TypeScript compiler, explicitly retry with corrected source, and use existing
+`verify` and `finishTask` evidence to record the task. Executor output alone,
+unconfirmed candidates and stale evidence cannot record completion.
+
+Boundary cases cover changed approval inputs, project ownership, competing
+legacy mutations, connection updates, process death, filtered check environments,
+Stop and lost creation or task-recording acknowledgements. Fixture actors and callbacks are
+trusted local application code. These checks do not qualify OpenCode, a live
+provider, a sandbox or the complete product-building experience. See the
+[bridge specification](specs/managed-task-bridge.md).
 
 ## Public website checks
 

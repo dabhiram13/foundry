@@ -40,16 +40,26 @@ const leaseSchema = z.strictObject({
 });
 export type ExecutionLease = z.infer<typeof leaseSchema>;
 
+export const verificationEvidenceSchema = z.strictObject({
+  receipt: z.string().regex(/^\.foundry\/state\/runs\/[a-f0-9-]{36}\/verification-[a-f0-9-]{36}\/receipts\.json$/),
+  receiptDigest: hashSchema,
+  inputsDigest: hashSchema,
+});
+
+const executorSchema = z.strictObject({ kind: z.enum(['opencode', 'fixture']), profileId: identitySchema });
+
 export const sessionStateSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('idle') }),
   z.strictObject({ status: z.literal('queued'), executionId: executionIdSchema }),
   z.strictObject({ status: z.literal('running'), executionId: executionIdSchema, lease: leaseSchema }),
+  z.strictObject({ status: z.literal('verifying'), executionId: executionIdSchema, candidateDigest: hashSchema, lease: leaseSchema }),
   z.strictObject({ status: z.literal('pausing'), executionId: executionIdSchema, lease: leaseSchema }),
   z.strictObject({ status: z.literal('stopping'), executionId: executionIdSchema, lease: leaseSchema }),
   z.strictObject({ status: z.literal('paused'), checkpointId: identitySchema, previousExecutionId: executionIdSchema }),
   z.strictObject({ status: z.literal('stopped') }),
   z.strictObject({ status: z.literal('failed'), executionId: executionIdSchema, evidenceDigest: hashSchema }),
   z.strictObject({ status: z.literal('awaiting-verification'), executionId: executionIdSchema, candidateDigest: hashSchema }),
+  z.strictObject({ status: z.literal('recording-task'), executionId: executionIdSchema, candidateDigest: hashSchema, evidence: verificationEvidenceSchema }),
   z.strictObject({ status: z.literal('recovery-required'), executionId: executionIdSchema, reason: z.enum(['lease-expired', 'outcome-unknown']) }),
 ]);
 export type SessionState = z.infer<typeof sessionStateSchema>;
@@ -59,7 +69,7 @@ export const sessionSchema = z.strictObject({
   id: sessionIdSchema,
   ownerId: identitySchema,
   assignment: assignmentBindingSchema,
-  executor: z.strictObject({ kind: z.literal('opencode'), profileId: identitySchema }),
+  executor: executorSchema,
   consentRef: identitySchema,
   maxTurns: z.number().int().min(1).max(100),
   turnsUsed: counterSchema,
@@ -89,7 +99,7 @@ export const sessionCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({
     type: z.literal('session.create'), sessionId: sessionIdSchema, requestId: requestIdSchema,
     assignment: assignmentBindingSchema,
-    executor: z.strictObject({ kind: z.literal('opencode'), profileId: identitySchema }),
+    executor: executorSchema,
     consentRef: identitySchema, maxTurns: z.number().int().min(1).max(100),
   }),
   z.strictObject({ ...envelope, type: z.literal('message.send'), text: textSchema }),
@@ -110,6 +120,20 @@ export const sessionCommandSchema = z.discriminatedUnion('type', [
     ]),
   }),
   z.strictObject({ ...executionEnvelope, type: z.literal('execution.unknown') }),
+  z.strictObject({
+    ...envelope, type: z.literal('verification.start'), executionId: executionIdSchema,
+    candidateDigest: hashSchema, instanceId: identitySchema, leaseSeconds: z.number().int().min(1).max(60),
+  }),
+  z.strictObject({
+    ...executionEnvelope, type: z.literal('verification.record'), candidateDigest: hashSchema,
+    resourcesStopped: z.literal(true), effectsKnown: z.literal(true),
+    outcome: z.enum(['passed', 'failed']), evidence: verificationEvidenceSchema,
+  }),
+  z.strictObject({ ...envelope, type: z.literal('task.recorded'), receiptDigest: hashSchema }),
+  z.strictObject({
+    ...envelope, type: z.literal('task.abandon'), inspectionDigest: hashSchema,
+    resourcesStopped: z.literal(true), effectsKnown: z.literal(true),
+  }),
   z.strictObject({ ...envelope, type: z.literal('execution.expire'), executionId: executionIdSchema }),
   z.strictObject({
     ...envelope, type: z.literal('execution.reconcile'), executionId: executionIdSchema,
@@ -144,6 +168,8 @@ export const sessionEventSchema = z.strictObject({
     z.strictObject({ kind: z.literal('output'), executionId: executionIdSchema, text: outputSchema }),
     z.strictObject({ kind: z.literal('heartbeat'), executionId: executionIdSchema, expiresAt: timeSchema }),
     z.strictObject({ kind: z.literal('inspection'), executionId: executionIdSchema, digest: hashSchema }),
+    z.strictObject({ kind: z.literal('verification'), outcome: z.enum(['passed', 'failed']), candidateDigest: hashSchema, evidence: verificationEvidenceSchema }),
+    z.strictObject({ kind: z.literal('task-recorded'), taskId: assignmentBindingSchema.shape.taskId, evidence: verificationEvidenceSchema }),
   ]),
 });
 export type SessionEvent = z.infer<typeof sessionEventSchema>;

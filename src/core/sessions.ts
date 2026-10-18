@@ -12,7 +12,7 @@ export type SessionTransition = {
   priorEffects: 'keep' | 'claim' | 'confirm' | 'cancel' | 'cancel-pause' | 'uncertain';
 };
 
-type ActiveState = Extract<SessionState, { status: 'running' | 'pausing' | 'stopping' }>;
+type ActiveState = Extract<SessionState, { status: 'running' | 'verifying' | 'pausing' | 'stopping' }>;
 
 export function assertSessionAccess(session: ManagedSession, actor: SessionActor): void {
   if (actor.kind === 'owner' && session.ownerId !== actor.id) throw new SessionError('forbidden');
@@ -26,7 +26,7 @@ export function transitionSession(
 ): SessionTransition {
   assertSessionAccess(current, actor);
   const ownerCommand = command.type.startsWith('session.') || command.type === 'message.send';
-  const inspectorCommand = command.type === 'execution.expire' || command.type === 'execution.reconcile';
+  const inspectorCommand = ['execution.expire', 'execution.reconcile', 'task.recorded', 'task.abandon'].includes(command.type);
   if (actor.kind !== (ownerCommand ? 'owner' : inspectorCommand ? 'inspector' : 'supervisor')) {
     throw new SessionError('forbidden');
   }
@@ -85,18 +85,19 @@ export function transitionSession(
         priorEffects = 'cancel';
       } else {
         const running = active();
-        if (state.status !== 'running') throw new SessionError('invalid_state');
+        if (state.status !== 'running' && state.status !== 'verifying') throw new SessionError('invalid_state');
         if (Date.parse(running.lease.expiresAt) <= clock) throw new SessionError('recovery_required');
-        next.state = { ...running, status: 'pausing' };
+        next.state = { status: 'pausing', executionId: running.executionId, lease: running.lease };
         intent('pause', running.executionId);
       }
       break;
     case 'session.stop':
       if (state.status === 'recovery-required') throw new SessionError('recovery_required');
+      if (state.status === 'recording-task') throw new SessionError('invalid_state');
       if (state.status === 'stopped' || state.status === 'stopping') throw new SessionError('invalid_state');
       if ('lease' in state) {
         if (Date.parse(state.lease.expiresAt) <= clock) throw new SessionError('recovery_required');
-        next.state = { ...state, status: 'stopping' };
+        next.state = { status: 'stopping', executionId: state.executionId, lease: state.lease };
         priorEffects = 'cancel-pause';
         intent('stop', state.executionId);
       } else {
@@ -130,6 +131,7 @@ export function transitionSession(
     }
     case 'execution.confirm': {
       const running = leased();
+      if (running.status === 'verifying') throw new SessionError('invalid_state');
       const result = command.result;
       if (running.status === 'stopping' ? result.kind !== 'stopped'
         : running.status === 'pausing' ? result.kind !== 'paused'
@@ -143,6 +145,36 @@ export function transitionSession(
       priorEffects = 'confirm';
       break;
     }
+    case 'verification.start':
+      if (state.status !== 'awaiting-verification' || state.executionId !== command.executionId
+        || state.candidateDigest !== command.candidateDigest || actor.id !== command.instanceId) throw new SessionError('invalid_state');
+      next.fence++;
+      next.state = { ...state, status: 'verifying', lease: {
+        instanceId: actor.id, token: randomUUID(), fence: next.fence,
+        expiresAt: new Date(clock + command.leaseSeconds * 1000).toISOString(),
+      } };
+      break;
+    case 'verification.record': {
+      const running = leased();
+      if (running.status !== 'verifying' || running.candidateDigest !== command.candidateDigest
+        || command.evidence.inputsDigest !== command.candidateDigest
+        || !command.evidence.receipt.startsWith(`.foundry/state/runs/${current.assignment.runId}/`)) throw new SessionError('invalid_state');
+      next.state = command.outcome === 'passed'
+        ? { status: 'recording-task', executionId: running.executionId, candidateDigest: running.candidateDigest, evidence: command.evidence }
+        : { status: 'failed', executionId: running.executionId, evidenceDigest: command.evidence.receiptDigest };
+      events.push({ kind: 'verification', outcome: command.outcome, candidateDigest: running.candidateDigest, evidence: command.evidence });
+      break;
+    }
+    case 'task.recorded':
+      if (state.status !== 'recording-task' || state.evidence.receiptDigest !== command.receiptDigest) throw new SessionError('invalid_state');
+      next.state = { status: 'stopped' };
+      events.push({ kind: 'task-recorded', taskId: current.assignment.taskId, evidence: state.evidence });
+      break;
+    case 'task.abandon':
+      if (state.status !== 'recording-task') throw new SessionError('invalid_state');
+      next.state = { status: 'stopped' };
+      events.push({ kind: 'inspection', executionId: state.executionId, digest: command.inspectionDigest });
+      break;
     case 'execution.unknown': {
       const running = leased();
       next.state = { status: 'recovery-required', executionId: running.executionId, reason: 'outcome-unknown' };
@@ -168,7 +200,7 @@ export function transitionSession(
     events.push({ kind: 'state', state: next.state });
   }
   next.sequence += events.length;
-  const control = ['session.stop', 'execution.confirm', 'execution.unknown', 'execution.expire', 'execution.reconcile'].includes(command.type);
+  const control = ['session.stop', 'execution.confirm', 'execution.unknown', 'execution.expire', 'execution.reconcile', 'verification.record', 'task.recorded', 'task.abandon'].includes(command.type);
   const eventLimit = SESSION_EVENT_LIMIT + (control ? SESSION_CONTROL_RESERVE : 0);
   if (next.sequence > eventLimit || next.revision > Number.MAX_SAFE_INTEGER || next.fence > Number.MAX_SAFE_INTEGER) {
     throw new SessionError('budget_exhausted');

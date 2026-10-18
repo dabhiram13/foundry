@@ -21,6 +21,11 @@ import { assertResearchReady, designReportSchema, planRevision, policyRevision,
 import { collectResearchSources, renderResearchReport, researchReportSchema, researchSelectionSchema } from './research.js';
 import { previewCheckSetup } from './check-setup.js';
 import { capturePreview, captureVisualReview } from './work-visual.js';
+import { managedCheckEnvironment, withWorkspaceMutation } from './workspace-ownership.js';
+
+async function withCoordinator<T>(root: string, operation: 'scoped' | 'verify' | 'finishTask' | 'recover' | 'resumeWork', action: () => Promise<T>): Promise<T> {
+  return withWorkspaceMutation(root, operation, () => withProcessLock(within(root, '.foundry/state/coordinator.lock'), action));
+}
 
 const runtimeMarkerSchema = z.object({
   schema_version: z.literal(1),
@@ -185,7 +190,7 @@ export async function setupChecks(rootInput: string, mode: 'dry-run' | 'apply', 
     }
     return { ...second, project: root, mode, applied: false };
   }
-  return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  return withCoordinator(root, 'scoped', async () => {
     await assertClientSnapshot(root, snapshot, false);
     if ((await activeRun(root))[1] || await readFactoryState(root)) {
       throw new FoundryError('Setup cannot change checks during active work. Finish the current work first.');
@@ -466,9 +471,10 @@ async function runCheck(
     await rm(reportPath, { force: true });
   }
   try {
+    const environment = managedCheckEnvironment(root) ?? process.env;
     const env = reportPath
-      ? { ...process.env, FOUNDRY_CHECK_ID: checkRunId, FOUNDRY_TEST_REPORT: reportPath }
-      : process.env;
+      ? { ...environment, FOUNDRY_CHECK_ID: checkRunId, FOUNDRY_TEST_REPORT: reportPath }
+      : environment;
     child = spawn(check.command[0] ?? '', check.command.slice(1), {
       cwd: within(root, check.cwd),
       env,
@@ -626,7 +632,7 @@ export async function start(rootInput: string, slug: string, spec: string, contr
     throw new FoundryError('A nonempty local spec is required', { cause: error });
   }
   if (!contents.trim()) throw new FoundryError('A nonempty local spec is required');
-  return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  return withCoordinator(root, 'scoped', async () => {
     await assertClientSnapshot(root, snapshot, false);
     if (contract !== undefined) {
       if (await readFactoryState(root)) throw new FoundryError('Scope contracts are for scoped work, not Factory-owned work.');
@@ -675,7 +681,7 @@ export async function reviewScope(rootInput: string): Promise<ScopeReview> {
 export async function approveScope(rootInput: string, revision: string): Promise<ScopeReview> {
   const root = await requireRuntimeWorkspace(rootInput, 'approve scoped work in');
   if (!/^[a-f0-9]{64}$/.test(revision)) throw new FoundryError('Use the exact revision shown by work review.');
-  return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  return withCoordinator(root, 'scoped', async () => {
     if (await readFactoryState(root)) throw new FoundryError('Scope approval is for scoped work, not Factory-owned work.');
     const [statePath, state] = await requireActive(root);
     if (!['building', 'verified', 'paused'].includes(state.status)) throw new FoundryError('Recover the unfinished operation before approving scope.');
@@ -703,7 +709,7 @@ export async function approveScope(rootInput: string, revision: string): Promise
 
 export async function pauseOrResume(rootInput: string, pause: boolean, snapshot?: string): Promise<RunState> {
   const root = await requireRuntimeWorkspace(rootInput, pause ? 'pause' : 'resume');
-  return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  return withCoordinator(root, pause ? 'scoped' : 'resumeWork', async () => {
     await assertClientSnapshot(root, snapshot);
     const [statePath, current] = await requireActive(root);
     if (['completing', 'completed', 'verifying'].includes(current.status)) {
@@ -722,7 +728,7 @@ export async function pauseOrResume(rootInput: string, pause: boolean, snapshot?
 
 export async function verify(rootInput: string, cancelRequested: () => boolean = () => false, snapshot?: string): Promise<number> {
   const root = await requireRuntimeWorkspace(rootInput, 'verify');
-  return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  return withCoordinator(root, 'verify', async () => {
     await assertClientSnapshot(root, snapshot);
     const [statePath, state] = await requireActive(root);
     if (['completing', 'completed', 'verifying'].includes(state.status)) {
@@ -910,7 +916,7 @@ async function factoryCompletionExclusions(root: string, state: RunState): Promi
 
 export async function complete(rootInput: string, snapshot?: string): Promise<number> {
   const root = await requireRuntimeWorkspace(rootInput, 'complete');
-  return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  return withCoordinator(root, 'scoped', async () => {
     await assertClientSnapshot(root, snapshot);
     const [statePath, current] = await activeRun(root);
     if (!current || !statePath) {
@@ -1000,7 +1006,7 @@ export async function complete(rootInput: string, snapshot?: string): Promise<nu
 
 export async function recover(rootInput: string, snapshot?: string): Promise<RunState | null> {
   const root = await requireRuntimeWorkspace(rootInput, 'recover');
-  return withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  return withCoordinator(root, 'recover', async () => {
     await assertClientSnapshot(root, snapshot);
     const [statePath, state] = await requireActive(root);
     if (state.status === 'completed') {
@@ -1165,7 +1171,7 @@ export async function prepareAssignment(rootInput: string, stage: 'research' | '
 export async function saveTaskPlan(rootInput: string, input: unknown, snapshot?: string): Promise<void> {
   const root = await requireRuntimeWorkspace(rootInput, 'save a task plan in');
   const plan = taskPlanSchema.parse(input);
-  await withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  await withCoordinator(root, 'scoped', async () => {
     await assertClientSnapshot(root, snapshot);
     const [, state] = await requireActive(root);
     if (!state.scope || !['building', 'verified', 'failed'].includes(state.status)) throw new FoundryError('Save a plan in idle contracted work; resume or recover first');
@@ -1203,7 +1209,7 @@ export async function captureWorkSources(rootInput: string, input: unknown, snap
   signal: AbortSignal = new AbortController().signal): Promise<void> {
   const root = await requireRuntimeWorkspace(rootInput, 'capture Research sources in');
   const selection = researchSelectionSchema.parse(input);
-  await withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  await withCoordinator(root, 'scoped', async () => {
     await assertClientSnapshot(root, snapshot);
     const { statePath, state, contract, scope } = await preparationWork(root);
     const policy = await roleByName(root, contract.value.preparation!.research_role);
@@ -1225,7 +1231,7 @@ export async function captureWorkSources(rootInput: string, input: unknown, snap
 export async function recordWorkResearch(rootInput: string, input: unknown, snapshot?: string): Promise<void> {
   const root = await requireRuntimeWorkspace(rootInput, 'record Research in');
   const report = researchReportSchema.parse(input);
-  await withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  await withCoordinator(root, 'scoped', async () => {
     await assertClientSnapshot(root, snapshot);
     const { state, contract, scope } = await preparationWork(root);
     if (scope.preparation!.sources.status !== 'current') throw new FoundryError('Capture current sources before recording Research');
@@ -1251,7 +1257,7 @@ export async function recordWorkResearch(rootInput: string, input: unknown, snap
 export async function recordWorkDesign(rootInput: string, input: unknown, snapshot?: string): Promise<void> {
   const root = await requireRuntimeWorkspace(rootInput, 'record Design in');
   const report = designReportSchema.parse(input);
-  await withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  await withCoordinator(root, 'scoped', async () => {
     await assertClientSnapshot(root, snapshot);
     const { state, contract, scope } = await preparationWork(root);
     assertResearchReady(scope.preparation);
@@ -1278,7 +1284,7 @@ export async function recordWorkDesign(rootInput: string, input: unknown, snapsh
 
 export async function finishTask(rootInput: string, taskId: string, snapshot?: string): Promise<void> {
   const root = await requireRuntimeWorkspace(rootInput, 'record task completion in');
-  await withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  await withCoordinator(root, 'finishTask', async () => {
     await assertClientSnapshot(root, snapshot);
     const [statePath, state] = await requireActive(root);
     const scope = await inspectScope(root, state, await configuredChecks(root));
@@ -1298,7 +1304,7 @@ export async function finishTask(rootInput: string, taskId: string, snapshot?: s
 export async function recordWorkReview(rootInput: string, input: unknown, snapshot?: string): Promise<void> {
   const root = await requireRuntimeWorkspace(rootInput, 'record specialist review in');
   const report = workReviewSchema.parse(input);
-  await withProcessLock(within(root, '.foundry/state/coordinator.lock'), async () => {
+  await withCoordinator(root, 'scoped', async () => {
     await assertClientSnapshot(root, snapshot);
     const [statePath, state] = await requireActive(root);
     const scope = await inspectScope(root, state, await configuredChecks(root));

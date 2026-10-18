@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { atomicJson, atomicWrite, canonicalJson, digest, FoundryError, within, withProcessLock } from './fs.js';
 import { readFactoryState } from './factory-contract.js';
 import { workContext } from './lifecycle.js';
+import { withWorkspaceMutation } from './workspace-ownership.js';
 
 const skillPath = '.opencode/skills/foundry-work/SKILL.md';
 const manifestPath = '.foundry/state/connectors/opencode.json';
@@ -248,5 +249,6 @@ export async function connectOpenCode(
     await atomicJson(root, manifestPath, { ...settled, phase: removing ? 'removed' : 'applied' });
     return { ...result, applied: true };
   };
-  return mode === 'dry-run' ? plan(false) : withProcessLock(within(root, '.foundry/state/coordinator.lock'), () => plan(true));
+  return mode === 'dry-run' ? plan(false) : withWorkspaceMutation(root, 'scoped', () =>
+    withProcessLock(within(root, '.foundry/state/coordinator.lock'), () => plan(true)));
 }

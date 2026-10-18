@@ -25,6 +25,11 @@ import {
   cancel as cancelProvider, execute as executeProvider, providerStatus, reconcile as reconcileProvider,
   registry, requireAdapterExecutable,
 } from '../runtime/providers.js';
+import { assertNoManagedClaim, withWorkspaceMutation } from './workspace-ownership.js';
+
+async function withFactoryMutation<T>(root: string, action: () => Promise<T>): Promise<T> {
+  return withWorkspaceMutation(root, 'factory', () => withProcessLock(within(root, FACTORY_LOCK), action));
+}
 
 const IDEA = 'docs/product/idea.md';
 const RESEARCH = 'docs/product/research.md';
@@ -1224,7 +1229,7 @@ export async function initFactory(rootInput: string, options: FactoryInitOptions
   await selectedRoles(root, roles);
   await selectedRoleSettings(root, roleSettings);
   await selectedAdapter(root, options.adapter, options.model ?? null, options.reasoning ?? null, billing, false, roleSettings);
-  return withProcessLock(within(root, FACTORY_LOCK), async () => {
+  return withFactoryMutation(root, async () => {
     if (await exists(root, FACTORY_STATE)) throw new FoundryError('Factory is already initialized');
     if (await exists(root, IDEA)) throw new FoundryError('The existing idea document is preserved; factory init will not overwrite it');
     const ideaText = `# ${options.name.trim()}\n\n${options.idea.trim()}\n`;
@@ -1270,7 +1275,7 @@ export async function configureFactory(rootInput: string, options: FactoryConfig
   if (options.billing && !['local', 'subscription'].includes(options.billing)) {
     throw new FoundryError('Factory billing must be local or subscription');
   }
-  return withProcessLock(within(root, FACTORY_LOCK), async () => {
+  return withFactoryMutation(root, async () => {
     const state = await load(root);
     if (state.status === 'running' || state.status === 'shipping' || state.status === 'recovery_required') {
       throw new FoundryError('Factory configuration cannot change during a running stage');
@@ -1408,7 +1413,7 @@ export async function reviewFactory(rootInput: string, stageInput?: 'plan' | 'de
 export async function approveFactory(rootInput: string, stage: 'plan' | 'design', revision: string): Promise<FactoryState> {
   const root = await requireController(rootInput, 'approve a TypeScript factory document');
   if (!/^[a-f0-9]{64}$/.test(revision)) throw new FoundryError('Approval revision must be a SHA-256 digest');
-  return withProcessLock(within(root, FACTORY_LOCK), async () => {
+  return withFactoryMutation(root, async () => {
     const state = await load(root);
     if (state.status === 'running' || state.status === 'shipping' || state.status === 'recovery_required'
       || state.provider_task_id) {
@@ -1468,7 +1473,7 @@ export async function approveFactory(rootInput: string, stage: 'plan' | 'design'
 
 export async function runFactory(rootInput: string): Promise<FactoryState> {
   const root = await requireController(rootInput, 'run the TypeScript factory');
-  return withProcessLock(within(root, FACTORY_LOCK), async () => {
+  return withFactoryMutation(root, async () => {
     const state = await load(root);
     if (state.status === 'completed') {
       await assertCompletedFactoryGate(root, state);
@@ -1555,6 +1560,7 @@ export async function runFactory(rootInput: string): Promise<FactoryState> {
 
 export async function cancelFactory(rootInput: string): Promise<JsonRecord> {
   const root = await requireController(rootInput, 'cancel the TypeScript factory');
+  await assertNoManagedClaim(root);
   return withProcessLock(within(root, FACTORY_CANCEL_LOCK), async () => {
     const state = await load(root);
     if (state.status !== 'running') throw new FoundryError('Factory has no running stage to cancel');
@@ -1610,7 +1616,7 @@ async function assertCompletedFactoryGate(root: string, state: FactoryState): Pr
 
 export async function recoverFactory(rootInput: string): Promise<FactoryState> {
   const root = await requireController(rootInput, 'recover the TypeScript factory');
-  return withProcessLock(within(root, FACTORY_LOCK), async () => {
+  return withFactoryMutation(root, async () => {
     const state = await load(root);
     if (state.status === 'completed') {
       await assertCompletedFactoryGate(root, state);

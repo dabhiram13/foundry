@@ -90,3 +90,10 @@ record rather than assuming the task completed.
 Private runtime state lives under `.foundry/state` in a project. Do not edit it
 by hand. See [workflow contracts](WORKFLOW-CONTRACTS.md) for saved evidence and
 [security](../SECURITY.md) for boundaries.
+
+The internal managed-task fixture is not a CLI or MCP execution mode. It binds
+one approved Builder task, uses a durable project claim, runs trusted local edits,
+then calls the existing check and task-completion services. A restart does not
+release ownership or replay work. Uncertain admissions, execution or task
+recording require explicit inspection. The existing coding-client path remains
+host-owned. No OpenCode binary, SDK or live model is qualified by this fixture.

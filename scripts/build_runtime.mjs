@@ -64,7 +64,7 @@ await build({
 });
 
 const testEntries = (await files(path.join(root, 'tests/runtime')))
-  .filter((file) => file.endsWith('.test.ts'));
+  .filter((file) => file.endsWith('.test.ts') || file.endsWith('/workspace-admission-fixture.ts'));
 if (testEntries.length) {
   await build({
     entryPoints: testEntries,

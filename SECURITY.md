@@ -26,6 +26,24 @@ the privileges granted by the runtime and the host.
   establish factual truth or a tamper-proof audit trail against a privileged
   process. Keep stronger host isolation and independent review for untrusted work.
 
+## Internal managed fixtures
+
+The managed-task bridge accepts trusted local fixture code, not arbitrary
+executors. It has no public CLI, MCP or HTTP endpoint. Internal owner, supervisor
+and inspector contexts are application authority, not authentication credentials
+to accept from client JSON.
+
+A private project claim coordinates participating scoped, Factory and provider
+operations. It is not a filesystem or network restriction. Other same-user
+processes can still edit files and read local data. Process failure leaves
+uncertain claims and admissions blocked until trusted inspection.
+
+Managed checks receive only PATH, LANG and TZ, plus check-report variables when
+needed. Declared environment grants are rejected in this slice. This prevents
+default environment inheritance, not access to secrets elsewhere on the host.
+The fixture callback itself is trusted code in the controller process, without
+a sandbox. Untrusted projects need an externally restricted environment.
+
 ## Reporting a vulnerability
 
 Check the repository's [Security page](https://github.com/dabhiram13/foundry/security)

@@ -79,6 +79,46 @@ function errorCode(code: string): (error: unknown) => boolean {
   return (error) => error instanceof SessionError && error.code === code;
 }
 
+test('managed verification has a fresh fenced lease and inspector-only task acknowledgement', async t => {
+  const { store, create, supervisor, execution } = await running(t);
+  await store.accept(command(create, 'execution.confirm', 2, { ...execution, resourcesStopped: true, effectsKnown: true, result: { kind: 'candidate', candidateDigest: hash } }), supervisor);
+  await store.accept(command(create, 'verification.start', 3, { executionId: execution.executionId, candidateDigest: hash, instanceId: supervisor.id, leaseSeconds: 60 }), supervisor);
+  const session = await store.get(create.sessionId, owner);
+  assert.ok(session.state.status === 'verifying');
+  const lease = { executionId: session.state.executionId, leaseToken: session.state.lease.token, fence: session.state.lease.fence };
+  assert.equal(lease.fence, execution.fence + 1);
+  await assert.rejects(store.accept(command(create, 'execution.heartbeat', 4, { ...execution, leaseSeconds: 60 }), supervisor), errorCode('lease_conflict'));
+  await store.accept(command(create, 'execution.heartbeat', 4, { ...lease, leaseSeconds: 60 }), supervisor);
+  const evidence = { receipt: `.foundry/state/runs/${create.assignment.runId}/verification-${randomUUID()}/receipts.json`, receiptDigest: hash, inputsDigest: hash };
+  for (const invalid of [
+    { ...evidence, inputsDigest: 'b'.repeat(64) },
+    { ...evidence, receipt: `.foundry/state/runs/${randomUUID()}/verification-${randomUUID()}/receipts.json` },
+  ]) await assert.rejects(store.accept(command(create, 'verification.record', 4, { ...lease, candidateDigest: hash, outcome: 'passed', evidence: invalid, resourcesStopped: true, effectsKnown: true }), supervisor), errorCode('invalid_state'));
+  await store.accept(command(create, 'verification.record', 4, { ...lease, candidateDigest: hash, outcome: 'passed', evidence, resourcesStopped: true, effectsKnown: true }), supervisor);
+  assert.equal((await store.get(create.sessionId, owner)).state.status, 'recording-task');
+  await assert.rejects(store.accept(command(create, 'session.stop', 5), owner), errorCode('invalid_state'));
+  const acknowledgement = command(create, 'task.recorded', 5, { receiptDigest: hash });
+  await assert.rejects(store.accept(acknowledgement, supervisor), errorCode('forbidden'));
+  await assert.rejects(store.accept(acknowledgement, owner), errorCode('forbidden'));
+  await store.accept(acknowledgement, { kind: 'inspector', id: randomUUID() });
+  assert.equal((await store.get(create.sessionId, owner)).state.status, 'stopped');
+});
+
+test('verification lease expiration after restart requires inspection instead of candidate replay', async t => {
+  const { store, create, supervisor, execution, open } = await running(t);
+  await store.accept(command(create, 'execution.confirm', 2, { ...execution, resourcesStopped: true, effectsKnown: true, result: { kind: 'candidate', candidateDigest: hash } }), supervisor);
+  await store.accept(command(create, 'verification.start', 3, { executionId: execution.executionId, candidateDigest: hash, instanceId: supervisor.id, leaseSeconds: 1 }), supervisor);
+  await store.close();
+  await setTimeout(1100);
+  const reopened = await open();
+  const session = await reopened.get(create.sessionId, owner);
+  assert.ok(session.state.status === 'verifying');
+  const fields = { executionId: session.state.executionId, leaseToken: session.state.lease.token, fence: session.state.lease.fence };
+  await assert.rejects(reopened.accept(command(create, 'execution.heartbeat', 4, { ...fields, leaseSeconds: 60 }), supervisor), errorCode('recovery_required'));
+  await reopened.accept(command(create, 'execution.expire', 4, { executionId: session.state.executionId }), { kind: 'inspector', id: randomUUID() });
+  assert.equal((await reopened.get(create.sessionId, owner)).state.status, 'recovery-required');
+});
+
 test('managed commands reject unknown fields, actor smuggling, invalid IDs and byte bounds without writes', async (t) => {
   const { store, create } = await fixture(t);
   const send = command(create, 'message.send', 0, { text: 'Work.' });

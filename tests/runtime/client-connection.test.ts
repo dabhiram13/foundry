@@ -57,7 +57,8 @@ async function begin(connection: Client) {
 }
 async function approve(root: string) { await approveScope(root, (await reviewScope(root)).revision); }
 async function waitFor(check: () => Promise<boolean>): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
     if (await check()) return;
     await delay(25);
   }
@@ -250,10 +251,12 @@ test('cancellation preserves interrupted receipts and allows continuation', asyn
   await approve(root);
   const abort = new AbortController();
   const request = connection.callTool({ name: 'foundry_verify', arguments: { snapshot_revision: (await context(connection)).snapshot_revision } }, { signal: abort.signal });
-  const rejected = assert.rejects(request, /abort|cancel/i);
+  const settled = request.then(value => ({ value }), (error: unknown) => ({ error }));
   await waitFor(async () => ((await status(root)).active as Record<string, unknown>).status === 'verifying');
   abort.abort();
-  await rejected;
+  const response = await settled;
+  assert.ok('error' in response);
+  assert.match(String(response.error), /abort|cancel/i);
   await waitFor(async () => ((await status(root)).active as Record<string, unknown>).status === 'paused'
     && !await exists(root, '.foundry/state/coordinator.lock'));
   const interrupted = await context(connection);

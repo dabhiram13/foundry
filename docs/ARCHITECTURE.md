@@ -56,16 +56,18 @@ return errors when required consent is missing. JSON output supports scripts.
 
 ## Managed sessions in development
 
-The new managed-session foundation is internal, not a runnable coding agent. It
-adds strict session contracts and transactional SQLite records in a dedicated
-storage worker. It does not migrate existing projects or replace Factory and
-scoped-work authority.
+Managed sessions are internal, not a runnable coding agent. Strict session
+contracts and a dedicated SQLite worker save state, receipts and effect intents.
+A trusted local fixture can bind one session to an approved Builder task and
+exercise real edits and project checks. It does not migrate existing projects
+or replace Factory and scoped-work authority.
 
 ```text
-trusted caller → validated command + internal actor context
-             → storage worker → state + receipt + events + effect intents
-                                                    │
-                                      no executor dispatch in this stage
+approved Builder task → project claim + managed session
+                     → explicit trusted fixture turn → actual edits
+                     → confirmed candidate → existing verify
+                     → saved check evidence → existing finishTask
+                     → task-recorded acknowledgement
 ```
 
 Owner controls use state revisions. Output and lease heartbeats advance a
@@ -73,8 +75,24 @@ separate event cursor. Duplicate request IDs return saved receipts, not another
 execution. Pause and stop need a supervisor's confirmation of stopped resources.
 Expired leases reject writes; an inspector records recovery-required and checks
 unknown effects before an owner can explicitly retry. A candidate is not a
-verified task. The next stage must use the existing core to prepare assignments,
-run checks and finish a task.
+verified task. The bridge derives its task from existing assignment preparation;
+the original host-client assignment is not relabeled as managed execution.
+Fixture work receives neither session actors nor project authority. Verification
+runs with a filtered environment and checks exact candidate inputs. Task recording
+requires current core evidence, not executor output or a successful tool exit.
+
+A private project claim blocks cooperating scoped, Factory and provider mutations.
+Short admission records preserve legacy provider concurrency and cancellation.
+Process death does not release an unresolved claim or admission. Trusted inspection
+is required before uncertain work continues. The local claim does not prevent an
+editor, shell or other same-user process from changing files.
+
+Verification and task recording span two stores. A passing verification enters
+`recording-task` with its evidence reference before core task completion. At that
+point checks have stopped and Stop cannot undo the recording decision. After a
+lost acknowledgement, explicit reconciliation checks the exact core task receipt
+before recording the session event, without repeating execution or checks. An
+inspector can instead abandon that decision without undoing core history.
 
 The storage directory is private, outside Git working trees, and uses POSIX file
 ownership and permissions. Windows needs an ACL-backed storage profile before
@@ -124,6 +142,7 @@ The controller retains control of approvals and spending rules.
 | `src/core/research.ts` | Bounded source reading, snapshots and quotation validation |
 | `src/core/lifecycle.ts` | Scoped runs, checks, receipts and completion |
 | `src/core/session-contract.ts`, `src/core/sessions.ts` | Internal managed-session contracts and state transitions |
+| `src/core/managed-tasks.ts`, `src/core/workspace-ownership.ts` | Internal trusted fixture bridge, project claims and mutation admission |
 | `src/core/workflow.ts` | Criteria, evidence, decisions and handoff records |
 | `src/core/install.ts` | Managed files, conflicts and recoverable installation |
 | `src/core/connect.ts` | Preview, apply and remove the managed coding-client connection |

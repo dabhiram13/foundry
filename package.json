@@ -19,6 +19,7 @@
   "files": [
     "dist/runtime/foundry.cjs",
     "dist/runtime/foundry-worker.cjs",
+    "dist/runtime/foundry-session-storage.cjs",
     ".foundry/LICENSE-framework",
     ".foundry/roles.json",
     ".foundry/THIRD_PARTY_NOTICES.md",

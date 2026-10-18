@@ -43,6 +43,22 @@ earlier lifecycle; this rendered-preview extension still needs a live-model
 product trial and an owner visual review. A same-brief one-shot comparison has
 not been run. No learning or self-improvement engine is included.
 
+## Managed-session foundation checks
+
+Session fixtures use a private SQLite directory and a real storage worker. They
+cover strict input validation at both message boundaries, duplicate/stale
+commands, competing worker connections, transaction rollback, event cursors,
+pause/stop races, checkpoints, byte/turn limits, lease fencing, uncertain effects,
+unsafe paths, checked migrations and worker shutdown/restart. The installed
+tarball also opens its storage worker and records a pending intent outside the
+checkout. No intent is dispatched by these tests.
+
+Supervisor and inspector fixtures are trusted application-code stand-ins. They
+do not prove an executor actually stops, a provider respects permissions, or
+core checks can be bypassed. A candidate remains awaiting verification. Live
+executor conformance, authenticated transport, real project edits/checks and
+workspace containment remain unqualified. See the [session specification](specs/managed-session-foundation.md).
+
 ## Public website checks
 
 Static checks validate every generated page, local link and anchor, search

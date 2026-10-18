@@ -102,6 +102,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     'LICENSE',
     'README.md',
     'THIRD_PARTY_NOTICES.md',
+    'dist/runtime/foundry-session-storage.cjs',
     'dist/runtime/foundry-worker.cjs',
     'dist/runtime/foundry.cjs',
     'licenses/MCP-SDK-LICENSE.txt',
@@ -124,6 +125,46 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     tarball,
   ], { cwd: prefix, env });
   const installedRoot = path.join(prefix, 'lib/node_modules/@dabhiram13/foundry');
+  run(process.execPath, ['-e', `
+    const assert = require('node:assert/strict');
+    const { randomUUID } = require('node:crypto');
+    const { Worker } = require('node:worker_threads');
+    const { once } = require('node:events');
+    const worker = new Worker(process.argv[1], { workerData: { directory: process.argv[2] } });
+    const exited = once(worker, 'exit');
+    const actor = { kind: 'owner', id: randomUUID() };
+    const sessionId = randomUUID();
+    const pending = new Map();
+    const ready = once(worker, 'message');
+    worker.on('message', (message) => {
+      if ('ready' in message) return;
+      const resolve = pending.get(message.id);
+      assert.ok(resolve, 'reply has a pending request');
+      assert.equal(message.ok, true);
+      pending.delete(message.id);
+      resolve(message.data);
+    });
+    function rpc(body) {
+      const id = randomUUID();
+      return new Promise((resolve) => { pending.set(id, resolve); worker.postMessage({ id, ...body }); });
+    }
+    (async () => {
+      assert.deepEqual((await ready)[0], { ready: true, schemaVersion: 1 });
+      const hash = 'a'.repeat(64);
+      await rpc({ type: 'accept', actor, command: {
+        type: 'session.create', sessionId, requestId: randomUUID(),
+        assignment: { projectBindingId: randomUUID(), runId: randomUUID(), taskId: 'package-task', scopeRevision: hash, approvalDigest: hash, roleDigest: hash, checksDigest: hash },
+        executor: { kind: 'opencode', profileId: randomUUID() }, consentRef: randomUUID(), maxTurns: 1,
+      } });
+      await rpc({ type: 'accept', actor, command: { type: 'message.send', sessionId, requestId: randomUUID(), expectedRevision: 0, text: 'Store an intent, do not execute it.' } });
+      assert.equal((await rpc({ type: 'get', sessionId, actor })).state.status, 'queued');
+      const effects = await rpc({ type: 'effects', sessionId, actor });
+      assert.equal(effects.length, 1);
+      assert.equal(effects[0].status, 'pending');
+      await rpc({ type: 'close' });
+      assert.equal((await exited)[0], 0);
+    })().catch(async (error) => { console.error(error); await worker.terminate(); process.exitCode = 1; });
+  `, path.join(installedRoot, 'dist/runtime/foundry-session-storage.cjs'), path.join(home, 'managed')], { cwd: home, env });
   const metadata = JSON.parse(await readFile(path.join(installedRoot, 'package.json'), 'utf8'));
   assert.notEqual(metadata.private, true);
   assert.equal(metadata.engines.node, '>=24.0.0');

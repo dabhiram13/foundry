@@ -54,6 +54,37 @@ The product repository contains the application, which can use any stack.
 Both reuse state, check, provider and recovery contracts. Noninteractive commands
 return errors when required consent is missing. JSON output supports scripts.
 
+## Managed sessions in development
+
+The new managed-session foundation is internal, not a runnable coding agent. It
+adds strict session contracts and transactional SQLite records in a dedicated
+storage worker. It does not migrate existing projects or replace Factory and
+scoped-work authority.
+
+```text
+trusted caller → validated command + internal actor context
+             → storage worker → state + receipt + events + effect intents
+                                                    │
+                                      no executor dispatch in this stage
+```
+
+Owner controls use state revisions. Output and lease heartbeats advance a
+separate event cursor. Duplicate request IDs return saved receipts, not another
+execution. Pause and stop need a supervisor's confirmation of stopped resources.
+Expired leases reject writes; an inspector records recovery-required and checks
+unknown effects before an owner can explicitly retry. A candidate is not a
+verified task. The next stage must use the existing core to prepare assignments,
+run checks and finish a task.
+
+The storage directory is private, outside Git working trees, and uses POSIX file
+ownership and permissions. Windows needs an ACL-backed storage profile before
+this boundary is supported there. These are local data protections, not a
+sandbox. Messages and visible output are stored as private plaintext; credentials
+must not be supplied as messages. A real executor still needs credential handling,
+redaction, an explicit workspace profile and consent validation. Internal actor
+contexts are not authentication and must never come directly from client JSON.
+No managed CLI/MCP API, model call, account connection or billing is enabled.
+
 ## Distribution boundary
 
 Everyday users install `@dabhiram13/foundry` from npm; contributors build from
@@ -92,12 +123,14 @@ The controller retains control of approvals and spending rules.
 | `src/core/work-preparation.ts` | Connected Research/Design artifacts, source integrity and stage gates |
 | `src/core/research.ts` | Bounded source reading, snapshots and quotation validation |
 | `src/core/lifecycle.ts` | Scoped runs, checks, receipts and completion |
+| `src/core/session-contract.ts`, `src/core/sessions.ts` | Internal managed-session contracts and state transitions |
 | `src/core/workflow.ts` | Criteria, evidence, decisions and handoff records |
 | `src/core/install.ts` | Managed files, conflicts and recoverable installation |
 | `src/core/connect.ts` | Preview, apply and remove the managed coding-client connection |
 | `src/core/migrate.ts` | Explicit legacy import with backups and conflict checks |
 | `src/core/roles.ts` | Provider-neutral role validation |
 | `src/runtime/jobs.ts`, `src/runtime/worker.ts` | Local worker threads and confirmed shutdown for terminal runs |
+| `src/runtime/session-store.ts`, `src/runtime/session-storage-worker.ts`, `src/runtime/session-database.ts` | Typed client, private SQLite worker and atomic managed-session records |
 | `src/runtime/providers.ts` | Adapter execution, messages, cancellation and recovery |
 | `src/runtime/environment.ts` | Restricted provider child environment |
 | `src/runtime/mcp.ts` | Project-bound stdio tools for the connected host |

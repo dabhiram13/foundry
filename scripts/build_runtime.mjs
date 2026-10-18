@@ -51,6 +51,18 @@ await build({
 });
 await chmod(path.join(runtimeOutput, 'foundry-worker.cjs'), 0o755);
 
+await build({
+  entryPoints: [path.join(root, 'src/runtime/session-storage-worker.ts')],
+  outfile: path.join(runtimeOutput, 'foundry-session-storage.cjs'),
+  bundle: true,
+  platform: 'node',
+  mainFields: ['module', 'main'],
+  target: 'node24',
+  format: 'cjs',
+  external: ['node:*'],
+  banner,
+});
+
 const testEntries = (await files(path.join(root, 'tests/runtime')))
   .filter((file) => file.endsWith('.test.ts'));
 if (testEntries.length) {

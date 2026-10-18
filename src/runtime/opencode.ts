@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { access, lstat, mkdir, mkdtemp, open, readFile, readdir, realpath } from 'node:fs/promises';
+import { access, lstat, mkdir, mkdtemp, open, opendir, readFile, realpath } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import path from 'node:path';
@@ -67,11 +67,11 @@ async function privateDirectory(directory: string): Promise<void> {
   if (!info.isDirectory() || info.uid !== process.getuid() || (info.mode & 0o077)) fail('invalid-profile');
 }
 
-async function assertResolved(parent: string): Promise<void> {
-  const entries = await readdir(parent);
-  if (entries.length > 256) fail('runtime-unresolved');
-  for (const entry of entries.filter(name => name.startsWith('opencode-'))) {
-    const directory = path.join(parent, entry);
+async function assertResolved(parent: string, deadline: number): Promise<void> {
+  for await (const entry of await opendir(parent)) {
+    if (Date.now() >= deadline) fail('runtime-unresolved');
+    if (!entry.name.startsWith('opencode-')) continue;
+    const directory = path.join(parent, entry.name);
     await privateDirectory(directory);
     const filename = path.join(directory, 'launch.json');
     const info = await lstat(filename);
@@ -236,16 +236,22 @@ export async function qualifyOpenCode(input: unknown): Promise<OpenCodeQualifica
   } catch { throw new OpenCodeLifecycleError('invalid-profile', true); }
 
   return withProcessLock(path.join(profile.runtimeParent, 'qualification.lock'), async () => {
-    try { await assertResolved(profile.runtimeParent); }
+    const deadline = Date.now() + profile.deadlineMs;
+    try { await assertResolved(profile.runtimeParent, deadline); }
     catch { throw new OpenCodeLifecycleError('runtime-unresolved', false); }
     if (await executableStamp(profile.binary) !== binaryStamp) throw new OpenCodeLifecycleError('binding-changed', true);
     const directory = await mkdtemp(path.join(profile.runtimeParent, 'opencode-'));
     for (const name of ['home', 'config', 'data', 'state', 'cache', 'tmp', 'managed']) await mkdir(path.join(directory, name), { mode: 0o700 });
     const record: LaunchRecord = { schemaVersion: 1, purpose: 'lifecycle-only', project, binary: profile.binary, binaryDigest, sdkVersion: OPENCODE_VERSION, phase: 'launching', pid: null, upstreamSessionId: null, failure: null };
     await atomicJson(directory, 'launch.json', record);
+    if (Date.now() >= deadline) {
+      record.phase = 'stopped'; record.failure = 'deadline';
+      await atomicJson(directory, 'launch.json', record);
+      throw new OpenCodeLifecycleError('deadline', true, directory);
+    }
     const password = randomBytes(32).toString('hex');
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), profile.deadlineMs);
+    const timeout = setTimeout(() => controller.abort(), Math.max(1, deadline - Date.now()));
     const child = spawn(profile.binary, ['serve', '--hostname', '127.0.0.1', '--port', '0'], {
       cwd: project.root, env: environment(directory, password), detached: true, stdio: ['ignore', 'pipe', 'pipe'],
     });

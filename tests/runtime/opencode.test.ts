@@ -156,6 +156,25 @@ test('a crashed supervisor leaves a durable launch that reopening cannot replay'
   }
 });
 
+test('stopped history does not exhaust admission, while unresolved history still blocks', async t => {
+  const settings = await fixture(t);
+  await qualifyOpenCode(settings);
+  const [original] = await records(settings.runtimeParent);
+  assert.ok(original);
+  for (let i = 0; i < 260; i++) {
+    const directory = path.join(settings.runtimeParent, `opencode-history-${i}`);
+    await mkdir(directory, { mode: 0o700 });
+    await writeFile(path.join(directory, 'launch.json'), JSON.stringify(original.record), { mode: 0o600 });
+  }
+  await qualifyOpenCode(settings);
+  assert.equal((await records(settings.runtimeParent)).length, 262);
+  const directory = path.join(settings.runtimeParent, 'opencode-unresolved-history');
+  await mkdir(directory, { mode: 0o700 });
+  await writeFile(path.join(directory, 'launch.json'), JSON.stringify({ ...original.record, phase: 'unknown' }), { mode: 0o600 });
+  await assert.rejects(qualifyOpenCode(settings), { code: 'runtime-unresolved', resourcesStopped: false });
+  assert.equal((await records(settings.runtimeParent)).length, 263);
+});
+
 test('competing qualifications reject admission instead of sharing an unowned server', async t => {
   const settings = await fixture(t, 'slow');
   const first = qualifyOpenCode(settings);

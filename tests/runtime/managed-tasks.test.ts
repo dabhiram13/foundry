@@ -13,6 +13,7 @@ import { inspectWorkspaceAdmissions, readManagedClaim, reconcileWorkspaceAdmissi
 import { SessionStore } from '../../src/runtime/session-store.js';
 import { initFactory } from '../../src/core/factory.js';
 import { execute } from '../../src/runtime/providers.js';
+import { connectOpenCode } from '../../src/core/connect.js';
 
 const runtime = path.resolve('dist/runtime');
 const options = () => ({ profileId: randomUUID(), consentRef: randomUUID(), maxTurns: 3 });
@@ -218,6 +219,26 @@ test('legacy mutations can overlap, but reservation cannot race an admitted muta
   assert.equal((await createManagedFixtureTask(root, store, owner, options())).state.status, 'idle');
 });
 
+test('connection updates respect durable ownership while previews remain read-only', async t => {
+  const { root, store, open } = await project(t);
+  const executable = path.resolve('dist/runtime/foundry.cjs');
+  await connectOpenCode(root, executable, 'apply');
+  const files = ['opencode.json', '.opencode/skills/foundry-work/SKILL.md', '.foundry/state/connectors/opencode.json'];
+  const before = await Promise.all(files.map(file => readFile(path.join(root, file), 'utf8')));
+  const session = await createManagedFixtureTask(root, store, owner, options());
+  await store.close();
+  const reopened = await open();
+  assert.equal((await connectOpenCode(root, executable, 'dry-run')).applied, false);
+  for (const mode of ['apply', 'remove'] as const) {
+    await assert.rejects(connectOpenCode(root, executable, mode), /managed session owns/);
+  }
+  assert.deepEqual(await Promise.all(files.map(file => readFile(path.join(root, file), 'utf8'))), before);
+  assert.equal((await reopened.get(session.id, owner)).state.status, 'idle');
+  await command(reopened, session.id, owner, 'session.stop');
+  await releaseManagedTask(root, reopened, owner, session.id);
+  assert.equal((await connectOpenCode(root, executable, 'remove')).applied, true);
+});
+
 test('unknown fixture outcomes retain ownership and require inspection, not automatic replay', async t => {
   const { root, store, id, open } = await bind(t);
   await command(store, id, owner, 'message.send', { text: 'Implement addition.' });
@@ -348,11 +369,22 @@ test('a crashed admission fails closed until exact trusted reconciliation', asyn
   t.after(() => child.kill('SIGKILL'));
   const exited = new Promise<void>(resolve => child.once('exit', () => resolve()));
   await new Promise<void>((resolve, reject) => { child.stdout.once('data', () => resolve()); child.once('error', reject); child.once('exit', () => reject(new Error('Admission helper exited before entering'))); });
+  let overlapped = false;
+  await withWorkspaceMutation(root, 'provider', async () => { overlapped = true; });
+  assert.equal(overlapped, true);
   child.kill('SIGKILL'); await exited;
   const entries = await inspectWorkspaceAdmissions(root);
   assert.equal(entries.length, 1);
   const entry = entries[0]!;
   await assert.rejects(createManagedFixtureTask(root, store, owner, options()), /Unresolved workspace admissions/);
+  let called = false;
+  for (const operation of ['scoped', 'factory', 'provider'] as const) {
+    await assert.rejects(withWorkspaceMutation(root, operation, async () => { called = true; }), /Unresolved workspace admissions/);
+  }
+  assert.equal(called, false);
+  await assert.rejects(approveScope(root, (await reviewScope(root)).revision), /Unresolved workspace admissions/);
+  await assert.rejects(connectOpenCode(root, path.resolve('dist/runtime/foundry.cjs'), 'apply'), /Unresolved workspace admissions/);
+  assert.deepEqual(await inspectWorkspaceAdmissions(root), entries);
   await assert.rejects(reconcileWorkspaceAdmission(root, inspector, { id: entry.id, digest: 'a'.repeat(64), resourcesStopped: true, effectsKnown: true }));
   await assert.rejects(reconcileWorkspaceAdmission(root, owner, { ...entry, resourcesStopped: true, effectsKnown: true }));
   await reconcileWorkspaceAdmission(root, inspector, { id: entry.id, digest: entry.digest, resourcesStopped: true, effectsKnown: true });

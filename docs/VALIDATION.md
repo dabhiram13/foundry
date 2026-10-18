@@ -69,8 +69,8 @@ TypeScript compiler, explicitly retry with corrected source, and use existing
 unconfirmed candidates and stale evidence cannot record completion.
 
 Boundary cases cover changed approval inputs, project ownership, competing
-legacy mutations, process death, filtered check environments, Stop and lost
-creation or task-recording acknowledgements. Fixture actors and callbacks are
+legacy mutations, connection updates, process death, filtered check environments,
+Stop and lost creation or task-recording acknowledgements. Fixture actors and callbacks are
 trusted local application code. These checks do not qualify OpenCode, a live
 provider, a sandbox or the complete product-building experience. See the
 [bridge specification](specs/managed-task-bridge.md).

@@ -79,6 +79,10 @@ export async function withWorkspaceMutation<T>(root: string, operation: Operatio
       }
       return null;
     }
+    for (const entry of await inspectWorkspaceAdmissions(root)) {
+      try { process.kill(entry.pid, 0); }
+      catch { throw new FoundryError('Unresolved workspace admissions need inspection before changing work'); }
+    }
     const relative = `${ADMISSIONS}/${randomUUID()}.json`;
     await atomicJson(root, relative, { schemaVersion: 1, pid: process.pid, operation });
     return relative;

@@ -106,6 +106,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
     'dist/runtime/foundry-worker.cjs',
     'dist/runtime/foundry.cjs',
     'licenses/MCP-SDK-LICENSE.txt',
+    'licenses/OpenCode-MIT.txt',
     'licenses/Zod-MIT.txt',
     'licenses/entities-BSD.txt',
     'licenses/jsonc-parser-MIT.txt',
@@ -189,7 +190,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.match(zodLicense, /Copyright \(c\) 2025 Colin McDonnell/);
   assert.match(zodLicense, /Permission is hereby granted, free of charge/);
   const bundled = await readFile(path.join(installedRoot, 'dist/runtime/foundry.cjs'), 'utf8');
-  for (const name of ['Zod-MIT.txt', 'parse5-MIT.txt', 'entities-BSD.txt', 'MCP-SDK-LICENSE.txt', 'jsonc-parser-MIT.txt']) {
+  for (const name of ['Zod-MIT.txt', 'parse5-MIT.txt', 'entities-BSD.txt', 'MCP-SDK-LICENSE.txt', 'jsonc-parser-MIT.txt', 'OpenCode-MIT.txt']) {
     const license = await readFile(path.join(installedRoot, 'licenses', name), 'utf8');
     assert.ok(bundled.includes(license), `${name} must travel with installed workspace runtimes`);
   }

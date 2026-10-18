@@ -75,6 +75,27 @@ trusted local application code. These checks do not qualify OpenCode, a live
 provider, a sandbox or the complete product-building experience. See the
 [bridge specification](specs/managed-task-bridge.md).
 
+## OpenCode lifecycle checks
+
+The internal probe uses SDK 1.19.0 with an explicitly selected binary and expected
+SHA-256 digest. Protocol fixtures exercise authentication, version/configuration
+checks, project binding, redacted failures, request/output limits, deadlines and
+confirmed process shutdown. Private unresolved launch records block re-admission.
+
+To run the separate real-binary check against a trusted disposable project:
+
+```sh
+npm run build:runtime
+FOUNDRY_OPENCODE_QUALIFY_BINARY=/absolute/path/to/opencode \
+  node --test --test-name-pattern='real pinned OpenCode' dist/runtime-tests/opencode.test.cjs
+```
+
+Without that explicit selection the external-binary test is skipped. It creates
+and deletes an empty session, with hostile project plugin/MCP settings disabled.
+No model prompt is sent. Idle abort and process shutdown do not qualify stopping
+active tools, managed task execution or sandbox containment. See the
+[lifecycle specification](specs/opencode-lifecycle.md).
+
 ## Public website checks
 
 Static checks validate every generated page, local link and anchor, search

@@ -8,7 +8,7 @@ const metadata = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf
 const define = { __FOUNDRY_VERSION__: JSON.stringify(metadata.version) };
 const runtimeOutput = path.join(root, 'dist/runtime');
 const testsOutput = path.join(root, 'dist/runtime-tests');
-const notices = await Promise.all(['LICENSE', 'licenses/Zod-MIT.txt', 'licenses/parse5-MIT.txt', 'licenses/entities-BSD.txt', 'licenses/MCP-SDK-LICENSE.txt', 'licenses/jsonc-parser-MIT.txt']
+const notices = await Promise.all(['LICENSE', 'licenses/Zod-MIT.txt', 'licenses/parse5-MIT.txt', 'licenses/entities-BSD.txt', 'licenses/MCP-SDK-LICENSE.txt', 'licenses/jsonc-parser-MIT.txt', 'licenses/OpenCode-MIT.txt']
   .map(file => readFile(path.join(root, file), 'utf8')));
 const banner = { js: `#!/usr/bin/env node\n/*!\n${notices.join('\n\n')}\n*/` };
 
@@ -64,7 +64,7 @@ await build({
 });
 
 const testEntries = (await files(path.join(root, 'tests/runtime')))
-  .filter((file) => file.endsWith('.test.ts') || file.endsWith('/workspace-admission-fixture.ts'));
+  .filter((file) => file.endsWith('.test.ts') || file.endsWith('-fixture.ts'));
 if (testEntries.length) {
   await build({
     entryPoints: testEntries,

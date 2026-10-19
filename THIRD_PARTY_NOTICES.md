@@ -9,6 +9,8 @@ notices are retained with the package and embedded in each copied runtime:
 - Model Context Protocol server and core libraries, version 2.3.1:
   `licenses/MCP-SDK-LICENSE.txt` (Apache-2.0 with retained MIT contributions).
 - jsonc-parser, used for preserving client configuration: `licenses/jsonc-parser-MIT.txt`.
+- OpenCode JavaScript SDK 1.19.0, used by the internal lifecycle qualification:
+  `licenses/OpenCode-MIT.txt`. The OpenCode executable is not bundled.
 
 The neutral role kit and vendored skill libraries retain their source and
 license records beside their files. `library/provenance.json` records the

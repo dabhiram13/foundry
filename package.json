@@ -30,6 +30,7 @@
     "licenses/entities-BSD.txt",
     "licenses/MCP-SDK-LICENSE.txt",
     "licenses/jsonc-parser-MIT.txt",
+    "licenses/OpenCode-MIT.txt",
     "README.md"
   ],
   "devDependencies": {
@@ -38,6 +39,7 @@
     "@iarna/toml": "2.2.5",
     "@modelcontextprotocol/client": "2.3.1",
     "@modelcontextprotocol/server": "2.3.1",
+    "@opencode-ai/sdk": "1.19.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.19.1",
     "@types/react": "19.3.0",

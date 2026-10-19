@@ -103,6 +103,23 @@ redaction, an explicit workspace profile and consent validation. Internal actor
 contexts are not authentication and must never come directly from client JSON.
 No managed CLI/MCP API, model call, account connection or billing is enabled.
 
+### OpenCode resource qualification
+
+The internal lifecycle probe uses OpenCode's pinned TypeScript SDK and a selected
+binary digest. It starts a separate authenticated loopback server with a fresh
+home and filtered environment, verifies the effective deny-only configuration,
+then creates, inspects, idle-aborts and deletes an empty project-bound session.
+Direct local HTTP requests do not inherit proxy settings. Startup output,
+response bodies and operation time are bounded; raw logs and credentials are
+not saved. A private launch record precedes process creation. An unresolved
+record blocks another launch rather than guessing whether it is safe to retry.
+
+Success requires confirmed owned process-group shutdown. This probe does not
+dispatch approved tasks, send prompts or qualify cancellation of active tools.
+It is a compatibility check on a trusted disposable project, not a sandbox.
+Connecting it to managed execution and recovery is separate work. See the
+[lifecycle specification](specs/opencode-lifecycle.md).
+
 ## Distribution boundary
 
 Everyday users install `@dabhiram13/foundry` from npm; contributors build from
@@ -152,6 +169,7 @@ The controller retains control of approvals and spending rules.
 | `src/runtime/session-store.ts`, `src/runtime/session-storage-worker.ts`, `src/runtime/session-database.ts` | Typed client, private SQLite worker and atomic managed-session records |
 | `src/runtime/providers.ts` | Adapter execution, messages, cancellation and recovery |
 | `src/runtime/environment.ts` | Restricted provider child environment |
+| `src/runtime/opencode.ts` | Internal typed, owned OpenCode lifecycle qualification, without model execution |
 | `src/runtime/mcp.ts` | Project-bound stdio tools for the connected host |
 | `site/` | Static landing page and searchable documentation |
 | `scripts/` | Node build, catalog and exact-index secret checks |

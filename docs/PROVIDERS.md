@@ -7,9 +7,102 @@ This guide covers provider setup for the **terminal**, including npm 0.5.1.
 Using [OpenCode from source](CONNECTED-CLIENT.md)? Keep its existing model,
 account and tools instead.
 
+## Choose the connection path
+
+| Path | Where you choose the model | What does the coding |
+| --- | --- | --- |
+| Foundry inside OpenCode, from source | OpenCode's provider settings and model picker | OpenCode's tools, using Foundry's saved assignments |
+| Foundry terminal, including npm 0.5.1 | The selected adapter's settings; `--model` when supported | An installed coding tool that implements Foundry's process interface |
+| Foundry-managed coding session | Not available yet | Internal startup/shutdown and trusted edit tests are not a usable coding agent |
+
+There is no `foundry --base-url` connection. An OpenAI-compatible API supplies
+model responses, not a coding tool. Use it through OpenCode below, or implement
+and test a terminal adapter. Foundry does not promise that every endpoint or
+model works.
+
+## OpenAI-compatible endpoints in OpenCode
+
+This is the **connected source path**, not a new terminal adapter or the internal
+managed OpenCode check. First follow [the source setup](CONNECTED-CLIENT.md), then
+configure your model in OpenCode. See OpenCode's official
+[custom-provider guide](https://opencode.ai/docs/providers/#custom-provider) and
+[configuration guide](https://opencode.ai/docs/config/).
+
+Merge these fields into your product's `opencode.json` or `opencode.jsonc`.
+Keep any existing `mcp` settings, including Foundry's entry:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "my-endpoint": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "My model endpoint",
+      "options": {
+        "baseURL": "https://your-provider.example/v1",
+        "apiKey": "{env:MY_MODEL_API_KEY}"
+      },
+      "models": {
+        "your-model-id": { "name": "My coding model" }
+      }
+    }
+  },
+  "model": "my-endpoint/your-model-id"
+}
+```
+
+Replace the example URL and model ID with values from your provider. The provider
+ID before `/` must match the key under `provider`. Put the base API URL here,
+not a full `/chat/completions` URL. Use HTTPS for remote services; loopback HTTP
+is appropriate only for a trusted local server.
+
+Supply `MY_MODEL_API_KEY` through your shell or secret manager before starting
+OpenCode. The `{env:...}` text is a reference, not a place to paste the key. Do
+not put credentials in URLs, committed configuration, briefs or command arguments.
+For a local service without authentication, follow its configuration instructions.
+Do not add a dummy cloud key or silently fall back to another model.
+
+Open or restart OpenCode in the product directory. Confirm the selected model
+with `/models` and check Foundry with `/mcp`. Before a live task, agree on account
+access and costs. OpenCode, not Foundry, manages authentication, model requests,
+context limits and billing on this path. Foundry's terminal billing flags do not
+control OpenCode's spending.
+
+Connecting, refreshing or removing Foundry changes its own MCP entry and project
+skill, not your provider, model or key references. Test the full connection with
+the [integration checklist](QUALIFICATION.md); a successful model-list request
+alone does not prove coding works.
+
+### Compatibility is more than the URL
+
+| Check | Why it matters |
+| --- | --- |
+| Chat request format | This example uses OpenAI-style Chat Completions, not a guarantee of Responses, Azure, realtime or every provider extension. |
+| Tool calls and results | The selected model must call coding/MCP tools correctly and continue after their results. Text-only chat is not enough. |
+| Streaming | The endpoint must return the streamed events expected by the host's provider package. |
+| Model and context limits | The configured model ID, limits and supported options must match the server. Reasoning settings differ between providers. |
+| Structured results | Foundry validates submitted plans and evidence, but that does not prove a model supports native JSON Schema output. |
+| Failures and stopping | Authentication errors, rate limits, malformed responses, timeouts and active-tool cancellation need tests for the actual host/provider combination. |
+
+Local qualification uses **OpenCode 1.19.0** and a fake loopback Chat Completions
+endpoint: explicit model and environment-held key, streamed tool calls, a Foundry
+MCP context read, a real file write and tool results returned to the endpoint.
+It uses no live model or provider account. It does not qualify any named cloud
+provider, local model, active-tool cancellation or a complete product build.
+See [how to run the check](VALIDATION.md#openai-compatible-host-check).
+
+## Terminal adapter support
+
+The built-in `codex` adapter talks to an installed Codex CLI. Its command and
+account still need to work on your machine; a listed adapter is not live-model
+qualification. The `chatgpt` entry is explicitly unsupported, not a second
+working connection. Other tools need a reviewed custom adapter below. Foundry
+does not automatically discover a provider from an API key or URL.
+
 ## Choose a provider and model
 
-An adapter connects Foundry to a provider's tools and lists what it can do.
+An adapter is a small connector to an installed coding tool. It lists the
+features the tool claims to support.
 Foundry is not tied to one model or provider. List connections
 with `foundry providers`, then choose one with `--adapter NAME` when creating
 a project. Foundry does not silently choose a provider or switch to another one.
@@ -28,7 +121,7 @@ foundry providers PROJECT
 ```
 
 This reports each adapter's built-in or project configuration source, configuration
-hash, declared capabilities and executable availability. It checks files and PATH
+hash, declared features and executable availability. It checks files and PATH
 without launching the tool or contacting an account. `authentication: not_checked`
 means you still need to sign in separately. An available executable is not a
 successful login or a guarantee that its script arguments are valid. A missing

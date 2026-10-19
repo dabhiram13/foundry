@@ -11,8 +11,36 @@ You approve the plan and design.** Install it using the [first-project guide](GE
 | Coding tool or provider | Uses its tools to research, plan and change code. Use your OpenCode model and account, or set up a provider for terminal work. |
 | Your project | Holds the code, documents, Git history and private progress records on your computer. Cloud providers receive the prompts and project content sent to them. |
 
-Specialist roles supply instructions for each job and share the project's
-provider connection.
+## What works today
+
+Foundry is not yet a complete standalone coding agent. The connected workflow
+uses your coding client's tools; internal session tests are not a replacement
+for that client.
+
+| Area | Available now | Still missing |
+| --- | --- | --- |
+| Product work | Research, Plan and Design approvals, dependent coding tasks, saved checks, review and local handoff through a compatible coding tool. | A current live-model product trial with owner visual acceptance and a same-brief one-shot comparison. |
+| Providers | Terminal process adapters; the source connection uses OpenCode's selected model, account and tools. | A universal provider connection. A model API alone does not supply file, shell or browser tools. |
+| Saved sessions | Internal typed session storage, command history, pause/stop and recovery tests. | A public managed coding-session command or app that runs real coding turns. |
+| Code changes | The connected client edits files. A trusted internal test executor also exercises real edits and checks. | Connecting the managed OpenCode process to approved tasks, real model execution and recovery. |
+| Terminal and browser | Use the host coding tool's tools. Foundry records supplied interface evidence. | A Foundry-owned interactive terminal, browser and isolated workspace. |
+| Delivery | Local Git checkpoints and a handoff summary in terminal product work. | Foundry-managed PR creation, CI/review follow-up, merge and deployment. |
+| Costs and credentials | Explicit adapter selection, billing consent and filtered process environments. Connected OpenCode owns its account and costs. | A unified credential manager or guaranteed live spending cap across providers. |
+| Learning | Saved project progress and bounded repairs. | Evaluated cross-project skill learning or recursive self-improvement. |
+
+The managed OpenCode check starts an authenticated local server, inspects an
+empty project-bound session, deletes it and confirms shutdown. It sends no
+prompt and does not prove active-tool cancellation or sandboxing. See
+[architecture](ARCHITECTURE.md) and [test coverage](VALIDATION.md).
+
+Passing local tests proves specific behavior, not parity with a complete coding
+workspace or better product quality. The website is documentation, not a managed
+workspace UI.
+
+## Work inside your coding tool
+
+Specialist roles are instructions for each job, not independent workers running
+in parallel. They share the project's provider connection.
 
 Inside an existing coding client, Foundry instead prepares assignments for the
 host's own reasoning and tools. The connected source preview supports

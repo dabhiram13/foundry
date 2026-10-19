@@ -3,6 +3,11 @@
 Use Foundry inside **OpenCode**, with your existing model, account and coding
 tools. Foundry assigns the work, saves progress and waits for your approval.
 
+For an OpenAI-compatible or local model endpoint, configure it in OpenCode with
+the [provider setup example](PROVIDERS.md#openai-compatible-endpoints-in-opencode).
+Foundry keeps that provider configuration unchanged. A model API is not a
+standalone Foundry coding engine; [managed execution is still unfinished](WORKFLOW.md#what-works-today).
+
 **This connection is in the source code, not in npm 0.5.1.** The new visual
 workflow has local test coverage, not a live-model trial. Homebrew is not available.
 

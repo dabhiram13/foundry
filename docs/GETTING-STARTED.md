@@ -42,6 +42,9 @@ and API keys out of Foundry commands and project files.
 
 Project workflows use local or subscription-backed adapters. An arbitrary AI
 CLI or API key needs a compatible adapter before Foundry can use it.
+For a custom model endpoint, use the [coding-client path](CONNECTED-CLIENT.md)
+and configure the endpoint there. Foundry does not turn a raw model API into a
+coding agent. See [what works today](WORKFLOW.md#what-works-today).
 
 ## Create a project
 

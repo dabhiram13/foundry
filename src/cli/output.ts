@@ -5,13 +5,13 @@ type JsonRecord = Record<string, unknown>;
 
 export function renderWorkContext(context: WorkContext): string {
   const run = context.run;
-  const lines = [run ? `${run.slug}${run.historical ? ' (completed history)' : ''}` : 'No scoped work yet.'];
+  const lines = [run ? `${run.slug}${run.historical ? ' (completed history)' : ''}` : 'No tracked work yet.'];
   if (run) lines.push(`Saved progress: ${run.saved_status}`, `Specification: ${run.spec.path}`);
   if (context.scope) lines.push(`Scope approval: ${context.scope_approval}`, `Coverage: ${context.requirements_coverage === 'checks_passed' ? 'Mapped required checks passed.' : context.requirements_coverage}`);
   if (context.preparation) lines.push(`Research: ${context.preparation.research.status} (${context.preparation.research.role})`,
     `Captured sources: ${context.preparation.sources.status}`, `Design: ${context.preparation.design.status} (${context.preparation.design.role}; host reported)`);
   if (context.plan) {
-    lines.push('Tasks:', ...context.plan.tasks.map(task => `  ${task.id}: ${task.status} — ${task.title} (${task.role})`),
+    lines.push('Tasks:', ...context.plan.tasks.map(task => `  ${task.id}: ${task.status} - ${task.title} (${task.role})`),
       `Specialist review: ${context.plan.review.status} (${context.plan.reviewer_role}; host reported)`);
   }
   const evidence = {
@@ -61,7 +61,7 @@ export function renderScopeReview(scope: ScopeReview): string {
 }
 
 function scalar(value: unknown): string {
-  if (value === null) return '—';
+  if (value === null) return '-';
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
   return JSON.stringify(value);
 }

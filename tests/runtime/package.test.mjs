@@ -45,7 +45,7 @@ test('linked CLI runs by name outside the checkout and can be unlinked', async (
   };
   run('npm', ['link'], { cwd: root, env });
   const help = run('foundry', ['--help'], { cwd: home, env });
-  assert.match(help.stdout, /Foundry terminal-first runtime/);
+  assert.match(help.stdout, /Foundry - plan, build and check work with your coding tool/);
   assert.ok(run('foundry', ['roles'], { cwd: home, env }).stdout.trim());
   run('npm', ['unlink', '-g', '@dabhiram13/foundry'], { cwd: home, env });
   assert.equal(existsSync(path.join(prefix, 'bin/foundry')), false);
@@ -209,7 +209,7 @@ test('npm tarball exposes one public Node bin and installs globally without Pyth
   assert.equal(versionWithExtra.status, 2);
   assert.match(versionWithExtra.stderr, /Version does not accept additional arguments/);
   const help = run(executable, ['--help'], { cwd: prefix, env });
-  assert.match(help.stdout, /Foundry terminal-first runtime/);
+  assert.match(help.stdout, /Foundry - plan, build and check work with your coding tool/);
   assert.doesNotMatch(help.stdout, /\b(?:typed|http|python)\b/i);
   assert.ok(run(executable, ['roles'], { cwd: prefix, env }).stdout.trim());
 

@@ -96,6 +96,35 @@ No model prompt is sent. Idle abort and process shutdown do not qualify stopping
 active tools, managed task execution or sandbox containment. See the
 [lifecycle specification](specs/opencode-lifecycle.md).
 
+## OpenAI-compatible host check
+
+The default connection suite reads the provider guide's custom-endpoint example
+and checks that connect, refresh and remove preserve its provider, model and key
+reference in both JSON and JSONC, alongside unrelated MCP settings and comments.
+
+Select the pinned OpenCode 1.19.0 binary explicitly for the separate host test:
+
+```sh
+npm run build:runtime
+FOUNDRY_OPENCODE_QUALIFY_BINARY=/absolute/path/to/opencode \
+  node --test dist/runtime-tests/openai-compatible.test.cjs
+```
+
+This Linux/macOS test starts a fake loopback Chat Completions endpoint and runs
+the real host with a fresh home, its own test key and no inherited account
+configuration. It checks model selection, authorization, streamed tool calls,
+Foundry MCP context, a real file write and tool results reaching the next turn.
+Owned processes and temporary files are cleaned up. The binary may need to fetch
+its provider package on first use; no live inference or provider account is used.
+Without explicit binary selection, the test skips; CI does not claim this
+external-binary result from the default suite.
+
+This is not the internal deny-only managed probe. It permits tools in a trusted
+disposable host project. No live model, cloud/local provider, rate-limit behavior,
+active cancellation, sandbox, product quality or complete coding workspace is
+qualified by this test. Use the [integration checklist](QUALIFICATION.md) before
+claiming support for an actual provider/model combination.
+
 ## Public website checks
 
 Static checks validate every generated page, local link and anchor, search

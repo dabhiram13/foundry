@@ -12,8 +12,10 @@ you choose.
 | Build from Foundry's terminal | [Install and first project](GETTING-STARTED.md) | npm package with a provider you choose |
 | Track a change yourself | [Existing repositories](RUNTIME.md) | Local work and checks |
 
-The OpenCode connection has not been tested with a live model. Homebrew is not
-available. Foundry does not publish or deploy your product.
+The current rendered-preview workflow has not had a live-model product trial.
+Foundry is not yet a standalone coding workspace. See [what works today](WORKFLOW.md#what-works-today)
+for the available features and missing pieces. Homebrew is not available.
+Foundry does not publish or deploy your product.
 
 ## Use Foundry
 

@@ -36,7 +36,8 @@ test('both CLI entry points accept Node 24 and newer and reject older versions',
       assert.equal(result.error, undefined);
       if (Number(version.split('.')[0]) >= 24) {
         assert.equal(result.status, 0, `${entry} on ${version}: ${result.stderr}`);
-        assert.match(result.stdout, /Foundry terminal-first runtime/);
+        assert.match(result.stdout, /Foundry - plan, build and check work with your coding tool/);
+        assert.doesNotMatch(result.stdout, /terminal-first runtime|[\u2013\u2014]/);
       } else {
         assert.equal(result.status, 2);
         assert.match(result.stderr, /Foundry requires Node 24 or newer/);
@@ -73,7 +74,7 @@ test('CLI review prints the exact revision and document, JSON stays clean, and s
   const revision = digest(Buffer.from(plan));
   assert.equal(
     human.stdout,
-    `Plan — docs/specs/product.md\nRevision: ${revision}\n\n${plan}\n`,
+    `Plan - docs/specs/product.md\nRevision: ${revision}\n\n${plan}\n`,
   );
 
   const json = runCli(['review', '--project', project, '--json'], base);

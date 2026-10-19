@@ -40,7 +40,7 @@ const FLAG_OPTIONS = new Set([
 ]);
 
 export function usage(): string {
-  return `Foundry terminal-first runtime
+  return `Foundry - plan, build and check work with your coding tool
 
 Usage:
   foundry COMMAND [options]
@@ -420,7 +420,7 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
     const identifier = selectedIdentifier(parsed, context);
     result = await service.review(identifier);
     const review = result as JsonRecord;
-    reviewText = `${String(review.label)} — ${String(review.path)}\nRevision: ${String(review.revision)}\n\n${String(review.text)}`;
+    reviewText = `${String(review.label)} - ${String(review.path)}\nRevision: ${String(review.revision)}\n\n${String(review.text)}`;
     if (terminalMode) {
       terminalReviews.set(reviewKey(service, identifier), String(review.revision));
     }

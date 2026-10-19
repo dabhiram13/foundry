@@ -24,7 +24,7 @@ test('installed runtime is copied and usable without Python', async (t) => {
   assert.equal(project.name, path.basename(target));
   const runtime = await readFile(path.join(target, '.foundry/runtime/foundry.cjs'), 'utf8');
   assert.equal(runtime, await readFile(path.join(source, 'dist/runtime/foundry.cjs'), 'utf8'));
-  assert.match(runtime, /Foundry terminal-first runtime/);
+  assert.match(runtime, /Foundry - plan, build and check work with your coding tool/);
   assert.deepEqual((await readdir(path.join(target, '.foundry/runtime'))).sort(), ['foundry-worker.cjs', 'foundry.cjs'].sort());
   const child = spawnSync(process.execPath, [path.join(target, '.foundry/runtime/foundry.cjs'), '--help'], {
     encoding: 'utf8',
@@ -136,12 +136,13 @@ test('an interrupted installation refuses ordinary retries and finishes under ex
     update: false,
   }));
   const copiedRuntime = path.join(target, '.foundry/runtime/foundry.cjs');
+  const savedRuntime = await readFile(copiedRuntime, 'utf8');
   await rm(copiedRuntime);
   await assert.rejects(install(source, target, true), /interrupted installation blocks this target/);
   await assert.rejects(readFile(copiedRuntime, 'utf8'));
   const recovered = await installWorkspace(source, target, true, true);
   assert.equal(recovered.recovered, true);
-  assert.match(await readFile(copiedRuntime, 'utf8'), /Foundry terminal-first runtime/);
+  assert.equal(await readFile(copiedRuntime, 'utf8'), savedRuntime);
   await assert.rejects(readFile(path.join(target, '.foundry/install-pending.json'), 'utf8'));
 });
 

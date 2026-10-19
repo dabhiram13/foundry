@@ -7,8 +7,16 @@ Run protocol tests locally, then test the connection with an authorized account.
 ## Connected coding-client checks
 
 Connection and tool/skill discovery were checked with OpenCode 1.19.0. Node 24/25,
-SDK and installed-package fixtures cover the local protocol. The merged source
-preview has not yet been qualified by a live model building a product.
+SDK and installed-package fixtures cover the local protocol. The current
+rendered-preview workflow has not yet had a live-model product trial.
+
+For a custom OpenAI-compatible endpoint, separately test the model's streamed
+tool calls, MCP tool discovery, coding tool use and tool results reaching the
+next model turn. Also test authentication failure, rate limits, malformed
+responses, unsupported options, context limits, timeout and active-tool stopping.
+Record which checks ran; do not infer support from a successful model list.
+The [local endpoint check](VALIDATION.md#openai-compatible-host-check) proves the
+success path through a fake endpoint, not those live-provider failure cases.
 
 First test preview/apply/remove, preservation of unrelated settings, refusal of
 owner-file collisions, stale snapshot rejection, stdio cancellation and a second

@@ -54,6 +54,24 @@ test('common public guides and landing copy do not require a specific provider',
   }
 });
 
+test('starting pages distinguish connected work from unfinished managed execution', async () => {
+  const readme = await readFile(path.join(root, 'README.md'), 'utf8');
+  assert.match(readme, /not yet a complete standalone coding agent/);
+  assert.match(readme, /Terminal adapters use a separate\s+process interface/);
+  const workflow = await readFile(path.join(root, 'docs/WORKFLOW.md'), 'utf8');
+  for (const term of ['## What works today', 'Foundry-managed PR creation', 'live spending cap', 'recursive self-improvement']) {
+    assert.ok(workflow.includes(term), term);
+  }
+  const landing = textContent(parse(await readFile(path.join(output, 'index.html'), 'utf8')));
+  assert.match(landing, /Your coding tool does the work/);
+  assert.match(landing, /not a working coding workspace/);
+  assert.match(landing, /PR follow-up are unfinished/);
+  const provider = await readFile(path.join(root, 'docs/PROVIDERS.md'), 'utf8');
+  for (const term of ['## OpenAI-compatible endpoints in OpenCode', 'no `foundry --base-url`', 'fake loopback', 'not Foundry, manages authentication']) {
+    assert.ok(provider.includes(term), term);
+  }
+});
+
 async function checkLocalLinks(tree, current) {
   const links = [];
   walk(tree, (node) => {
@@ -389,10 +407,10 @@ test('product journey remains native, readable and honest about connection bound
   assert.match(textContent(mobileMenu), /How it worksSpecialistsDocumentation/);
   assert.match(textContent(tree), /Role names are not separate running agents/);
   assert.match(textContent(tree), /Not in npm 0\.5\.1/);
-  assert.match(textContent(tree), /Managed workspace\s+In development/);
+  assert.match(textContent(tree), /Managed workspace\s+Not available yet/);
   assert.match(textContent(tree), /running preview and captured desktop and mobile views/);
   assert.doesNotMatch(html, /full specialist journey is not yet exposed/);
-  assert.match(html, /Homebrew is not available/);
+  assert.match(html, /not a working coding workspace/);
   assert.match(html, /Ship writes a project summary; it does not publish or deploy/);
   assert.doesNotMatch(html, /role="tab"|<canvas|<iframe|Imageory|Spline/);
 });
@@ -437,7 +455,7 @@ test('public introductions use plain words instead of AI slogans and runtime jar
     assert.doesNotMatch(await readFile(path.join(root, source), 'utf8'), forbidden, source);
   }
   const readme = await readFile(path.join(root, 'README.md'), 'utf8');
-  assert.match(readme, /research, plan, design, build and review software/);
+  assert.match(readme, /research, planning, design, coding and review/);
   assert.match(readme, /not in npm 0\.5\.1/);
   assert.match(readme, /new\s+visual workflow has local test coverage, not a live-model trial/);
   assert.match(readme, /running app preview, components and captured mobile\/desktop states/);

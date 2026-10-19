@@ -12,9 +12,9 @@
 
 # Build from idea to product.
 
-Foundry helps you research, plan, design, build and review software. Start with
-an idea or improve an existing project. Use your coding tool or a provider you
-choose. Foundry saves the work and pauses for your approval at important steps.
+Foundry organizes research, planning, design, coding and review. Your connected
+coding tool makes the changes. Foundry saves progress, runs your checks and
+pauses for approval. Start with an idea or improve an existing project.
 
 [Website][website] · [Docs][documentation-index] · [npm][npm-package] ·
 [Contribute][contributing]
@@ -38,12 +38,17 @@ start a project. The guide also covers updates and uninstalling.
 
 | Path | What you can do | What you use |
 | --- | --- | --- |
-| npm package, **0.5.1** | Build a product from the terminal | A provider you choose and set up |
+| npm package, **0.5.1** | Run staged project work from the terminal | A compatible coding-tool adapter you set up |
 | OpenCode, **from source** | Research, plan, design, build and review inside your coding tool | Your existing model and account |
 
 The OpenCode connection is in the source code, **not in npm 0.5.1**. The new
 visual workflow has local test coverage, not a live-model trial. Homebrew is not available. To try it, follow
 [the OpenCode guide][connected-client].
+
+**Foundry is not yet a complete standalone coding agent.** Its managed session
+storage and OpenCode startup/shutdown checks are internal foundations, not a
+working managed coding session. A built-in terminal/browser workspace and
+automatic PR/CI follow-up are still missing. See [what works today][current-scope].
 
 ## How it works
 
@@ -91,9 +96,14 @@ From the terminal, **choose your provider and model**, then follow its setup
 and sign-in instructions. In OpenCode, keep your existing model and account.
 Follow the [setup guide][getting-started] or the [provider reference][providers].
 
-Run `foundry providers` to inspect installed commands, declared capabilities and
+Run `foundry providers` to inspect installed commands, declared features and
 configuration sources. Use `foundry providers PROJECT` to inspect a saved project
 by its folder name or ID.
+
+A model API URL alone is not a coding tool. For a custom endpoint, configure
+your coding client first, then connect Foundry. Terminal adapters use a separate
+process interface; they do not accept an arbitrary API URL. The [provider guide][providers]
+explains both paths and what has been tested.
 
 Using a subscription requires your consent. Cloud providers receive the
 prompts and project content sent to them. Foundry is **not a sandbox**. Read the
@@ -119,6 +129,7 @@ and the [release guide][release-guide] for publishing.
 [website]: https://foundry-two-tan.vercel.app/
 [getting-started]: https://foundry-two-tan.vercel.app/docs/getting-started/
 [connected-client]: https://foundry-two-tan.vercel.app/docs/connected-client/
+[current-scope]: https://foundry-two-tan.vercel.app/docs/workflow/#what-works-today
 [npm-package]: https://www.npmjs.com/package/@dabhiram13/foundry
 [documentation-index]: https://foundry-two-tan.vercel.app/docs/
 [release-guide]: https://foundry-two-tan.vercel.app/docs/releasing/

@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { render } from '../../src/cli/output.js';
 
+test('absent values use a simple placeholder', () => {
+  assert.equal(render({ model: null }, false), 'model: -\n');
+});
+
 test('human output retains nested lifecycle, check, and task details', () => {
   const output = render({
     status: 'running',

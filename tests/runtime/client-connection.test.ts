@@ -342,6 +342,38 @@ test('setup preview is read-only and JSONC edits preserve unrelated settings and
   assert.equal(removed.model, 'provider/example');
 });
 
+for (const format of ['json', 'jsonc']) test(`documented custom endpoint survives connection, refresh and removal in ${format}`, async t => {
+  const root = await project(t);
+  const guide = await readFile(path.resolve('docs/PROVIDERS.md'), 'utf8');
+  const example = /```json\n([\s\S]*?)\n```/.exec(guide)?.[1];
+  assert.ok(example);
+  const document = JSON.parse(example);
+  const provider = document.provider['my-endpoint'];
+  assert.equal(provider.npm, '@ai-sdk/openai-compatible');
+  assert.equal(provider.options.apiKey, '{env:MY_MODEL_API_KEY}');
+  assert.equal(new URL(provider.options.baseURL).protocol, 'https:');
+  assert.ok(provider.models[document.model.split('/')[1]]);
+  document.mcp = { other: { type: 'local', command: ['owner-tool'], enabled: false } };
+  const filename = path.join(root, `opencode.${format}`);
+  const ownerText = JSON.stringify(document, null, 2);
+  await writeFile(filename, format === 'jsonc' ? `// Keep my endpoint\n${ownerText}\n` : ownerText);
+  const before = await files(root);
+  await connectOpenCode(root, executable, 'dry-run');
+  assert.deepEqual(await files(root), before);
+  for (const launcher of [executable, path.resolve('replacement-launcher.cjs')]) {
+    await connectOpenCode(root, launcher, 'apply');
+    const installed = parse(await readFile(filename, 'utf8'));
+    assert.deepEqual(installed.provider, document.provider);
+    assert.equal(installed.model, document.model);
+    assert.deepEqual(installed.mcp.other, document.mcp.other);
+    assert.equal(installed.mcp.foundry.command[1], launcher);
+  }
+  await connectOpenCode(root, executable, 'remove');
+  const removed = await readFile(filename, 'utf8');
+  assert.deepEqual(parse(removed), document);
+  if (format === 'jsonc') assert.match(removed, /Keep my endpoint/);
+});
+
 test('setup removes only unchanged managed files and preserves later unrelated edits', async t => {
   const root = await project(t);
   await connectOpenCode(root, executable, 'apply');

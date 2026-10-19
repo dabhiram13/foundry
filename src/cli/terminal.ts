@@ -18,7 +18,7 @@ const HELP = [
   '/help       show this help',
   '/projects   list projects',
   '/new        create a project (provide NAME, --idea and --adapter)',
-  '/use        select a project by ID or slug',
+  '/use        select a project by ID or name',
   '/run        run the selected project',
   '/review     review the selected project',
   '/approve    approve the selected displayed revision',
@@ -26,7 +26,7 @@ const HELP = [
   '/recover    recover the selected project',
   '/configure  configure the selected project',
   '/roles      list available roles',
-  '/providers  list available providers',
+  '/providers  inspect provider connections',
   '/exit       leave terminal mode',
 ].join('\n');
 

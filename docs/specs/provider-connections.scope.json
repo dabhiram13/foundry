@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "criteria": [
+    { "id": "PC-01", "requirement": "Public starting pages accurately distinguish available workflows and unfinished managed execution.", "checks": ["static-site"] },
+    { "id": "PC-02", "requirement": "The provider guide documents an explicit host-owned OpenAI-compatible setup and its limitations.", "checks": ["runtime", "static-site"] },
+    { "id": "PC-03", "requirement": "Owner provider settings survive Foundry connection operations; selected external-binary qualification remains separate from default tests.", "checks": ["runtime"] },
+    { "id": "PC-04", "requirement": "Runtime, packaging, public site, tooling, catalog and secret checks pass.", "checks": ["runtime", "static-site", "tooling", "catalog", "secrets"] }
+  ]
+}

@@ -20,3 +20,15 @@ They are no longer production assets. The old artwork manifest records hashes
 and generation boundaries; supplied reference images were not distributed.
 The retained horse silhouette derives from that approved generated identity.
 Its continued use does not establish trademark or copyright clearance.
+
+## Fluted Signal public site
+
+The new optical composition is original SVG source in `site/assets/fluted-signal.svg`.
+Cult UI's MIT-licensed Fluted Glass wrapper is adapted in
+`site/src/landing/components/ui/fluted-glass.tsx`; Halo Button supplies a visual
+reference for the local static primary-action rim, not its full animation stack.
+The shader is Paper Shaders, Apache 2.0, pinned to `@paper-design/shaders-react`
+0.0.80. Its complete LICENSE and NOTICE, and Cult UI's MIT notice, are retained
+in `site/assets/licenses/` and shipped on the static site. Bundles carry attribution.
+See [component sources](COMPONENT-SOURCES.md) for official URLs and exact mappings.
+No upstream demo image, unverified customer quote or simulated running agent is used.

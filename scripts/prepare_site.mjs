@@ -48,8 +48,10 @@ const css = await postcss([tailwindcss({ base: root, optimize: { minify: true } 
   .process(await readFile(cssInput, 'utf8'), { from: cssInput, to: cssOutput, map: false });
 await writeFile(cssOutput, css.css.replace(/\r?\n$/, ''));
 const notice = await readFile(path.join(root, 'site/assets/licenses/shadcn-ui.txt'), 'utf8');
-const options = { bundle: true, tsconfig: path.join(root, 'tsconfig.json'), banner: { js: `/*! ${notice} */` } };
-await build({ ...options, entryPoints: [path.join(root, 'site/src/landing/public-entry.tsx')], outfile: path.join(publicDir, 'public.js'), format: 'iife', platform: 'browser', minify: true });
+const cultNotice = await readFile(path.join(root, 'site/assets/licenses/cult-ui.txt'), 'utf8');
+const options = { bundle: true, tsconfig: path.join(root, 'tsconfig.json'), banner: { js: `/*! ${notice}\n${cultNotice}\nPowered by Paper Shaders: https://shaders.paper.design (Apache-2.0). License and NOTICE: /assets/licenses/paper-shaders-LICENSE.txt and /assets/licenses/paper-shaders-NOTICE.txt */` } };
+await rm(path.join(publicDir, 'chunks'), { recursive: true, force: true });
+await build({ ...options, entryPoints: { public: path.join(root, 'site/src/landing/public-entry.tsx') }, outdir: publicDir, chunkNames: 'chunks/[name]-[hash]', splitting: true, format: 'esm', platform: 'browser', minify: true });
 const render = path.join(generated, 'render.cjs');
 await build({ ...options, entryPoints: [path.join(root, 'site/src/landing/public-render.tsx')], outfile: render, format: 'cjs', platform: 'node' });
 const { renderPublicPage } = await import(pathToFileURL(render).href);

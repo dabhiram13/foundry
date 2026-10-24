@@ -35,3 +35,13 @@ Site controls adapt shadcn/ui under the MIT notice in
 `site/assets/licenses/shadcn-ui.txt`. The former Animate UI components were
 removed, not relicensed. Their historical notices remain with those revisions.
 See `docs/COMPONENT-SOURCES.md` for current source references.
+
+The optical hero adapts Cult UI's Fluted Glass wrapper (MIT), with its notice
+in `site/assets/licenses/cult-ui.txt`. Halo Button is a visual reference for
+the locally implemented static primary-action rim. Paper Shaders supplies the
+optional WebGL enhancement through `@paper-design/shaders-react` 0.0.80 under
+Apache 2.0. Its complete license and NOTICE ship as `paper-shaders-LICENSE.txt`
+and `paper-shaders-NOTICE.txt` in that directory. Powered by Paper Shaders:
+https://shaders.paper.design. The background SVG is original local source artwork;
+upstream demo images are not included. These are website dependencies, not CLI
+runtime dependencies.

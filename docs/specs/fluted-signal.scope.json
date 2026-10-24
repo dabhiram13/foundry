@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "criteria": [
+    { "id": "FS-01", "requirement": "Real pre-rendered site, accurate copy and navigation", "checks": ["static-site"] },
+    { "id": "FS-02", "requirement": "Shared visual and control system across supported themes", "checks": ["static-site"] },
+    { "id": "FS-03", "requirement": "Attributed source-owned patterns with a static fallback", "checks": ["static-site", "secrets"] },
+    { "id": "FS-04", "requirement": "Semantic, responsive, focusable and reduced-motion-safe implementation", "checks": ["static-site"] },
+    { "id": "FS-05", "requirement": "Preserve actual action, clipboard and search states", "checks": ["static-site"] },
+    { "id": "FS-06", "requirement": "Framework regression and exact-index security gates", "checks": ["runtime", "managed-executor", "static-site", "tooling", "catalog", "secrets"] }
+  ]
+}

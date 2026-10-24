@@ -1,6 +1,6 @@
 ---
 import landing from '../../.generated/landing.html?raw';
-const title = 'Foundry - A clear path from idea to product';
+const title = 'Foundry - Make something worth shipping';
 const description = 'Research, plan, design, build and review software with Foundry. Save progress and use your coding tool or a provider you choose.';
 const canonical = new URL('/', Astro.site).href;
 const shareImage = new URL('/assets/foundry-share.png', Astro.site).href;
@@ -17,11 +17,11 @@ const application = {
 };
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#fafafa" />
+    <meta name="theme-color" content="#101015" />
     <meta name="description" content={description} />
     <title>{title}</title>
     <link rel="canonical" href={canonical} />
@@ -38,7 +38,7 @@ const application = {
     <script type="application/ld+json" set:html={JSON.stringify(application)} />
     <link rel="icon" href="/assets/foundry-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/style.css" />
-    <script is:inline src="/public.js" defer></script>
+    <script is:inline src="/public.js" type="module"></script>
   </head>
   <body><div id="foundry-public" set:html={landing} /></body>
 </html>

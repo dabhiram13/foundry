@@ -9,6 +9,8 @@ the [visual system](DESIGN-SYSTEM.md) and `site/src/styles/tokens.css`.
 | Public component | Source or design reference | Implementation |
 | --- | --- | --- |
 | Actions and navigation | [shadcn Button](https://ui.shadcn.com/docs/components/radix/button) | Local `ui/button.tsx`, Radix Slot, class-variance-authority; native buttons or anchors. |
+| Hero primary action | [Cult UI Halo Button](https://www.cult-ui.com/docs/components/halo-button) | Static rim adapted as source-owned CSS in `controls.css`. Visual reference, not a claim to use the Base UI/Motion keyboard or animation implementation. |
+| Optical hero | [Cult UI Fluted Glass](https://www.cult-ui.com/docs/components/fluted-glass), [registry source](https://www.cult-ui.com/r/fluted-glass.json) | Local `ui/fluted-glass.tsx` wraps Apache-licensed `@paper-design/shaders-react` 0.0.80. Local original SVG, zero speed, lazy WebGL enhancement with a complete static fallback in `optical-signal.tsx`. |
 | Copy commands | [Button](https://ui.shadcn.com/docs/components/radix/button) | Original local `ui/copy-button.tsx`, with written success/failure and retry. No tooltip or motion dependency. |
 | Stage and FAQ | [Accordion](https://ui.shadcn.com/docs/components/radix/accordion) | Native details/summary with matching visual/state recipes, not the Radix Accordion keyboard API. |
 | Mobile menu | [Collapsible](https://ui.shadcn.com/docs/components/radix/collapsible) | Native disclosure plus Escape/focus return. Not a modal. |
@@ -21,12 +23,19 @@ shadcn source is MIT licensed; its notice is retained in
 `site/assets/licenses/shadcn-ui.txt`. Icons come from the installed Lucide
 package. This is one control system, not a mix of component kits.
 
+Cult UI is MIT licensed. Its notice is retained in `site/assets/licenses/cult-ui.txt`.
+Paper Shaders' Apache 2.0 license and NOTICE ship beside it as
+`paper-shaders-LICENSE.txt` and `paper-shaders-NOTICE.txt`; bundles also retain
+attribution and a pointer to these files. Powered by [Paper Shaders](https://shaders.paper.design).
+No remote sample image, paid preset or artwork from another creator is shipped.
+
 ## Identity and assets
 
 The small horse silhouette comes from the previously approved generated Foundry
 identity. The name uses Inter glyph outlines under SIL OFL 1.1, not a new font.
 The README banner contains only that mark and name. The social image uses the
-same neutral identity. Assets and font notices are local in `site/assets`.
+same monochrome identity. Assets and font notices are local in `site/assets`.
+The Fluted Signal optical SVG is original source artwork for this revision.
 
 The old illustration scenes, display font and Animate UI primitives are no
 longer shipped. Their history and source boundaries are recorded in

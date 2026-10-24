@@ -1,25 +1,27 @@
 # Foundry visual system
 
-One quiet system for the public landing page and documentation. Use the same
+Fluted Signal is one editorial system for the public landing and documentation. Use the same
 colors, type, spacing and control states throughout. The public site stays
 static; it is not a mockup of a managed workspace.
 
 ## Color
 
-The shared source is `site/src/styles/tokens.css`. Landing is light; docs support
+The shared source is `site/src/styles/tokens.css`. Landing is ink-dark; docs support
 light, dark and automatic themes using Starlight's native selector.
 
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| Background | `#fafafa` | `#101012` | Reading surface |
-| Card | `#ffffff` | `#18181b` | Controls and contained content |
-| Foreground | `#18181b` | `#fafafa` | Text and primary actions |
-| Muted text | `#61616b` | `#a1a1aa` | Supporting text, not disabled text |
-| Muted surface | `#f4f4f5` | `#232326` | Hover and secondary surfaces |
-| Divider | `#e4e4e7` | `#3f3f46` | Content boundaries |
-| Input border | `#737373` | `#a1a1aa` | Actual form fields |
-| Focus | `#2563eb` | `#93c5fd` | Keyboard focus and documentation links |
-| Error | `#b91c1c` | `#fca5a5` | Written error feedback |
+| Background | `#f8f6f1` | `#101015` | Reading surface |
+| Card | `#ffffff` | `#19171f` | Controls and contained content |
+| Foreground | `#241e2d` | `#f4effa` | Main text |
+| Primary | `#563b82` | `#ded0f5` | Primary actions |
+| Muted text | `#665e70` | `#b7adca` | Supporting text, not disabled text |
+| Muted surface | `#efebf2` | `#292331` | Hover and secondary surfaces |
+| Divider | `#ded7e3` | `#3b3346` | Content boundaries |
+| Input border | `#7c7189` | `#a59bb6` | Actual form fields |
+| Focus | `#654394` | `#d1b6ff` | Keyboard focus and documentation links |
+| Error | `#a32838` | `#ffb4bd` | Written error feedback |
+| Signal | `#57672d` | `#d8e9a2` | Section labels, not live activity |
 
 Do not rely on color alone for errors or availability. Quiet dividers are not
 the only way to recognize an input: fields keep visible labels and clear borders.
@@ -29,11 +31,11 @@ Body text must meet WCAG AA contrast in its rendered state.
 
 - Local Inter variable font for text and controls. System monospace for commands.
   No remote fonts or display font. The Inter OFL notice ships with its outlines.
-- Hero up to 64px, section headings 28-32px, body 15-17px. Small labels supplement
+- Hero up to 76px, section headings 28-42px, body 15-17px. Small labels supplement
   content rather than replacing readable body text.
-- A 4px spacing scale. Controls have 6px corners; contained panels have 8px corners.
-  No gradients, glass surfaces or decorative card grids.
-- Landing width up to 1088px, 32px desktop gutters, 20px mobile gutters. Stack
+- A 4px spacing scale. Controls have 9px corners; contained panels have 16px corners.
+  Restrained gradients belong to the optical hero and primary action rim, not every card.
+- Landing width up to 1200px, 40px desktop gutters, 20px mobile gutters. Stack
   content below 760px; specialist summaries use three, two, then one column.
 - Docs keep Starlight's native navigation breakpoints, dialog and table of
   contents. Only code and table regions may scroll horizontally.
@@ -60,3 +62,18 @@ and smooth scrolling. No animation library is needed.
 The source mapping is in [component sources](COMPONENT-SOURCES.md). Test actual
 desktop/mobile rendering, keyboard behavior, search, both docs themes and
 overflow. Passing static tests does not establish appearance or owner acceptance.
+
+## Optical background and fallbacks
+
+The local `fluted-signal.svg` supplies the complete static composition without
+JavaScript, remote images or a GPU. It is decorative and hidden from accessibility
+APIs. Cult UI's Fluted Glass wrapper is adapted locally with Paper Shaders and a
+still frame (`speed={0}`). The enhancement is a separate lazy module, mounted only
+while the hero is visible and the document is active. Reduced motion, missing
+WebGL2, failed loading and context loss retain the static artwork. No content or
+control depends on the shader.
+
+Only hero primary actions use a restrained, static Halo-inspired rim. Native
+buttons and anchors retain actual loading/disabled/failure semantics; no simulated
+agent activity, animated label dependency or slider showcase is introduced.
+The routes and acceptance mapping are recorded in `docs/specs/fluted-signal.md`.

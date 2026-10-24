@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight, BookOpen, Check, Code, GitBranch, LayoutTempl
 import { ProductWalkthrough } from './product-walkthrough';
 import { Button } from './ui/button';
 import { CopyButton } from './ui/copy-button';
+import { OpticalSignal } from './optical-signal';
 
 const install = 'npm install -g @dabhiram13/foundry\nfoundry';
 const github = 'https://github.com/dabhiram13/foundry';
@@ -48,12 +49,14 @@ export function Landing() {
     </div></header>
     <main id="landing-main" className="landing-shell">
       <section className="landing-hero" aria-labelledby="landing-title">
-        <p className="eyebrow"><GitBranch aria-hidden="true" /> Open source. Built around your code.</p>
-        <h1 id="landing-title">A clear path<br />from idea to product.</h1>
-        <p className="landing-intro">Research, plan, design, build and review with your coding tool.<br className="desktop-break" /> Foundry saves progress, runs checks and waits for your approval.</p>
-        <div className="hero-actions"><Button asChild size="lg"><a href="#landing-install">Install Foundry <ArrowRight aria-hidden="true" /></a></Button><Button asChild variant="outline" size="lg"><a href="/docs/"><BookOpen aria-hidden="true" /> Read the docs</a></Button></div>
-        <p className="hero-note">Your coding tool does the work. You decide what ships.</p>
+        <div className="hero-copy"><p className="eyebrow"><GitBranch aria-hidden="true" /> Open source. On your terms.</p>
+        <h1 id="landing-title">Make something<br /><span>worth shipping.</span></h1>
+        <p className="landing-intro">An idea needs more than a first draft. Research, plan, design, build and review with your coding tool. Foundry keeps the thread.</p>
+        <div className="hero-actions"><Button asChild size="lg"><a href="#landing-install">Start building <ArrowRight aria-hidden="true" /></a></Button><Button asChild variant="outline" size="lg"><a href="/docs/"><BookOpen aria-hidden="true" /> Take a closer look</a></Button></div>
+        <p className="hero-note">Your tools. Your code. Your call on what ships.</p></div>
+        <OpticalSignal />
       </section>
+      <div className="journey-line" aria-label="The product journey"><span className="journey-label">FROM FIRST THOUGHT TO FINISHED WORK</span><p>Research <span>/</span> Plan <span>/</span> Design <span>/</span> Build <span>/</span> Review <span>/</span> Handoff</p></div>
       <section id="landing-install" className="install-section" aria-labelledby="install-title">
         <div className="install-heading"><div><p className="section-label">Start here</p><h2 id="install-title">Small install. Real work.</h2></div><p>Node 24 or newer, npm and Git.<br />Choose your provider when you create a project.</p></div>
         <div className="install-panel"><div className="command-heading"><span><span className="command-dot" aria-hidden="true" /> Terminal</span><CopyButton text={install} /></div><pre tabIndex={0} aria-label="Installation commands"><code>{install}</code></pre></div>

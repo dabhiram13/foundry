@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="1080" viewBox="0 0 960 1080">
+  <title>Fluted Signal</title>
+  <desc>Original optical study for Foundry. Lilac glass and a citrus ring on ink.</desc>
+  <defs>
+    <radialGradient id="ambient"><stop stop-color="#37274a"/><stop offset="1" stop-color="#111016"/></radialGradient>
+    <linearGradient id="glass" x2=".8" y2="1"><stop stop-color="#f1e5ff"/><stop offset=".34" stop-color="#a693c2"/><stop offset=".62" stop-color="#51425f"/><stop offset="1" stop-color="#211a2b"/></linearGradient>
+    <linearGradient id="citrus" x2=".9" y2="1"><stop stop-color="#eff8c6"/><stop offset=".4" stop-color="#d3e58d"/><stop offset="1" stop-color="#627044"/></linearGradient>
+    <linearGradient id="edge"><stop stop-color="#fff" stop-opacity=".35"/><stop offset=".22" stop-color="#e5d8ff" stop-opacity=".03"/><stop offset=".8" stop-color="#08050d" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity=".12"/></linearGradient>
+    <pattern id="flutes" width="25" height="1080" patternUnits="userSpaceOnUse"><path fill="url(#edge)" d="M0 0h25v1080H0z"/></pattern>
+    <mask id="ring"><path fill="white" fill-rule="evenodd" d="M480 185a245 245 0 1 1 0 490 245 245 0 1 1 0-490m0 115a130 130 0 1 0 0 260 130 130 0 1 0 0-260"/></mask>
+  </defs>
+  <path fill="url(#ambient)" d="M0 0h960v1080H0z"/>
+  <g transform="translate(0 105) rotate(-24 480 430)"><path fill="url(#citrus)" mask="url(#ring)" d="M190 150h580v580H190z"/></g>
+  <path fill="url(#glass)" d="M280 200h115v590h235v110H280z" opacity=".72" transform="rotate(16 480 550)"/>
+  <path fill="url(#flutes)" d="M0 0h960v1080H0z"/>
+  <path fill="none" stroke="#e7d9ff" stroke-opacity=".15" d="M75 75h810v930H75z"/>
+  <g fill="#d1c6df" opacity=".5"><circle cx="75" cy="75" r="3"/><circle cx="885" cy="75" r="3"/><circle cx="75" cy="1005" r="3"/><circle cx="885" cy="1005" r="3"/></g>
+</svg>

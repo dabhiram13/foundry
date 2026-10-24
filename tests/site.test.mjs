@@ -63,7 +63,7 @@ test('starting pages distinguish connected work from unfinished managed executio
     assert.ok(workflow.includes(term), term);
   }
   const landing = textContent(parse(await readFile(path.join(output, 'index.html'), 'utf8')));
-  assert.match(landing, /Your coding tool does the work/);
+  assert.match(landing, /with your coding tool/);
   assert.match(landing, /not a working coding workspace/);
   assert.match(landing, /PR follow-up are unfinished/);
   const provider = await readFile(path.join(root, 'docs/PROVIDERS.md'), 'utf8');
@@ -135,7 +135,7 @@ test('README links readers to built public documentation pages', async () => {
 
 test('public landing is pre-rendered and does not load the workspace client', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
-  assert.match(html, /A clear path<br\/>from idea to product\./);
+  assert.match(html, /Make something<br\/><span>worth shipping\.<\/span>/);
   assert.match(html, /Build products,<br\/>step by step\./);
   assert.match(html, /href="\/docs\/"/);
   assert.doesNotMatch(html, /foundry-token|src="\/app.js"|Open local browser view/);
@@ -462,7 +462,7 @@ test('public introductions use plain words instead of AI slogans and runtime jar
   assert.match(readme, /Service work needs no images/);
 });
 
-test('neutral public system uses local fonts and no obsolete production art or motion', async () => {
+test('Fluted Signal uses local fonts and no obsolete production art or motion', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
   const script = await readFile(path.join(output, 'public.js'), 'utf8');
   const css = await readFile(path.join(output, 'style.css'), 'utf8');
@@ -472,7 +472,8 @@ test('neutral public system uses local fonts and no obsolete production art or m
   const source = await readFile(path.join(root, 'site/src/landing/landing.css'), 'utf8');
   assert.match(source, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(source, /min-height: 44px/);
-  assert.doesNotMatch(source, /linear-gradient|backdrop-filter|\.foundry-art/);
+  assert.doesNotMatch(source, /\.foundry-art/);
+  assert.match(source, /url\('\/assets\/fluted-signal\.svg'\)/);
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
   assert.equal(manifest.devDependencies.motion, undefined);
   assert.equal(manifest.devDependencies['tw-animate-css'], undefined);
@@ -488,12 +489,51 @@ test('shared palette has readable body, primary, link, error and focus contrast 
       .map(channel => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
     return rgb.reduce((sum, value, i) => sum + value * [.2126, .7152, .0722][i], 0);
   };
-  for (const [foreground, background] of [['18181b', 'fafafa'], ['61616b', 'fafafa'], ['61616b', 'ffffff'], ['ffffff', '18181b'], ['2563eb', 'fafafa'], ['b91c1c', 'ffffff'], ['fafafa', '101012'], ['a1a1aa', '101012'], ['a1a1aa', '18181b'], ['18181b', 'f4f4f5'], ['93c5fd', '18181b'], ['fca5a5', '18181b']]) {
-    const [light, dark] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
-    assert.ok((light + .05) / (dark + .05) >= 4.5, `${foreground} on ${background}: body contrast`);
+  const css = postcss.parse(await readFile(path.join(root, 'site/src/styles/tokens.css'), 'utf8'));
+  const themes = [];
+  css.walkRules(rule => {
+    const tokens = { ...(themes[0] ?? {}) };
+    rule.walkDecls(decl => { tokens[decl.prop] = decl.value.replace('#', ''); });
+    themes.push(tokens);
+  });
+  assert.equal(themes.length, 2);
+  for (const tokens of themes) {
+    const check = (front, back, minimum) => {
+      const [light, dark] = [luminance(tokens[`--${front}`]), luminance(tokens[`--${back}`])].sort((a, b) => b - a);
+      assert.ok((light + .05) / (dark + .05) >= minimum, `${front} on ${back}: >= ${minimum}`);
+    };
+    for (const back of ['background', 'card', 'popover', 'muted']) {
+      for (const front of ['foreground', 'muted-foreground', 'destructive', 'signal']) check(front, back, 4.5);
+      for (const front of ['ring', 'input']) check(front, back, 3);
+    }
+    for (const back of ['primary', 'primary-hover', 'primary-active']) check('primary-foreground', back, 4.5);
   }
   const license = await readFile(path.join(output, 'assets/licenses/Inter-OFL.txt'), 'utf8');
   assert.match(license, /SIL OPEN FONT LICENSE/);
+});
+
+test('optical enhancement is decorative, optional, lazy and attributed', async () => {
+  const html = await readFile(path.join(output, 'index.html'), 'utf8');
+  assert.match(html, /data-theme="dark"/);
+  assert.match(html, /type="module"/);
+  assert.match(html, /class="optical-signal" aria-hidden="true"/);
+  assert.doesNotMatch(html, /<canvas/);
+  const glass = await readFile(path.join(root, 'site/src/landing/components/optical-signal.tsx'), 'utf8');
+  assert.match(glass, /lazy\(\(\) => import\('\.\/ui\/fluted-glass'\)\)/);
+  assert.match(glass, /if \(motion.matches\) return/);
+  assert.match(glass, /IntersectionObserver/);
+  assert.match(glass, /visibilityState === 'visible'/);
+  assert.match(glass, /getDerivedStateFromError/);
+  for (const name of ['cult-ui.txt', 'paper-shaders-LICENSE.txt', 'paper-shaders-NOTICE.txt']) {
+    assert.ok((await readFile(path.join(output, 'assets/licenses', name), 'utf8')).length > 80);
+  }
+  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(manifest.devDependencies['@paper-design/shaders-react'], '0.0.80');
+  assert.equal(manifest.dependencies?.['@paper-design/shaders-react'], undefined, 'shader is not a published CLI dependency');
+  const script = await readFile(path.join(output, 'public.js'), 'utf8');
+  const chunks = [...new Set(script.match(/\.\/chunks\/[\w-]+\.js/g))];
+  assert.ok(chunks.some(name => name.includes('fluted-glass')), 'shader is a separate dynamic module');
+  for (const chunk of chunks) assert.ok(gzipSync(await readFile(path.join(output, chunk))).byteLength < 50_000, `${chunk}: gzip budget`);
 });
 
 test('share artwork and SVG identity are self-contained and clearly attributed', async () => {

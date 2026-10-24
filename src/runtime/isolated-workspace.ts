@@ -85,9 +85,15 @@ async function regularFile(filename: string): Promise<{ bytes: Buffer; mode: num
 
 async function snapshot(root: string, directory: string): Promise<{ files: number; bytes: number }> {
   const names = await filesFromGit(root);
+  let files = 0;
   let total = 0;
   for (const name of names) {
-    const { bytes, mode } = await regularFile(path.join(root, name));
+    const file = await regularFile(path.join(root, name)).catch(error => {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    });
+    if (!file) continue;
+    const { bytes, mode } = file;
     total += bytes.length;
     if (total > 64 * 1024 * 1024) throw new FoundryError('Workspace snapshot exceeds the size limit');
     for (const kind of ['baseline', 'working']) {
@@ -95,8 +101,9 @@ async function snapshot(root: string, directory: string): Promise<{ files: numbe
       await mkdir(path.dirname(filename), { recursive: true, mode: 0o700 });
       await writeFile(filename, bytes, { flag: 'wx', mode });
     }
+    files++;
   }
-  return { files: names.length, bytes: total };
+  return { files, bytes: total };
 }
 
 async function tree(directory: string): Promise<Map<string, string>> {
@@ -139,6 +146,10 @@ export class IsolatedWorkspace {
   private get name(): string { return `foundry-ws-${this.session.id}`; }
   private async locked<T>(fn: () => Promise<T>): Promise<T> { return withProcessLock(path.join(this.parent, `${this.session.id}.lock`), fn); }
   private async read(): Promise<Record> {
+    await lstat(this.directory).catch(error => {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new FoundryError('No owner workspace exists. Open one first.');
+      throw error;
+    });
     await privateDirectory(this.directory);
     const filename = path.join(this.directory, 'record.json');
     const info = await lstat(filename);
@@ -179,7 +190,7 @@ export class IsolatedWorkspace {
       '--security-opt', 'no-new-privileges', '--pids-limit', '128', '--memory', '512m', '--cpus', '1',
       '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m', '--user', `${process.getuid!()}:${process.getgid!()}`,
       '--mount', `type=bind,source=${path.join(this.directory, 'working')},target=/workspace`,
-      '--workdir', '/workspace', '--env', 'HOME=/tmp', record.image, 'node', '-e', 'setInterval(() => {}, 60000)']);
+      '--workdir', '/workspace', '--env', 'HOME=/tmp', '--entrypoint', 'node', record.image, '-e', 'setInterval(() => {}, 60000)']);
     if (created.code !== 0) throw new FoundryError('Docker could not create the workspace');
     const started = await docker(['start', this.name]);
     if (started.code !== 0) throw new FoundryError('Docker could not start the workspace');

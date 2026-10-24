@@ -36,6 +36,12 @@ external API is used by this increment. A network-disabled container cannot
 reach the host-local fake provider; adding an explicit credential-free broker
 is subsequent work, not a reason to silently enable host networking.
 
+Inspection before first open must not reserve a workspace directory. Snapshot
+the current working tree, omitting tracked files that were deleted locally.
+Override image entrypoints with the selected Node runtime, and keep project
+admission available while a terminal command runs so the owner can inspect and
+stop it through a second CLI process. Qualify these paths in the installed CLI.
+
 ## Acceptance criteria
 
 | ID | Behavior | Observable check |

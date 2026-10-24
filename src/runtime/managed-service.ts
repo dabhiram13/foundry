@@ -79,10 +79,11 @@ export class ManagedService {
   }
   async execWorkspace(argv: string[], deadlineMs?: number): Promise<Awaited<ReturnType<IsolatedWorkspace['exec']>>> {
     const session = await this.current();
-    return withManagedProject(this.root, session.id, this.owner.id, async () => {
+    const workspace = await withManagedProject(this.root, session.id, this.owner.id, async () => {
       const current = await this.store.get(session.id, this.owner);
-      return (await IsolatedWorkspace.bind(this.root, this.directory, current)).exec(argv, deadlineMs);
+      return IsolatedWorkspace.bind(this.root, this.directory, current);
     });
+    return workspace.exec(argv, deadlineMs);
   }
   async control(action: 'pause' | 'stop' | 'resume' | 'retry', requestId: string, expectedRevision: number): Promise<ManagedSession> {
     const session = await this.current();

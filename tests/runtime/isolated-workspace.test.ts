@@ -55,6 +55,30 @@ test('owner workspace needs a stopped or queued approved session and a local pin
   await assert.rejects(lstat(path.join(fixture.storage, 'workspaces', fixture.session.id)), { code: 'ENOENT' });
 });
 
+test('inspection before open does not reserve an empty workspace directory', async t => {
+  const fixture = await setup(t);
+  for (const action of ['status', 'diff', 'stop', 'resume'] as const) {
+    await assert.rejects(fixture.workspace[action]());
+    await assert.rejects(lstat(path.join(fixture.storage, 'workspaces', fixture.session.id)), { code: 'ENOENT' });
+  }
+  if (image) assert.equal((await fixture.workspace.open(image)).phase, 'ready');
+});
+
+test('snapshot omits tracked working-tree deletions', { skip: !image }, async t => {
+  const fixture = await setup(t);
+  await writeFile(path.join(fixture.root, 'deleted.js'), 'deleted before the snapshot\n');
+  fixture.git(['add', 'deleted.js']);
+  await rm(path.join(fixture.root, 'deleted.js'));
+  assert.equal((await fixture.workspace.open(image!)).files, 1);
+  const result = await fixture.workspace.exec(['node', '-e', `const f=require('node:fs');
+    if(f.existsSync('/workspace/deleted.js')) process.exit(2);
+    process.stdout.write(f.readFileSync('/workspace/source.js','utf8'));`]);
+  assert.equal(result.exitCode, 0, result.output);
+  assert.equal(result.output, 'console.log("old")\n');
+  await fixture.workspace.stop();
+  assert.deepEqual(await fixture.workspace.diff(), []);
+});
+
 test('snapshot refuses a tracked symlink before creating a Docker resource', { skip: !image }, async t => {
   const fixture = await setup(t);
   await symlink('/etc/passwd', path.join(fixture.root, 'unsafe'));
@@ -85,6 +109,8 @@ test('real container has no host authority, produces diff, preserves owner edits
   assert.equal(inspected.status, 0, inspected.stderr);
   const container = JSON.parse(inspected.stdout);
   assert.equal(container.Config.User, `${process.getuid!()}:${process.getgid!()}`);
+  assert.deepEqual(container.Config.Entrypoint, ['node']);
+  assert.deepEqual(container.Config.Cmd, ['-e', 'setInterval(() => {}, 60000)']);
   assert.equal(container.HostConfig.NetworkMode, 'none');
   assert.equal(container.HostConfig.ReadonlyRootfs, true);
   assert.deepEqual(container.HostConfig.CapDrop, ['ALL']);
@@ -158,7 +184,7 @@ test('owner Stop interrupts an active terminal command and confirms resource rem
   assert.equal((await fixture.workspace.status()).containerPresent, false);
 });
 
-test('approved managed owner CLI recovers a killed terminal host without replaying work', { skip: !image }, async t => {
+for (const interruption of ['owner-stop', 'host-crash']) test(`approved managed owner CLI handles ${interruption} without replaying work`, { skip: !image }, async t => {
   const fixture = await setup(t);
   const runtime = path.resolve(process.env.FOUNDRY_MANAGED_TEST_RUNTIME ?? 'dist/runtime');
   await writeFile(path.join(fixture.root, '.foundry/runtime.json'), JSON.stringify({ schema_version: 1, runtime: 'typescript', runtime_version: '1', installed_at: 'fixture', source_pin: 'a'.repeat(64) }));
@@ -195,13 +221,20 @@ test('approved managed owner CLI recovers a killed terminal host without replayi
     assert.ok(Date.now() < deadline, error);
     await delay(25);
   }
-  child.kill('SIGKILL');
-  await exited;
-  assert.equal((await workspace.status()).record.phase, 'executing');
-  assert.equal((await workspace.status()).containerPresent, true);
-  await assert.rejects(workspace.exec(['node', '--version']), /not ready/);
+  if (interruption === 'host-crash') {
+    child.kill('SIGKILL');
+    await exited;
+    assert.equal((await workspace.status()).record.phase, 'executing');
+    assert.equal((await workspace.status()).containerPresent, true);
+    await assert.rejects(workspace.exec(['node', '--version']), /not ready/);
+  } else {
+    const status = spawnSync(process.execPath, cli('status'), { encoding: 'utf8', timeout: 5000 });
+    assert.equal(status.status, 0, status.stderr);
+    assert.equal(JSON.parse(status.stdout).record.phase, 'executing');
+  }
   const stopped = spawnSync(process.execPath, cli('stop'), { encoding: 'utf8' });
   assert.equal(stopped.status, 0, stopped.stderr);
+  await exited;
   assert.equal(JSON.parse(stopped.stdout).phase, 'stopped');
   assert.equal((await workspace.status()).containerPresent, false);
   assert.equal((await service.status()).state.status, 'queued');

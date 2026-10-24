@@ -12,6 +12,8 @@ import { readManagedClaim } from '../core/workspace-ownership.js';
 import { privateDirectory } from './opencode.js';
 import { SessionStore } from './session-store.js';
 import { validateManagedStorage } from './managed-opencode.js';
+import { IsolatedWorkspace } from './isolated-workspace.js';
+import { withManagedProject } from '../core/workspace-ownership.js';
 
 const identitySchema = z.strictObject({ schemaVersion: z.literal(1), ownerId: z.uuid() });
 export class ManagedService {
@@ -61,6 +63,27 @@ export class ManagedService {
     const session = await this.current();
     return dispatchManagedOpenCodeTurn(this.root, this.launches, this.store, this.owner, { kind: 'supervisor', id: randomUUID() }, session.id, profile, signal);
   }
+  async openWorkspace(image: string): Promise<Awaited<ReturnType<IsolatedWorkspace['open']>>> {
+    const session = await this.current();
+    return withManagedProject(this.root, session.id, this.owner.id, async () => {
+      const current = await this.store.get(session.id, this.owner);
+      return (await IsolatedWorkspace.bind(this.root, this.directory, current)).open(image);
+    });
+  }
+  async resumeWorkspace(): Promise<Awaited<ReturnType<IsolatedWorkspace['resume']>>> {
+    const session = await this.current();
+    return withManagedProject(this.root, session.id, this.owner.id, async () => {
+      const current = await this.store.get(session.id, this.owner);
+      return (await IsolatedWorkspace.bind(this.root, this.directory, current)).resume();
+    });
+  }
+  async execWorkspace(argv: string[], deadlineMs?: number): Promise<Awaited<ReturnType<IsolatedWorkspace['exec']>>> {
+    const session = await this.current();
+    return withManagedProject(this.root, session.id, this.owner.id, async () => {
+      const current = await this.store.get(session.id, this.owner);
+      return (await IsolatedWorkspace.bind(this.root, this.directory, current)).exec(argv, deadlineMs);
+    });
+  }
   async control(action: 'pause' | 'stop' | 'resume' | 'retry', requestId: string, expectedRevision: number): Promise<ManagedSession> {
     const session = await this.current();
     const previous = action === 'resume' || action === 'retry' ? await this.store.stateAt(session.id, this.owner, expectedRevision) : session.state;
@@ -78,7 +101,11 @@ export class ManagedService {
     const session = await this.current();
     return publishManagedTask(this.root, this.store, this.owner, { kind: 'inspector', id: randomUUID() }, session.id);
   }
-  async release(): Promise<void> { const session = await this.current(); await releaseManagedTask(this.root, this.store, this.owner, session.id); }
+  async release(): Promise<void> {
+    const session = await this.current();
+    await (await IsolatedWorkspace.bind(this.root, this.directory, session, true)).assertNotActive();
+    await releaseManagedTask(this.root, this.store, this.owner, session.id);
+  }
   async recover(digest?: string): Promise<unknown> {
     const session = await this.current();
     return recoverManagedOpenCodeTurn(this.root, this.launches, this.store, this.owner, { kind: 'inspector', id: randomUUID() }, session.id, digest);

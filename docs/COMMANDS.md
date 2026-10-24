@@ -53,6 +53,80 @@ The terminal accepts slash commands, not shell input:
 Freeform input is not evaluated as shell or sent to a model. Use explicit `new`
 options to provide an idea. Input remains responsive while a run is active.
 
+## Managed session preview
+
+This **source-only Linux preview** uses an approved scoped Builder task in a
+trusted disposable repository. It supports a local fake OpenAI-compatible test
+endpoint, not live provider accounts. Build the runtime first. Use the connected
+client for everyday coding until live-model qualification is available.
+
+```text
+foundry session start --profile FILE --confirmed --request-id UUID
+foundry session run --profile FILE
+foundry session status|events|verify|record|release
+foundry session pause|stop|resume|retry --request-id UUID --expected-revision NUMBER
+foundry session recover [--inspection-digest HASH]
+```
+
+All session commands accept `--project PATH`, `--storage PRIVATE_DIRECTORY` and
+`--json`. Storage must be private and outside the project and any Git tree.
+The default is `~/.local/state/foundry-managed`. Events accept `--after NUMBER`;
+continue from the returned cursor. Reuse a request ID and expected revision
+when retrying the same control request after a lost response.
+
+A profile file must provide every field below. Replace the example IDs, binary
+path, SHA-256 and local fixture endpoint with your selected values:
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "11111111-1111-4111-8111-111111111111",
+  "consentRef": "22222222-2222-4222-8222-222222222222",
+  "boundary": "trusted-local-disposable",
+  "inference": "local-test-only",
+  "binary": "/absolute/path/to/opencode",
+  "binaryDigest": "REPLACE_WITH_BINARY_SHA256",
+  "provider": {
+    "id": "local-test",
+    "model": "test-model",
+    "baseURL": "http://127.0.0.1:1234/v1"
+  },
+  "permissions": "read-edit-shell",
+  "maxTurns": 3,
+  "maxSteps": 4,
+  "deadlineMs": 45000
+}
+```
+
+The binary must be OpenCode 1.19.0. Use `sha256sum /absolute/path/to/opencode`
+to obtain its digest. `read-edit` denies shell tools; `read-edit-shell` also
+allows them. Turn limits are 1-3, step limits 1-12 and deadlines 1-120 seconds.
+No provider key is accepted. Profiles are bound to the session and cannot be
+silently replaced. This boundary is not a sandbox: use trusted projects only,
+and keep production secrets out of them.
+
+`start` derives the current approved task, records consent and queues one turn.
+`run` stays in the foreground. In a second terminal, inspect `status` and send
+Pause or Stop with its revision. Ctrl+C during `run` requests Pause and waits for
+cleanup. `pausing` and `stopping` mean a request was accepted; only `paused` or
+`stopped` confirms resources have stopped. Descendants must retain the inherited
+execution marker; an uncertain stop requires inspection, not a success message.
+
+After Pause, `resume` queues a new execution with fresh approved context and
+current files. Changed scope, role or check bindings block it. Run again using
+the same profile. Resume does not reset the turn allowance. A candidate then
+needs `verify` followed by `record`; a failed check requires an explicit `retry`
+and another bounded turn. Recording uses existing Foundry task evidence and does
+not complete final scope review. `release` removes the project claim only after
+the session has stopped.
+
+After a crashed process, status does not restart it. Once its lease expires,
+`recover` inspects the durable launch without sending a prompt. Live or unknown
+resources block reconciliation. Only after inspecting and stopping them should
+the owner repeat `recover --inspection-digest HASH` using the returned digest.
+Reconciliation leaves the turn failed for an explicit retry or Stop, never
+verified. See [managed qualification](VALIDATION.md#managed-coding-qualification).
+
 ## Product commands
 
 ```text

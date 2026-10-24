@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "criteria": [
+    {
+      "id": "MC-01",
+      "requirement": "Derive and validate the current approved managed assignment before any dispatch.",
+      "checks": [
+        "runtime"
+      ]
+    },
+    {
+      "id": "MC-02",
+      "requirement": "Require explicit executor/model, permission, consent and limit profiles.",
+      "checks": [
+        "runtime"
+      ]
+    },
+    {
+      "id": "MC-03",
+      "requirement": "Exercise real pinned OpenCode tools through durable managed execution against a local fake endpoint.",
+      "checks": [
+        "runtime",
+        "managed-executor"
+      ]
+    },
+    {
+      "id": "MC-04",
+      "requirement": "Keep visible observations bounded, ordered, redacted and reconnectable.",
+      "checks": [
+        "runtime"
+      ]
+    },
+    {
+      "id": "MC-05",
+      "requirement": "Confirm active owned resources stop before acknowledging pause or stop.",
+      "checks": [
+        "runtime",
+        "managed-executor"
+      ]
+    },
+    {
+      "id": "MC-06",
+      "requirement": "Preserve control and project ownership through races, lease loss and uncertain outcomes.",
+      "checks": [
+        "runtime"
+      ]
+    },
+    {
+      "id": "MC-07",
+      "requirement": "Resume from fresh validated context without losing owner edits or resetting usage.",
+      "checks": [
+        "runtime"
+      ]
+    },
+    {
+      "id": "MC-08",
+      "requirement": "Recover crashes and lost acknowledgements without replaying unknown effects.",
+      "checks": [
+        "runtime"
+      ]
+    },
+    {
+      "id": "MC-09",
+      "requirement": "Require real current core verification and task recording after candidate execution.",
+      "checks": [
+        "runtime"
+      ]
+    },
+    {
+      "id": "MC-10",
+      "requirement": "Keep supervisor credentials out of check processes, observations and artifacts.",
+      "checks": [
+        "runtime",
+        "secrets"
+      ]
+    },
+    {
+      "id": "MC-11",
+      "requirement": "Expose the managed terminal journey through shared validated services and installed CLI tests.",
+      "checks": [
+        "runtime",
+        "managed-executor"
+      ]
+    },
+    {
+      "id": "MC-12",
+      "requirement": "Preserve runtime/package/site/tooling/catalog/security gates and existing client/fixture behavior.",
+      "checks": [
+        "runtime",
+        "static-site",
+        "tooling",
+        "catalog",
+        "secrets",
+        "managed-executor"
+      ]
+    }
+  ]
+}

@@ -2,6 +2,15 @@
   "name": "Foundry",
   "checks": [
     {
+      "name": "managed-executor",
+      "command": ["npm", "run", "test:managed-executor"],
+      "cwd": ".",
+      "timeout": 300,
+      "required": true,
+      "environment": ["FOUNDRY_OPENCODE_QUALIFY_BINARY"],
+      "inputs": ["src", "tests/runtime", "scripts/qualify_managed_executor.mjs", "scripts/build_runtime.mjs", "package.json", "package-lock.json"]
+    },
+    {
       "name": "runtime",
       "command": ["npm", "run", "check:runtime"],
       "cwd": ".",

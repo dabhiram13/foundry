@@ -45,7 +45,7 @@ function nested(parent: string, child: string): boolean {
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 }
 
-async function projectIdentity(root: string): Promise<z.infer<typeof projectSchema>> {
+export async function projectIdentity(root: string): Promise<z.infer<typeof projectSchema>> {
   rejectSymlinkComponents(root);
   const canonical = await realpath(root);
   const info = await lstat(canonical, { bigint: true });
@@ -53,7 +53,7 @@ async function projectIdentity(root: string): Promise<z.infer<typeof projectSche
   return { root: canonical, device: String(info.dev), inode: String(info.ino) };
 }
 
-async function privateDirectory(directory: string): Promise<void> {
+export async function privateDirectory(directory: string): Promise<void> {
   if (!process.getuid || process.platform === 'win32') fail('invalid-profile');
   rejectSymlinkComponents(directory);
   for (let current = directory; ; current = path.dirname(current)) {
@@ -92,13 +92,13 @@ const safeConfigurationSchema = z.object({
   autoupdate: z.literal(false), lsp: z.literal(false), formatter: z.literal(false),
 });
 
-async function executableStamp(filename: string): Promise<string> {
+export async function executableStamp(filename: string): Promise<string> {
   rejectSymlinkComponents(filename);
   const info = await lstat(filename, { bigint: true });
   return [info.dev, info.ino, info.size, info.mtimeNs, info.ctimeNs].map(String).join(':');
 }
 
-async function executableDigest(filename: string): Promise<string> {
+export async function executableDigest(filename: string): Promise<string> {
   const hash = createHash('sha256');
   let bytes = 0;
   const handle = await open(filename, constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -112,13 +112,13 @@ async function executableDigest(filename: string): Promise<string> {
   return hash.digest('hex');
 }
 
-function environment(directory: string, password: string): NodeJS.ProcessEnv {
+export function openCodeEnvironment(directory: string, password: string, config: Config = configuration): NodeJS.ProcessEnv {
   return {
     PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`, HOME: path.join(directory, 'home'),
     XDG_CONFIG_HOME: path.join(directory, 'config'), XDG_DATA_HOME: path.join(directory, 'data'),
     XDG_STATE_HOME: path.join(directory, 'state'), XDG_CACHE_HOME: path.join(directory, 'cache'),
     TMPDIR: path.join(directory, 'tmp'), LANG: 'C.UTF-8', TZ: 'UTC',
-    OPENCODE_CONFIG_CONTENT: JSON.stringify(configuration), OPENCODE_PURE: '1',
+    OPENCODE_CONFIG_CONTENT: JSON.stringify(config), OPENCODE_PURE: '1',
     OPENCODE_TEST_MANAGED_CONFIG_DIR: path.join(directory, 'managed'),
     OPENCODE_DISABLE_PROJECT_CONFIG: '1', OPENCODE_DISABLE_DEFAULT_PLUGINS: '1',
     OPENCODE_DISABLE_EXTERNAL_SKILLS: '1', OPENCODE_DISABLE_CLAUDE_CODE: '1',
@@ -133,7 +133,7 @@ function processGroupMissing(pid: number): boolean {
   catch (error) { return (error as NodeJS.ErrnoException).code === 'ESRCH'; }
 }
 
-async function stopServer(child: ChildProcess, shutdownMs: number, closed: () => boolean): Promise<boolean> {
+export async function stopServer(child: ChildProcess, shutdownMs: number, closed: () => boolean): Promise<boolean> {
   if (!child.pid) {
     const end = Date.now() + shutdownMs;
     while (!closed() && Date.now() < end) await delay(20);
@@ -157,7 +157,7 @@ async function stopServer(child: ChildProcess, shutdownMs: number, closed: () =>
   return closed() && processGroupMissing(pid);
 }
 
-function serverAddress(child: ChildProcess, controller: AbortController): Promise<string> {
+export function serverAddress(child: ChildProcess, controller: AbortController): Promise<string> {
   const { signal } = controller;
   return new Promise((resolve, reject) => {
     let stdout = '';
@@ -181,7 +181,7 @@ function serverAddress(child: ChildProcess, controller: AbortController): Promis
   });
 }
 
-async function localRequest(request: Request, signal: AbortSignal): Promise<Response> {
+export async function localRequest(request: Request, signal: AbortSignal): Promise<Response> {
   const body = request.body ? Buffer.from(await request.arrayBuffer()) : null;
   if (body && body.byteLength > BODY_LIMIT) fail('body-limit');
   return new Promise((resolve, reject) => {
@@ -253,7 +253,7 @@ export async function qualifyOpenCode(input: unknown): Promise<OpenCodeQualifica
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), Math.max(1, deadline - Date.now()));
     const child = spawn(profile.binary, ['serve', '--hostname', '127.0.0.1', '--port', '0'], {
-      cwd: project.root, env: environment(directory, password), detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: project.root, env: openCodeEnvironment(directory, password), detached: true, stdio: ['ignore', 'pipe', 'pipe'],
     });
     let closed = false;
     child.once('close', () => { closed = true; });

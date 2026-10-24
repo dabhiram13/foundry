@@ -222,6 +222,17 @@ export class SessionDatabase {
     });
   }
 
+  stateAt(id: string, actor: SessionActor, revision: number): ManagedSession['state'] {
+    return this.transaction(() => {
+      this.get(id, actor);
+      const row = this.db.prepare("SELECT CASE WHEN length(payload) <= 100000 THEN payload END AS payload FROM events WHERE session_id=? AND json_extract(payload, '$.revision')=? AND json_extract(payload, '$.data.kind')='state' ORDER BY sequence DESC LIMIT 1").get(id, revision);
+      if (!row) throw new SessionError('revision_conflict');
+      const event = sessionEventSchema.parse(json(row.payload, 100_000));
+      if (event.sessionId !== id || event.revision !== revision || event.data.kind !== 'state') throw new SessionError('storage_invalid');
+      return event.data.state;
+    });
+  }
+
   effects(id: string, actor: SessionActor): SessionEffect[] {
     return this.transaction(() => {
       this.get(id, actor);

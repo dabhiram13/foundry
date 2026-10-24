@@ -125,6 +125,39 @@ active cancellation, sandbox, product quality or complete coding workspace is
 qualified by this test. Use the [integration checklist](QUALIFICATION.md) before
 claiming support for an actual provider/model combination.
 
+## Managed coding qualification
+
+The required Linux gate packs and installs the current build, then runs the
+shared service and installed CLI against a real pinned OpenCode binary and a
+fake loopback model endpoint. Select the binary explicitly:
+
+```sh
+npm run build:runtime
+FOUNDRY_OPENCODE_QUALIFY_BINARY=/absolute/path/to/opencode \
+  npm run test:managed-executor
+```
+
+Missing selection, a missing/non-executable binary or skipped qualification
+fails this gate. CI installs `opencode-linux-x64@1.19.0` and runs it on Node 24
+and 25. Default runtime tests may skip external binaries; they do not replace
+this gate. Scoped framework verification explicitly allows the binary-path
+variable for this check only. Do not pass provider credentials through it.
+
+The qualification covers real file writes, failed verification, explicit repair,
+task recording through core receipts, cursor replay, denied shell permissions,
+Pause of a tool with a detached descendant, fresh resume with owner edits and
+crashed-process inspection without prompt replay. The stop test observes an
+unchanged periodic-output file for 400 ms after confirmed shutdown and checks
+that its processes are absent. It is a bounded trusted-local stop test, not
+proof against hostile processes that remove the inherited execution marker.
+Sentinel supervisor values must stay out of check environments and visible events.
+
+Existing reducer, fixture and protocol tests additionally cover lease fences,
+Stop/Pause races, output limits, stale approvals/evidence and lost task-recording
+acknowledgements. The [D1 spec](specs/managed-coding-journey.md) maps the full
+acceptance criteria. Live inference, production isolation, browser/terminal
+workspaces, PR delivery and product quality require separate qualification.
+
 ## Public website checks
 
 Static checks validate every generated page, local link and anchor, search

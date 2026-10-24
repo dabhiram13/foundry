@@ -14,23 +14,24 @@ You approve the plan and design.** Install it using the [first-project guide](GE
 ## What works today
 
 Foundry is not yet a complete standalone coding agent. The connected workflow
-uses your coding client's tools; internal session tests are not a replacement
-for that client.
+uses your coding client's tools. The managed-session preview is a separate,
+local-test-only path, not a replacement for that client.
 
 | Area | Available now | Still missing |
 | --- | --- | --- |
 | Product work | Research, Plan and Design approvals, dependent coding tasks, saved checks, review and local handoff through a compatible coding tool. | A current live-model product trial with owner visual acceptance and a same-brief one-shot comparison. |
 | Providers | Terminal process adapters; the source connection uses OpenCode's selected model, account and tools. | A universal provider connection. A model API alone does not supply file, shell or browser tools. |
-| Saved sessions | Internal typed session storage, command history, pause/stop and recovery tests. | A public managed coding-session command or app that runs real coding turns. |
-| Code changes | The connected client edits files. A trusted internal test executor also exercises real edits and checks. | Connecting the managed OpenCode process to approved tasks, real model execution and recovery. |
+| Saved sessions | Source terminal preview: durable sessions, observations, confirmed Pause/Stop, fresh-context resume and explicit recovery. | A managed app and live-provider qualification. |
+| Code changes | Connected-client editing; managed OpenCode edits in disposable trusted projects against a local test endpoint. Candidates need existing Foundry checks and task recording. | Consented live-model execution and an isolated workspace. |
 | Terminal and browser | Use the host coding tool's tools. Foundry records supplied interface evidence. | A Foundry-owned interactive terminal, browser and isolated workspace. |
 | Delivery | Local Git checkpoints and a handoff summary in terminal product work. | Foundry-managed PR creation, CI/review follow-up, merge and deployment. |
 | Costs and credentials | Explicit adapter selection, billing consent and filtered process environments. Connected OpenCode owns its account and costs. | A unified credential manager or guaranteed live spending cap across providers. |
 | Learning | Saved project progress and bounded repairs. | Evaluated cross-project skill learning or recursive self-improvement. |
 
-The managed OpenCode check starts an authenticated local server, inspects an
-empty project-bound session, deletes it and confirms shutdown. It sends no
-prompt and does not prove active-tool cancellation or sandboxing. See
+The required managed-executor check installs the built package and drives real
+OpenCode tools against a fake loopback model endpoint. It exercises edits,
+failed-check repair, active-tool shutdown, resume and crash recovery. It does not
+qualify a live model or sandbox. See [session commands](COMMANDS.md#managed-session-preview),
 [architecture](ARCHITECTURE.md) and [test coverage](VALIDATION.md).
 
 Passing local tests proves specific behavior, not parity with a complete coding

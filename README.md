@@ -45,10 +45,12 @@ The OpenCode connection is in the source code, **not in npm 0.5.1**. The new
 visual workflow has local test coverage, not a live-model trial. Homebrew is not available. To try it, follow
 [the OpenCode guide][connected-client].
 
-**Foundry is not yet a complete standalone coding agent.** Its managed session
-storage and OpenCode startup/shutdown checks are internal foundations, not a
-working managed coding session. A built-in terminal/browser workspace and
-automatic PR/CI follow-up are still missing. See [what works today][current-scope].
+**Foundry is not yet a complete standalone coding agent.** Source builds include
+a Linux managed-session preview for trusted disposable projects and local test
+endpoints: real OpenCode edits, Pause/Stop, resume and Foundry checks. This is
+not a live-provider connection or an isolated workspace. A built-in terminal/browser
+workspace and automatic PR/CI follow-up are still missing. See
+[what works today][current-scope] and [session commands][managed-sessions].
 
 ## How it works
 
@@ -134,6 +136,7 @@ and the [release guide][release-guide] for publishing.
 [documentation-index]: https://foundry-two-tan.vercel.app/docs/
 [release-guide]: https://foundry-two-tan.vercel.app/docs/releasing/
 [commands]: https://foundry-two-tan.vercel.app/docs/commands/
+[managed-sessions]: https://foundry-two-tan.vercel.app/docs/commands/#managed-session-preview
 [contributing]: https://foundry-two-tan.vercel.app/docs/contributing/
 [runtime]: https://foundry-two-tan.vercel.app/docs/runtime/
 [providers]: https://foundry-two-tan.vercel.app/docs/providers/

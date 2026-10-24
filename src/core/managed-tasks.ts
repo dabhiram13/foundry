@@ -4,10 +4,12 @@ import { canonicalJson, digest, FoundryError } from './fs.js';
 import { readBoundedText, readFactoryState } from './factory-contract.js';
 import { finishTask, pauseOrResume, prepareAssignment, requireRuntimeWorkspace, reviewScope, verify, workContext, workspaceRevision } from './lifecycle.js';
 import { roleByName } from './roles.js';
-import { assignmentBindingSchema, sessionCommandSchema, verificationEvidenceSchema, type ManagedSession, type SessionActor } from './session-contract.js';
+import { assignmentBindingSchema, sessionCommandSchema, verificationEvidenceSchema, type ManagedSession, type SessionActor, type SessionCommand } from './session-contract.js';
 import { reserveManagedProject, releaseManagedProject, withManagedProject, withWorkspaceAdmission, type ManagedClaim } from './workspace-ownership.js';
 import { providerStatus } from '../runtime/providers.js';
 import type { SessionStore } from '../runtime/session-store.js';
+import { managedProfileSchema } from './managed-profile.js';
+import { inspectManagedLaunch, runManagedOpenCode, validateManagedExecutor } from '../runtime/managed-opencode.js';
 
 type Owner = Extract<SessionActor, { kind: 'owner' }>;
 type Supervisor = Extract<SessionActor, { kind: 'supervisor' }>;
@@ -56,24 +58,141 @@ function leasedFields(state: LeaseState) {
   return { executionId: state.executionId, leaseToken: state.lease.token, fence: state.lease.fence };
 }
 
+function managedPrompt(assignment: Awaited<ReturnType<typeof prepareAssignment>>): string {
+  const prompt = `Implement only this current Foundry Builder assignment. Preserve owner edits. Do not alter .foundry state, approvals or checks. Do not complete the task yourself.\n${JSON.stringify(assignment)}`;
+  if (Buffer.byteLength(prompt) > 60_000) throw new FoundryError('Managed assignment exceeds the prompt limit');
+  return prompt;
+}
+
 export async function createManagedFixtureTask(rootInput: string, store: SessionStore, owner: Owner, options: unknown): Promise<ManagedSession> {
-  const root = await requireRuntimeWorkspace(rootInput, 'bind managed fixture work in');
   const settings = fixtureOptionsSchema.parse(options);
+  return createManagedTask(rootInput, store, owner, settings, { kind: 'fixture', profileId: settings.profileId });
+}
+
+export async function createManagedOpenCodeTask(rootInput: string, parent: string, store: SessionStore, owner: Owner, input: unknown): Promise<ManagedSession> {
+  const root = await requireRuntimeWorkspace(rootInput, 'bind managed OpenCode work in');
+  const profile = await validateManagedExecutor(root, parent, input);
+  return createManagedTask(root, store, owner, profile, { kind: 'opencode', profileId: profile.id, profileDigest: digest(canonicalJson(profile)) });
+}
+
+async function createManagedTask(rootInput: string, store: SessionStore, owner: Owner,
+  settings: { consentRef: string; maxTurns: number }, executor: ManagedSession['executor']): Promise<ManagedSession> {
+  const root = await requireRuntimeWorkspace(rootInput, 'bind managed work in');
   return withWorkspaceAdmission(root, async () => {
     if (await readFactoryState(root)) throw new FoundryError('Managed fixture work requires a scoped project without a Factory controller');
     const tasks = await providerStatus(root);
     if (!Array.isArray(tasks) || tasks.some(task => ['running', 'unknown'].includes(String(task.status)))) throw new FoundryError('Reconcile provider tasks before binding managed work');
     const source = await prepareAssignment(root, 'builder');
     if (!source.task || source.execution !== 'host_client') throw new FoundryError('No approved Builder assignment');
+    if (executor.kind === 'opencode') managedPrompt(source);
     const assignment = await bindingFor(root, randomUUID(), source.task.id);
     const create = sessionCommandSchema.parse({
       type: 'session.create', sessionId: randomUUID(), requestId: randomUUID(), assignment,
-      executor: { kind: 'fixture', profileId: settings.profileId }, consentRef: settings.consentRef, maxTurns: settings.maxTurns,
+      executor, consentRef: settings.consentRef, maxTurns: settings.maxTurns,
     });
     if (create.type !== 'session.create') throw new FoundryError('Invalid managed creation');
     await reserveManagedProject(root, owner.id, create);
     await store.accept(create, owner);
     return store.get(create.sessionId, owner);
+  });
+}
+
+export async function dispatchManagedOpenCodeTurn(rootInput: string, parent: string, store: SessionStore, owner: Owner,
+  supervisor: Supervisor, sessionId: ManagedSession['id'], input: unknown, signal?: AbortSignal): Promise<ManagedSession> {
+  const root = await requireRuntimeWorkspace(rootInput, 'run managed OpenCode work in');
+  const profile = managedProfileSchema.parse(input);
+  const prepared = await withManagedProject(root, sessionId, owner.id, async claim => {
+    await assertBinding(root, claim);
+    let session = await store.get(sessionId, owner);
+    assertSession(claim, session);
+    if (session.executor.kind !== 'opencode' || session.executor.profileDigest !== digest(canonicalJson(profile))
+      || session.consentRef !== profile.consentRef || session.state.status !== 'queued') throw new FoundryError('Managed executor profile or queued assignment changed');
+    await validateManagedExecutor(root, parent, profile);
+    const context = await workContext(root);
+    if (context.run?.saved_status === 'paused') await pauseOrResume(root, false, context.snapshot_revision);
+    const prompt = managedPrompt(await prepareAssignment(root, 'builder'));
+    session = await send(store, session, supervisor, { type: 'execution.claim', instanceId: supervisor.id, leaseSeconds: 60 });
+    if (session.state.status !== 'running') throw new FoundryError('Managed execution was not claimed');
+    return { session, lease: leasedFields(session.state), prompt };
+  });
+  const controller = new AbortController();
+  let busy = false;
+  let pending = Promise.resolve();
+  let heartbeat = Date.now();
+  const watch = setInterval(() => {
+    if (busy) return;
+    busy = true;
+    pending = (async () => {
+      const session = await store.get(sessionId, owner);
+      if (session.state.status !== 'running') { controller.abort(); return; }
+      if (Date.now() - heartbeat > 10_000) {
+        await send(store, session, supervisor, { type: 'execution.heartbeat', ...prepared.lease, leaseSeconds: 60 });
+        heartbeat = Date.now();
+      }
+    })().catch(() => controller.abort()).finally(() => { busy = false; });
+  }, 50);
+  const interrupt = () => {
+    pending = pending.then(async () => {
+      const session = await store.get(sessionId, owner);
+      if (session.state.status === 'running') await send(store, session, owner, { type: 'session.pause' });
+    }).catch(() => {}).finally(() => controller.abort());
+  };
+  signal?.addEventListener('abort', interrupt, { once: true });
+  if (signal?.aborted) interrupt();
+  let outcome: Awaited<ReturnType<typeof runManagedOpenCode>>;
+  try {
+    outcome = await runManagedOpenCode(root, parent, profile, {
+      sessionId, executionId: prepared.lease.executionId, prompt: prepared.prompt, signal: controller.signal,
+      authorize: async () => {
+        await withManagedProject(root, sessionId, owner.id, claim => assertBinding(root, claim));
+        const current = await store.get(sessionId, supervisor);
+        if (current.state.status !== 'running' || current.state.lease.token !== prepared.lease.leaseToken
+          || Date.parse(current.state.lease.expiresAt) <= Date.now()) throw new FoundryError('Managed execution lost authority');
+      },
+      observe: async text => {
+        const current = await store.get(sessionId, supervisor);
+        if (current.state.status === 'running') await send(store, current, supervisor, { type: 'execution.output', ...prepared.lease, text });
+      },
+    });
+  } catch (error) {
+    const current = await store.get(sessionId, owner);
+    if ('lease' in current.state) await send(store, current, supervisor, { type: 'execution.unknown', ...prepared.lease }).catch(() => {});
+    throw error;
+  } finally {
+    clearInterval(watch);
+    signal?.removeEventListener('abort', interrupt);
+    await pending;
+  }
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const current = await store.get(sessionId, owner);
+    const result = current.state.status === 'stopping' ? { kind: 'stopped' }
+      : current.state.status === 'pausing' ? { kind: 'paused', checkpointId: randomUUID() }
+        : outcome.outcome === 'candidate' ? { kind: 'candidate', candidateDigest: await workspaceRevision(root) }
+          : { kind: 'failed', evidenceDigest: digest(canonicalJson({ executionId: prepared.lease.executionId, outcome: outcome.outcome })) };
+    try { return await send(store, current, supervisor, { type: 'execution.confirm', ...prepared.lease, resourcesStopped: true, effectsKnown: true, result }); }
+    catch (error) { if ((error as { code?: string }).code !== 'revision_conflict' || attempt === 4) throw error; }
+  }
+  throw new FoundryError('Managed confirmation requires inspection');
+}
+
+export async function recoverManagedOpenCodeTurn(rootInput: string, parent: string, store: SessionStore, owner: Owner,
+  inspector: Inspector, sessionId: ManagedSession['id'], acknowledgeDigest?: string): Promise<unknown> {
+  const root = await requireRuntimeWorkspace(rootInput, 'inspect managed execution in');
+  return withManagedProject(root, sessionId, owner.id, async claim => {
+    let session = await store.get(sessionId, owner);
+    assertSession(claim, session);
+    if (session.executor.kind !== 'opencode' || !('executionId' in session.state)) throw new FoundryError('No managed execution needs inspection');
+    if ('lease' in session.state && Date.parse(session.state.lease.expiresAt) <= Date.now()) {
+      session = await send(store, session, inspector, { type: 'execution.expire', executionId: session.state.executionId });
+    }
+    if (session.state.status !== 'recovery-required') throw new FoundryError('Only uncertain or expired execution can be reconciled');
+    const inspection = await inspectManagedLaunch(parent, sessionId, session.state.executionId);
+    if (acknowledgeDigest !== undefined) {
+      if (!inspection.stopped || acknowledgeDigest !== inspection.digest) throw new FoundryError('Inspection changed or execution resources remain');
+      return send(store, session, inspector, { type: 'execution.reconcile', executionId: session.state.executionId,
+        inspectionDigest: inspection.digest, resourcesStopped: true, effectsKnown: true });
+    }
+    return inspection;
   });
 }
 
@@ -84,6 +203,14 @@ export async function recoverManagedCreation(rootInput: string, store: SessionSt
     const session = await store.get(sessionId, owner);
     assertSession(claim, session);
     return session;
+  });
+}
+
+export async function controlManagedTask(root: string, store: SessionStore, owner: Owner, command: SessionCommand): Promise<ManagedSession> {
+  return withManagedProject(root, command.sessionId, owner.id, async claim => {
+    if (command.type === 'session.resume' || command.type === 'session.retry') await assertBinding(root, claim);
+    await store.accept(command, owner);
+    return store.get(command.sessionId, owner);
   });
 }
 

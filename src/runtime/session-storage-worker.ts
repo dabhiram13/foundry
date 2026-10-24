@@ -22,6 +22,7 @@ try {
       switch (message.type) {
         case 'accept': data = database.accept(message.command, message.actor); break;
         case 'get': data = database.get(message.sessionId, message.actor); break;
+        case 'state-at': data = database.stateAt(message.sessionId, message.actor, message.revision); break;
         case 'events': data = database.events(message.sessionId, message.actor, message.after, message.limit); break;
         case 'effects': data = database.effects(message.sessionId, message.actor); break;
         case 'close': database.close(); data = null; break;

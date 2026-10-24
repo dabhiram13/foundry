@@ -80,6 +80,7 @@
     "typecheck:runtime": "tsc --project tsconfig.runtime.json --noEmit",
     "build:runtime": "node scripts/build_runtime.mjs",
     "test:runtime": "node --test dist/runtime-tests/*.test.cjs",
+    "test:managed-executor": "npm run build:runtime && node scripts/qualify_managed_executor.mjs",
     "typecheck:site": "tsc --project tsconfig.json --noEmit && astro sync --root site",
     "build:site": "node scripts/prepare_site.mjs && astro build --root site",
     "preview:site": "astro preview --root site --host 127.0.0.1",

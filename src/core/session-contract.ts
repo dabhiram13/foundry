@@ -46,7 +46,7 @@ export const verificationEvidenceSchema = z.strictObject({
   inputsDigest: hashSchema,
 });
 
-const executorSchema = z.strictObject({ kind: z.enum(['opencode', 'fixture']), profileId: identitySchema });
+const executorSchema = z.strictObject({ kind: z.enum(['opencode', 'fixture']), profileId: identitySchema, profileDigest: hashSchema.optional() });
 
 export const sessionStateSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('idle') }),

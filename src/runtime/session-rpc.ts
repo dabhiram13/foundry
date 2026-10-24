@@ -5,6 +5,7 @@ const query = { id: z.uuid(), sessionId: sessionIdSchema, actor: actorSchema };
 export const sessionRequestSchema = z.discriminatedUnion('type', [
   z.strictObject({ id: z.uuid(), type: z.literal('accept'), command: sessionCommandSchema, actor: actorSchema }),
   z.strictObject({ ...query, type: z.literal('get') }),
+  z.strictObject({ ...query, type: z.literal('state-at'), revision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER) }),
   z.strictObject({ ...query, type: z.literal('effects') }),
   z.strictObject({ ...query, type: z.literal('events'), after: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), limit: z.number().int().min(1).max(200) }),
   z.strictObject({ id: z.uuid(), type: z.literal('close') }),

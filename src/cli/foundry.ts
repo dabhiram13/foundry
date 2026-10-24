@@ -13,6 +13,7 @@ import { projectRunExitCode } from './run-exit-code.js';
 import { dispatchProjectCommand } from './project.js';
 import { writeResult } from './output.js';
 import { runTerminal } from './terminal.js';
+import { sessionCommand } from './session.js';
 
 type JsonRecord = Record<string, unknown>;
 declare const __FOUNDRY_VERSION__: string;
@@ -67,6 +68,7 @@ Commands:
   foundry work start|status|context|review|approve|verify|complete|pause|resume|recover|workflow ...
   foundry work specialists|assignment|save-plan|task-done|record-review ...
   foundry provider run|status|cancel|reconcile ...
+  foundry session --help
 
 With no command, an interactive readline terminal opens only on a TTY.
 Use --json for one JSON value on stdout.
@@ -219,6 +221,10 @@ function reviewKey(service: ProjectService, identifier: string): string {
 
 export async function runCommand(arguments_: string[], terminalMode = false): Promise<number> {
   const [command, ...rest] = arguments_;
+  if (command === 'session') {
+    const executableDirectory = path.dirname(realpathSync(process.argv[1]!));
+    return sessionCommand(rest, existsSync(path.join(executableDirectory, 'foundry-session-storage.cjs')) ? executableDirectory : runtimeDirectory(sourceRoot()));
+  }
   if (command === '--version' || command === '-v') {
     if (rest.length) throw new FoundryError('Version does not accept additional arguments.');
     process.stdout.write(`${__FOUNDRY_VERSION__}\n`);

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { z } from 'zod';
 import {
-  SessionError, effectSchema, eventPageSchema, receiptSchema, sessionSchema,
+  SessionError, effectSchema, eventPageSchema, receiptSchema, sessionSchema, sessionStateSchema,
   type SessionActor, type SessionCommand, type SessionEffect, type SessionReceipt, type ManagedSession,
 } from '../core/session-contract.js';
 import { sessionReplySchema, sessionRequestSchema, storageReadySchema, storageWorkerDataSchema, type SessionRequest } from './session-rpc.js';
@@ -97,6 +97,10 @@ export class SessionStore {
 
   async get(sessionId: ManagedSession['id'], actor: SessionActor): Promise<ManagedSession> {
     return this.request({ id: randomUUID(), type: 'get', sessionId, actor }, sessionSchema);
+  }
+
+  async stateAt(sessionId: ManagedSession['id'], actor: SessionActor, revision: number) {
+    return this.request({ id: randomUUID(), type: 'state-at', sessionId, actor, revision }, sessionStateSchema);
   }
 
   async events(sessionId: ManagedSession['id'], actor: SessionActor, after = 0, limit = 100): Promise<z.infer<typeof eventPageSchema>> {

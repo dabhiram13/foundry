@@ -56,15 +56,16 @@ return errors when required consent is missing. JSON output supports scripts.
 
 ## Managed sessions in development
 
-Managed sessions are internal, not a runnable coding agent. Strict session
-contracts and a dedicated SQLite worker save state, receipts and effect intents.
-A trusted local fixture can bind one session to an approved Builder task and
-exercise real edits and project checks. It does not migrate existing projects
-or replace Factory and scoped-work authority.
+The source terminal exposes a Linux, local-test-only managed-session preview.
+Strict contracts and a dedicated SQLite worker save state, receipts and effect
+intents. A shared service derives the local application identity, binds the current
+approved Builder task and supervises the explicitly selected OpenCode executor.
+Fixture dispatch remains separate. Neither path migrates existing projects or
+replaces Factory and scoped-work authority.
 
 ```text
 approved Builder task → project claim + managed session
-                     → explicit trusted fixture turn → actual edits
+                     → explicit executor/profile → actual edits
                      → confirmed candidate → existing verify
                      → saved check evidence → existing finishTask
                      → task-recorded acknowledgement
@@ -97,11 +98,21 @@ inspector can instead abandon that decision without undoing core history.
 The storage directory is private, outside Git working trees, and uses POSIX file
 ownership and permissions. Windows needs an ACL-backed storage profile before
 this boundary is supported there. These are local data protections, not a
-sandbox. Messages and visible output are stored as private plaintext; credentials
-must not be supplied as messages. A real executor still needs credential handling,
-redaction, an explicit workspace profile and consent validation. Internal actor
-contexts are not authentication and must never come directly from client JSON.
-No managed CLI/MCP API, model call, account connection or billing is enabled.
+sandbox. Visible events contain bounded, allowlisted activity summaries, not raw
+model text or tool output. OpenCode's private local records may contain project
+content. Supervisor credentials are not inherited by project checks. The preview
+requires an explicit binary digest, local endpoint/model, permission choice,
+consent reference, turn/step limits and deadline. It rejects remote inference
+endpoints and does not discover accounts. Internal actor contexts never come from
+command-line JSON. There is no public HTTP service or managed MCP execution.
+
+For trusted-local stopping, the executor marks its process environment, inspects
+same-user Linux processes and terminates marked descendants as well as its server
+process group. Descendants must retain the marker. Uninspectable new processes or
+uncertain cleanup keep the project claimed for inspection. Existing uninspectable
+processes are recorded by PID and start time before launch; they are not treated
+as owned descendants. This is not hostile-code containment. Stronger isolation
+requires a container or VM boundary in the next stage.
 
 ### OpenCode resource qualification
 
@@ -159,7 +170,8 @@ The controller retains control of approvals and spending rules.
 | `src/core/research.ts` | Bounded source reading, snapshots and quotation validation |
 | `src/core/lifecycle.ts` | Scoped runs, checks, receipts and completion |
 | `src/core/session-contract.ts`, `src/core/sessions.ts` | Internal managed-session contracts and state transitions |
-| `src/core/managed-tasks.ts`, `src/core/workspace-ownership.ts` | Internal trusted fixture bridge, project claims and mutation admission |
+| `src/core/managed-tasks.ts`, `src/core/workspace-ownership.ts` | Approved task binding, candidate gates, project claims and mutation admission |
+| `src/core/managed-profile.ts`, `src/runtime/managed-service.ts`, `src/cli/session.ts` | Strict local executor profiles and shared managed terminal commands |
 | `src/core/workflow.ts` | Criteria, evidence, decisions and handoff records |
 | `src/core/install.ts` | Managed files, conflicts and recoverable installation |
 | `src/core/connect.ts` | Preview, apply and remove the managed coding-client connection |
@@ -170,6 +182,7 @@ The controller retains control of approvals and spending rules.
 | `src/runtime/providers.ts` | Adapter execution, messages, cancellation and recovery |
 | `src/runtime/environment.ts` | Restricted provider child environment |
 | `src/runtime/opencode.ts` | Internal typed, owned OpenCode lifecycle qualification, without model execution |
+| `src/runtime/managed-opencode.ts` | Managed coding turns, bounded tool observations and confirmed owned-resource shutdown |
 | `src/runtime/mcp.ts` | Project-bound stdio tools for the connected host |
 | `site/` | Static landing page and searchable documentation |
 | `scripts/` | Node build, catalog and exact-index secret checks |

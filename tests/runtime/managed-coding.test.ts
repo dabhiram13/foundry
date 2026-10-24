@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -135,6 +135,32 @@ test('managed service refuses unapproved assignments without any upstream reques
   assert.equal(fixture.requests.length, 0);
   await assert.rejects(ManagedService.open(fixture.root, path.join(fixture.root, 'private-storage'), runtime), /outside the project/);
   await assert.rejects(readFile(path.join(fixture.root, 'private-storage/identity.json')), { code: 'ENOENT' });
+});
+
+test('managed preflight rejects non-executable selections without creating or consuming a session', async t => {
+  const { root, storage, service, profile, requests } = await setup(t);
+  const selected = path.join(storage, 'selected-opencode');
+  await writeFile(selected, '#!/bin/sh\nexit 0\n', { mode: 0o600 });
+  const invalid = { ...profile, binary: selected, binaryDigest: await executableDigest(selected) };
+  await assert.rejects(service.start(invalid, randomUUID()), /executable file/);
+  assert.equal(await readManagedClaim(root), null);
+  await chmod(selected, 0o700);
+  const queued = await service.start(invalid, randomUUID());
+  await chmod(selected, 0o600);
+  await assert.rejects(service.run(invalid), /executable file/);
+  assert.deepEqual(await service.status(), queued);
+  assert.equal(requests.length, 0);
+  await service.control('stop', randomUUID(), queued.revision);
+  await service.release();
+});
+
+test('oversized managed assignments fail before reserving a project or claiming execution', async t => {
+  const { root, service, profile, requests } = await setup(t);
+  await writeFile(path.join(root, 'spec.md'), '# Addition\n' + 'Explicit assignment detail.\n'.repeat(2400));
+  await approveScope(root, (await reviewScope(root)).revision);
+  await assert.rejects(service.start(profile, randomUUID()), /prompt limit/);
+  assert.equal(await readManagedClaim(root), null);
+  assert.equal(requests.length, 0);
 });
 
 test('managed start and resume reject changed authority and executor bindings before dispatch', async t => {

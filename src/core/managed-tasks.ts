@@ -58,6 +58,12 @@ function leasedFields(state: LeaseState) {
   return { executionId: state.executionId, leaseToken: state.lease.token, fence: state.lease.fence };
 }
 
+function managedPrompt(assignment: Awaited<ReturnType<typeof prepareAssignment>>): string {
+  const prompt = `Implement only this current Foundry Builder assignment. Preserve owner edits. Do not alter .foundry state, approvals or checks. Do not complete the task yourself.\n${JSON.stringify(assignment)}`;
+  if (Buffer.byteLength(prompt) > 60_000) throw new FoundryError('Managed assignment exceeds the prompt limit');
+  return prompt;
+}
+
 export async function createManagedFixtureTask(rootInput: string, store: SessionStore, owner: Owner, options: unknown): Promise<ManagedSession> {
   const settings = fixtureOptionsSchema.parse(options);
   return createManagedTask(rootInput, store, owner, settings, { kind: 'fixture', profileId: settings.profileId });
@@ -78,6 +84,7 @@ async function createManagedTask(rootInput: string, store: SessionStore, owner: 
     if (!Array.isArray(tasks) || tasks.some(task => ['running', 'unknown'].includes(String(task.status)))) throw new FoundryError('Reconcile provider tasks before binding managed work');
     const source = await prepareAssignment(root, 'builder');
     if (!source.task || source.execution !== 'host_client') throw new FoundryError('No approved Builder assignment');
+    if (executor.kind === 'opencode') managedPrompt(source);
     const assignment = await bindingFor(root, randomUUID(), source.task.id);
     const create = sessionCommandSchema.parse({
       type: 'session.create', sessionId: randomUUID(), requestId: randomUUID(), assignment,
@@ -103,10 +110,10 @@ export async function dispatchManagedOpenCodeTurn(rootInput: string, parent: str
     await validateManagedExecutor(root, parent, profile);
     const context = await workContext(root);
     if (context.run?.saved_status === 'paused') await pauseOrResume(root, false, context.snapshot_revision);
-    const assignment = await prepareAssignment(root, 'builder');
+    const prompt = managedPrompt(await prepareAssignment(root, 'builder'));
     session = await send(store, session, supervisor, { type: 'execution.claim', instanceId: supervisor.id, leaseSeconds: 60 });
     if (session.state.status !== 'running') throw new FoundryError('Managed execution was not claimed');
-    return { session, lease: leasedFields(session.state), assignment };
+    return { session, lease: leasedFields(session.state), prompt };
   });
   const controller = new AbortController();
   let busy = false;
@@ -134,10 +141,8 @@ export async function dispatchManagedOpenCodeTurn(rootInput: string, parent: str
   if (signal?.aborted) interrupt();
   let outcome: Awaited<ReturnType<typeof runManagedOpenCode>>;
   try {
-    const prompt = `Implement only this current Foundry Builder assignment. Preserve owner edits. Do not alter .foundry state, approvals or checks. Do not complete the task yourself.\n${JSON.stringify(prepared.assignment)}`;
-    if (Buffer.byteLength(prompt) > 60_000) throw new FoundryError('Managed assignment exceeds the prompt limit');
     outcome = await runManagedOpenCode(root, parent, profile, {
-      sessionId, executionId: prepared.lease.executionId, prompt, signal: controller.signal,
+      sessionId, executionId: prepared.lease.executionId, prompt: prepared.prompt, signal: controller.signal,
       authorize: async () => {
         await withManagedProject(root, sessionId, owner.id, claim => assertBinding(root, claim));
         const current = await store.get(sessionId, supervisor);

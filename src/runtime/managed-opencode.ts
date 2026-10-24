@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { lstat, mkdir, open, readdir, readFile } from 'node:fs/promises';
+import { access, lstat, mkdir, open, readdir, readFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createOpencodeClient, type Config } from '@opencode-ai/sdk/v2/client';
@@ -103,6 +104,9 @@ export async function validateManagedExecutor(root: string, parent: string, inpu
   validateManagedStorage(root, parent);
   await privateDirectory(parent);
   const stamp = await executableStamp(profile.binary);
+  if (!(await lstat(profile.binary)).isFile()) throw new FoundryError('Selected executor must be an executable file');
+  try { await access(profile.binary, constants.X_OK); }
+  catch { throw new FoundryError('Selected executor must be an executable file'); }
   if (await executableDigest(profile.binary) !== profile.binaryDigest || await executableStamp(profile.binary) !== stamp) throw new FoundryError('Selected executor binary changed');
   return profile;
 }

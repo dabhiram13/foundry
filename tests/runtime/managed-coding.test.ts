@@ -12,7 +12,7 @@ import { managedProfileSchema, type ManagedProfile } from '../../src/core/manage
 import { ManagedService } from '../../src/runtime/managed-service.js';
 import { readManagedClaim } from '../../src/core/workspace-ownership.js';
 import { executableDigest } from '../../src/runtime/opencode.js';
-import { inspectManagedLaunch } from '../../src/runtime/managed-opencode.js';
+import { inspectManagedLaunch, ManagedExecutorError } from '../../src/runtime/managed-opencode.js';
 
 const binary = process.env.FOUNDRY_OPENCODE_QUALIFY_BINARY;
 const runtime = path.resolve(process.env.FOUNDRY_MANAGED_TEST_RUNTIME ?? 'dist/runtime');
@@ -341,7 +341,10 @@ test('crashed CLI retains a live tool claim and recovers only after expiry and s
   assert.equal((await command(['recover', '--inspection-digest', inspection.digest])).code, 2);
   assert.equal((await service.status()).state.status, 'recovery-required');
   killResources();
-  await waitFor(async () => (await inspectManagedLaunch(path.join(storage, 'executions'), active.id, executionId)).stopped);
+  await waitFor(async () => {
+    try { return (await inspectManagedLaunch(path.join(storage, 'executions'), active.id, executionId)).stopped; }
+    catch (error) { if (error instanceof ManagedExecutorError && !error.resourcesStopped) return false; throw error; }
+  });
   const stopped = (await command(['recover'])).value;
   assert.equal((await command(['recover', '--inspection-digest', 'a'.repeat(64)])).code, 2);
   const recovered = (await command(['recover', '--inspection-digest', stopped.digest])).value;

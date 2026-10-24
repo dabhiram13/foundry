@@ -65,8 +65,11 @@ async function ownedProcesses(token: string, uninspectable: Array<{ pid: number;
       if ((await lstat(`/proc/${name}`)).uid !== process.getuid!()) continue;
       const stamp = await processStamp(pid);
       if (!stamp) continue;
-      const handle = await open(`/proc/${name}/environ`, 'r').catch(error => {
+      const handle = await open(`/proc/${name}/environ`, 'r').catch(async error => {
         if ((error as NodeJS.ErrnoException).code !== 'EACCES') throw error;
+        const current = await processStamp(pid);
+        if (!current) return null;
+        if (current !== stamp) throw new ManagedExecutorError(false);
         if (uninspectable.some(entry => entry.pid === pid && entry.stamp === stamp)) return null;
         if (!baseline || uninspectable.length >= 256) throw new ManagedExecutorError(false);
         uninspectable.push({ pid, stamp });

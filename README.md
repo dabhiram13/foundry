@@ -48,8 +48,10 @@ visual workflow has local test coverage, not a live-model trial. Homebrew is not
 **Foundry is not yet a complete standalone coding agent.** Source builds include
 a Linux managed-session preview for trusted disposable projects and local test
 endpoints: real OpenCode edits, Pause/Stop, resume and Foundry checks. This is
-not a live-provider connection or an isolated workspace. A built-in terminal/browser
-workspace and automatic PR/CI follow-up are still missing. See
+not a live-provider connection or isolated managed execution. A separate Docker
+owner terminal can run commands on a private source copy and show its diff without
+updating the original project. The integrated terminal/browser interface and
+automatic PR/CI follow-up are still missing. See
 [what works today][current-scope] and [session commands][managed-sessions].
 
 ## How it works

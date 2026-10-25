@@ -10,6 +10,8 @@ import { providerStatus } from '../runtime/providers.js';
 import type { SessionStore } from '../runtime/session-store.js';
 import { managedProfileSchema } from './managed-profile.js';
 import { inspectManagedLaunch, runManagedOpenCode, validateManagedExecutor } from '../runtime/managed-opencode.js';
+import { IsolatedWorkspace } from '../runtime/isolated-workspace.js';
+import path from 'node:path';
 
 type Owner = Extract<SessionActor, { kind: 'owner' }>;
 type Supervisor = Extract<SessionActor, { kind: 'supervisor' }>;
@@ -102,6 +104,7 @@ export async function dispatchManagedOpenCodeTurn(rootInput: string, parent: str
   const root = await requireRuntimeWorkspace(rootInput, 'run managed OpenCode work in');
   const profile = managedProfileSchema.parse(input);
   const prepared = await withManagedProject(root, sessionId, owner.id, async claim => {
+    await (await IsolatedWorkspace.bind(root, path.dirname(parent), await store.get(sessionId, owner), true)).assertNotActive();
     await assertBinding(root, claim);
     let session = await store.get(sessionId, owner);
     assertSession(claim, session);

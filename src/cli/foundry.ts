@@ -14,6 +14,7 @@ import { dispatchProjectCommand } from './project.js';
 import { writeResult } from './output.js';
 import { runTerminal } from './terminal.js';
 import { sessionCommand } from './session.js';
+import { workspaceCommand } from './workspace.js';
 
 type JsonRecord = Record<string, unknown>;
 declare const __FOUNDRY_VERSION__: string;
@@ -69,6 +70,7 @@ Commands:
   foundry work specialists|assignment|save-plan|task-done|record-review ...
   foundry provider run|status|cancel|reconcile ...
   foundry session --help
+  foundry workspace --help
 
 With no command, an interactive readline terminal opens only on a TTY.
 Use --json for one JSON value on stdout.
@@ -224,6 +226,10 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
   if (command === 'session') {
     const executableDirectory = path.dirname(realpathSync(process.argv[1]!));
     return sessionCommand(rest, existsSync(path.join(executableDirectory, 'foundry-session-storage.cjs')) ? executableDirectory : runtimeDirectory(sourceRoot()));
+  }
+  if (command === 'workspace') {
+    const executableDirectory = path.dirname(realpathSync(process.argv[1]!));
+    return workspaceCommand(rest, existsSync(path.join(executableDirectory, 'foundry-session-storage.cjs')) ? executableDirectory : runtimeDirectory(sourceRoot()));
   }
   if (command === '--version' || command === '-v') {
     if (rest.length) throw new FoundryError('Version does not accept additional arguments.');

@@ -2,6 +2,15 @@
   "name": "Foundry",
   "checks": [
     {
+      "name": "isolated-workspace",
+      "command": ["npm", "run", "test:isolated-workspace"],
+      "cwd": ".",
+      "timeout": 180,
+      "required": true,
+      "environment": ["FOUNDRY_WORKSPACE_QUALIFY_IMAGE"],
+      "inputs": ["src", "tests/runtime", "scripts/qualify_workspace.mjs", "scripts/build_runtime.mjs", "package.json", "package-lock.json"]
+    },
+    {
       "name": "managed-executor",
       "command": ["npm", "run", "test:managed-executor"],
       "cwd": ".",

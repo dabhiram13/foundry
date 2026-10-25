@@ -1,7 +1,7 @@
 ---
 import landing from '../../.generated/landing.html?raw';
-const title = 'Foundry - A clear path from idea to product';
-const description = 'Research, plan, design, build and review software with Foundry. Save progress and use your coding tool or a provider you choose.';
+const title = 'Foundry - Build your idea. Keep control.';
+const description = 'Plan the work. Build with your coding tool. Review every change. Foundry keeps progress, approvals and checks connected.';
 const canonical = new URL('/', Astro.site).href;
 const shareImage = new URL('/assets/foundry-share.png', Astro.site).href;
 const application = {
@@ -32,12 +32,13 @@ const application = {
     <meta property="og:image" content={shareImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Foundry. A clear path from idea to product. The horse mark and Foundry name on a neutral background." />
+    <meta property="og:image:alt" content="The Foundry horse mark and wordmark on a warm background." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content={shareImage} />
     <script type="application/ld+json" set:html={JSON.stringify(application)} />
     <link rel="icon" href="/assets/foundry-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/style.css" />
+    <script is:inline>try { const mode = localStorage.getItem('starlight-theme'); document.documentElement.dataset.theme = mode === 'dark' || mode === 'light' ? mode : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch { /* The page remains usable without storage. */ }</script>
     <script is:inline src="/public.js" defer></script>
   </head>
   <body><div id="foundry-public" set:html={landing} /></body>

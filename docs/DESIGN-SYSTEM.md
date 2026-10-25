@@ -1,62 +1,96 @@
 # Foundry visual system
 
-One quiet system for the public landing page and documentation. Use the same
-colors, type, spacing and control states throughout. The public site stays
-static; it is not a mockup of a managed workspace.
+Warm Workbench connects the public landing page, docs and brand artwork. A warm
+paper canvas, restrained orange accents and an original textured product frame
+take inspiration from LightSprint's composition and physical controls. The
+public site remains static, not a managed workspace. Do not show fictional
+running agents, completed products, customer quotes or check results as evidence.
 
 ## Color
 
-The shared source is `site/src/styles/tokens.css`. Landing is light; docs support
-light, dark and automatic themes using Starlight's native selector.
+The shared source is `site/src/styles/tokens.css`. Landing supports light/dark;
+docs preserve Starlight's light/dark/automatic selector and storage convention.
 
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| Background | `#fafafa` | `#101012` | Reading surface |
-| Card | `#ffffff` | `#18181b` | Controls and contained content |
-| Foreground | `#18181b` | `#fafafa` | Text and primary actions |
-| Muted text | `#61616b` | `#a1a1aa` | Supporting text, not disabled text |
-| Muted surface | `#f4f4f5` | `#232326` | Hover and secondary surfaces |
-| Divider | `#e4e4e7` | `#3f3f46` | Content boundaries |
-| Input border | `#737373` | `#a1a1aa` | Actual form fields |
-| Focus | `#2563eb` | `#93c5fd` | Keyboard focus and documentation links |
+| Background | `#f5f3f0` | `#1b1917` | Warm reading surface |
+| Card | `#fffdfb` | `#25211e` | Controls and contained content |
+| Foreground | `#292520` | `#f8f4ef` | Primary text |
+| Muted text | `#605c56` | `#beb4ac` | Supporting text, not disabled text |
+| Primary | `#bf4115` | `#f47d4e` | Actions and selection |
+| Muted surface | `#efebe6` | `#312b26` | Hover and secondary surfaces |
+| Divider | `#ddd8d2` | `#51463e` | Content boundaries |
+| Input border | `#766e66` | `#b7aaa1` | Actual form fields |
+| Focus | `#b83b13` | `#ffa471` | Visible keyboard focus |
 | Error | `#b91c1c` | `#fca5a5` | Written error feedback |
 
-Do not rely on color alone for errors or availability. Quiet dividers are not
-the only way to recognize an input: fields keep visible labels and clear borders.
-Body text must meet WCAG AA contrast in its rendered state.
+Primary button faces use darker orange than the decorative art to keep small white
+labels readable. Dark-mode buttons use dark labels on light orange. Color is
+not the only way to identify errors, selection or availability. Test the actual
+rendered colors, not an unrelated reference palette.
 
 ## Type and layout
 
-- Local Inter variable font for text and controls. System monospace for commands.
-  No remote fonts or display font. The Inter OFL notice ships with its outlines.
-- Hero up to 64px, section headings 28-32px, body 15-17px. Small labels supplement
-  content rather than replacing readable body text.
-- A 4px spacing scale. Controls have 6px corners; contained panels have 8px corners.
-  No gradients, glass surfaces or decorative card grids.
-- Landing width up to 1088px, 32px desktop gutters, 20px mobile gutters. Stack
-  content below 760px; specialist summaries use three, two, then one column.
-- Docs keep Starlight's native navigation breakpoints, dialog and table of
-  contents. Only code and table regions may scroll horizontally.
-- The README banner contains only the monochrome horse mark and Foundry name.
+- Local Instrument Sans variable Latin, 400-700, under SIL OFL 1.1. System
+  monospace for commands. No font CDN request or proprietary Suisse font.
+- A compact editorial hero, a six-step interactive example, install panel,
+  approvals/checks, FAQ and footer. The example is
+  explicitly illustrative, not a finished booking product or live session.
+- Width up to 1120px. Desktop gutters 32px, mobile 16-20px. Inset capsule
+  faces on 44px controls, a rounded header and restrained contained surfaces.
+  Keep content readable before texture.
+- The product scene has original local ordered-halftone WebP artwork with an SVG
+  fallback, not WebGL. Texture remains
+  decorative; the example is semantic text over a readable surface.
+- Docs retain Starlight's responsive shell, navigation, search and TOC. Tables
+  and code can scroll without making the entire page overflow.
+- The README banner contains only the horse mark and Foundry name, outlined in
+  Instrument Sans. GitHub chooses the font for the rest of README Markdown.
 
 ## Controls and states
 
 | Component | Behavior |
 | --- | --- |
-| Button and link | Distinct primary, outline and text treatment; hover, pressed, visible focus and native disabled state. Use anchors for navigation. |
-| Copy commands | Copying, copied, failure and unavailable states; written fallback and retry. Never claim success after a failed clipboard operation. |
-| Stage and FAQ disclosure | Native summary/details, readable expanded content, open indicator and keyboard access, including without JavaScript. |
-| Mobile menu | Native disclosure; hydrated Escape returns focus to its summary; selecting a link closes it. No fake modal or focus trap. |
-| Availability badge | A passive label, not a button or running-agent indicator. |
-| Search | Starlight/Pagefind dialog, real input, clear, query, results, no-results and load-more behavior. Preserve native semantics and shortcuts. |
-| Theme select | Native light/dark/auto options, focus, hover and readable popup options. |
-| Docs navigation | Current page, disclosure, pagination and mobile menu use the same borders, corners and focus treatment. |
+| Actions | Compact solid faces inset inside 44px hit areas. Hover adjusts color; press sinks 1px; focus ring remains clear; disabled removes movement. Anchors navigate, buttons act. |
+| Copy commands | Idle, copying, copied, failure and unavailable. Written success/fallback/retry; never claim success after failure. |
+| Workflow | Manual selection, arrow/Home/End keys, roving focus and a labeled panel. First example is server-rendered. No autoplay. The docs link remains available without JS. |
+| FAQ | Native summary/details, plus/minus indicator, hover/press/focus and keyboard access without JS. |
+| Mobile menu | Native disclosure, Escape/focus return after hydration, closes after choosing a link. Not a fake modal or focus trap. |
+| Availability | Passive published/source/not-available labels, not fake disabled buttons or running-agent indicators. |
+| Search | Starlight/Pagefind dialog, shortcut, input, clear, real results and empty states. Preserve native semantics and dismissal. |
+| Theme | Landing light/dark buttons with pressed state; docs native light/dark/auto select. Both share the saved preference. |
+| Docs navigation | Warm highlighted current page, responsive sidebar, group disclosure, TOC and tactile previous/next links. |
+| Code copy | Actual Expressive Code button, 44px bounds, hover/pressed/focus and built-in feedback. |
 
-Standalone controls have at least 44px targets. Focus is a two-pixel ring with
-three-pixel offset, never clipped or removed. Transitions only change color or
-opacity, not position or scale. Reduced motion removes animation, transitions
-and smooth scrolling. No animation library is needed.
+The owner requested a detail refinement after the first unaccepted preview.
+Workflow tabs use compact text pills, with an ivory inset selected face and no
+stage icons, numbered tabs or peach selection blocks. A connected invitation
+example replaces the unexplained booking label. The original halftone image
+fills the scene and continues into a softer charcoal-to-paper landing backdrop.
+The illustration is explicitly labeled as an example.
 
-The source mapping is in [component sources](COMPONENT-SOURCES.md). Test actual
-desktop/mobile rendering, keyboard behavior, search, both docs themes and
-overflow. Passing static tests does not establish appearance or owner acceptance.
+The rounded floating header uses measured navigation bounds, a moving neutral
+hover/focus surface, section tracking and reading progress. Links remain
+ordinary anchors. Button faces are inset inside 44px hit areas; Docs previous/next
+links use restrained ruled rows rather than large raised cards.
+The hero's original dot-wave rasterizer uses readable DOM text and an aria-hidden
+canvas; it runs once on entry or pointer entry, then restores native text. Font
+loading, resize, visibility, reduced motion and unmount are handled explicitly.
+Docs selection is a thin orange edge and text, not a peach block. Pagination
+keeps a stable row and moves only its directional arrow on hover. Secondary
+pressed states are neutral. Native search, theme and sidebar controls remain.
+
+Standalone controls have 44px minimum targets. Reduced motion removes
+transitions, panel animation and smooth scrolling. Texture never replaces a
+label or result. No animation library is required.
+
+Docs search is a content-sized capsule, not an input-shaped full-width bar.
+Search, the Docs brand label and native theme hover surface use 36px painted
+faces within 44px targets. The mobile TOC shares their rounded corners; article
+and code surfaces remain rectangular reading areas. Search dialog height follows
+the actual content, without a blank minimum-height panel.
+
+The mapping and licenses are in [component sources](COMPONENT-SOURCES.md) and
+[provenance](PROVENANCE.md). Static tests do not establish appearance or owner
+acceptance. Check actual desktop/mobile rendering, keyboard, both themes,
+search, clipboard, selected controls, reduced motion and overflow.

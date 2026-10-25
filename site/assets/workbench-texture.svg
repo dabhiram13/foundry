@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" aria-hidden="true">
+  <defs>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2d2829"/><stop offset=".42" stop-color="#5b4140"/><stop offset="1" stop-color="#fd6029"/></linearGradient>
+    <radialGradient id="sun"><stop stop-color="#ffaf76"/><stop offset=".45" stop-color="#f57340"/><stop offset="1" stop-color="#f57340" stop-opacity="0"/></radialGradient>
+    <radialGradient id="shadow"><stop stop-color="#191c22" stop-opacity=".9"/><stop offset="1" stop-color="#191c22" stop-opacity="0"/></radialGradient>
+    <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".36" numOctaves="2" seed="19" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </defs>
+  <path fill="url(#ink)" d="M0 0h1200v700H0z"/>
+  <ellipse cx="965" cy="604" rx="590" ry="460" fill="url(#sun)"/>
+  <ellipse cx="181" cy="185" rx="420" ry="280" fill="url(#shadow)"/>
+  <path d="M0 438c156-72 303-39 443-112s255-86 381-30 253 52 376-8v412H0z" fill="#f95628" opacity=".55"/>
+  <path d="M0 499c175 29 262-43 425 20 154 59 309-49 455-7 165 48 241-20 320-44v232H0z" fill="#ee5a2c" opacity=".6"/>
+  <path d="M0 531c127-17 227-77 406-2 132 54 304-31 422 0 184 49 239-28 372-9" stroke="#302629" stroke-width="21" stroke-opacity=".24" fill="none"/>
+  <path fill="#fff" filter="url(#paper)" opacity=".17" d="M0 0h1200v700H0z"/>
+</svg>

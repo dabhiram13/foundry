@@ -3,11 +3,16 @@
   <span aria-hidden="true">/</span><a class="docs-label" href="/docs/">Docs</a>
 </div>
 <style>
-  .foundry-docs-brand { display: flex; align-items: center; gap: 1rem; white-space: nowrap; }
+  .foundry-docs-brand { display: flex; align-items: center; gap: .75rem; white-space: nowrap; }
   a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
-  img { width: 28px; height: 28px; }
-  .brand { gap: .375rem; color: var(--sl-color-white); font-size: 1.125rem; font-weight: 600; letter-spacing: -.035em; }
-  .docs-label, .foundry-docs-brand > span { color: var(--sl-color-gray-2); font-size: .875rem; }
-  :global([data-theme='dark']) img { filter: invert(1); }
+  img { flex-shrink: 0; width: 30px; height: 30px; border-radius: 7px; }
+  .brand { flex-shrink: 0; gap: .5rem; color: var(--sl-color-white); font-size: 1.125rem; font-weight: 650; letter-spacing: -.04em; }
+  .brand:hover { color: var(--sl-color-accent); }
+  .docs-label { position: relative; isolation: isolate; flex-shrink: 0; justify-content: center; min-width: 44px; padding: 0 8px; border-radius: 999px; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 600; }
+  .docs-label::before { content: ''; position: absolute; inset: 4px 0; z-index: -1; border-radius: inherit; background: var(--sl-color-accent-low); transition: background-color .15s ease; }
+  .docs-label:hover::before { background: var(--accent); }
+  .docs-label:active, .brand:active { transform: translateY(1px); }
+  .foundry-docs-brand > span { color: var(--sl-color-gray-3); font-size: .875rem; }
   @media (max-width: 30rem) { .foundry-docs-brand { gap: .5rem; } }
+  @media (max-width: 25rem) { .foundry-docs-brand { gap: .375rem; } .foundry-docs-brand > span { display: none; } }
 </style>

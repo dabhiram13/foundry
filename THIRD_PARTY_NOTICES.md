@@ -21,10 +21,15 @@ supplied source information; absent origins are not claims of new authorship.
 The static landing and documentation site retains attribution and license files
 beside applicable assets in `site/assets/licenses/`. Inter variable Latin is
 vendored from `@fontsource-variable/inter` under SIL OFL 1.1. Its notice is
-retained in `site/assets/licenses/Inter-OFL.txt` and applies to the outlined
-Foundry name as well as the font file.
+retained in `site/assets/licenses/Inter-OFL.txt` for that retained font asset.
 
-The wordmark contains Inter glyph outlines, not a new typeface. The horse
+The current site and outlined Foundry name use Instrument Sans, Copyright 2022
+The Instrument Sans Project Authors (https://github.com/Instrument/instrument-sans),
+under SIL OFL 1.1. The original Latin variable WOFF2 is served locally with its
+notice in `site/assets/licenses/InstrumentSans-OFL.txt`. The outlines are used
+as artwork, not distributed as a renamed typeface.
+
+The wordmark contains Instrument Sans glyph outlines, not a new typeface. The horse
 mark is a vector silhouette extracted from the owner-approved AI-generated
 illustration. The former artwork scenes are no longer shipped; owner-supplied
 reference images were not embedded or distributed. Neither
@@ -35,3 +40,9 @@ Site controls adapt shadcn/ui under the MIT notice in
 `site/assets/licenses/shadcn-ui.txt`. The former Animate UI components were
 removed, not relicensed. Their historical notices remain with those revisions.
 See `docs/COMPONENT-SOURCES.md` for current source references.
+
+LightSprint is a visual and interaction reference, not a code or asset source.
+Its proprietary fonts, artwork, logo, product screenshots and copy are not
+included. The warm product-frame textures are original SVG and locally generated
+ordered-halftone WebP artwork. The canvas dot-wave and floating navigation are
+original implementations, not reference-site source code.

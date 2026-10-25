@@ -10,11 +10,11 @@
   <a href="https://foundry-two-tan.vercel.app/docs/"><img src="https://foundry-two-tan.vercel.app/assets/badge-docs.svg" alt="Read the documentation" /></a>
 </p>
 
-# Build from idea to product.
+# Build your idea. Keep control.
 
-Foundry organizes research, planning, design, coding and review. Your connected
-coding tool makes the changes. Foundry saves progress, runs your checks and
-pauses for approval. Start with an idea or improve an existing project.
+Plan the work. Build with your coding tool. Review every change. Foundry keeps
+research, planning, design, coding and review connected, with approvals and
+checks tied to the work. Start with an idea or an existing project.
 
 [Website][website] · [Docs][documentation-index] · [npm][npm-package] ·
 [Contribute][contributing]

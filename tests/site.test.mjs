@@ -63,9 +63,9 @@ test('starting pages distinguish connected work from unfinished managed executio
     assert.ok(workflow.includes(term), term);
   }
   const landing = textContent(parse(await readFile(path.join(output, 'index.html'), 'utf8')));
-  assert.match(landing, /Your coding tool does the work/);
-  assert.match(landing, /not a working coding workspace/);
-  assert.match(landing, /PR follow-up are unfinished/);
+  assert.match(landing, /with your coding tool/);
+  assert.match(landing, /Not a standalone coding workspace yet/);
+  assert.match(landing, /PR follow-up are not available yet/);
   const provider = await readFile(path.join(root, 'docs/PROVIDERS.md'), 'utf8');
   for (const term of ['## OpenAI-compatible endpoints in OpenCode', 'no `foundry --base-url`', 'fake loopback', 'not Foundry, manages authentication']) {
     assert.ok(provider.includes(term), term);
@@ -135,8 +135,11 @@ test('README links readers to built public documentation pages', async () => {
 
 test('public landing is pre-rendered and does not load the workspace client', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
-  assert.match(html, /A clear path<br\/>from idea to product\./);
-  assert.match(html, /Build products,<br\/>step by step\./);
+  let heading;
+  walk(parse(html), node => { if (attr(node, 'id') === 'landing-title') heading = node; });
+  assert.ok(heading, 'the hero heading is server-rendered');
+  assert.equal(textContent(heading), 'Build your idea.Keep control.');
+  assert.match(html, /How Foundry works/);
   assert.match(html, /href="\/docs\/"/);
   assert.doesNotMatch(html, /foundry-token|src="\/app.js"|Open local browser view/);
   const script = await readFile(path.join(output, 'public.js'), 'utf8');
@@ -160,7 +163,7 @@ test('landing CSS compiles utilities, local styles and font assets', async () =>
   });
   const fonts = [];
   css.walkAtRules('font-face', rule => rule.walkDecls('src', declaration => fonts.push(declaration.value)));
-  assert.ok(fonts.some(value => value.includes('/assets/inter-latin-wght-normal.woff2')));
+  assert.ok(fonts.some(value => value.includes('/assets/instrument-sans-latin.woff2')));
 });
 
 test('landing follows device motion preferences without a separate toggle', async () => {
@@ -190,26 +193,42 @@ test('mobile menu uses a compact icon inside an accessible touch target', async 
   }
 });
 
-test('landing groups six specialist roles with decorative icons and a catalog link', async () => {
+test('capsule header does not inherit the narrower responsive page shell', async () => {
   const tree = parse(await readFile(path.join(output, 'index.html'), 'utf8'));
-  let section;
+  let headerInner;
   walk(tree, node => {
-    if (attr(node, 'aria-labelledby') === 'specialists-title') section = node;
+    if ((attr(node, 'class') || '').split(/\s+/).includes('header-inner')) headerInner = node;
   });
-  assert.ok(section, 'specialist section has a named heading');
-  const roles = [];
+  assert.ok(headerInner);
+  assert.equal((attr(headerInner, 'class') || '').split(/\s+/).includes('landing-shell'), false);
+  const css = postcss.parse(await readFile(path.join(root, 'site/src/landing/landing.css'), 'utf8'));
+  const inner = css.nodes.find(node => node.selector === '.header-inner');
+  assert.ok(inner.nodes.some(node => node.prop === 'width' && node.value === '100%'));
+  const page = css.nodes.find(node => node.selector === '.landing-page');
+  assert.ok(page.nodes.some(node => node.prop === 'display' && node.value === 'flow-root'), 'header margin stays inside the textured page');
+});
+
+test('docs reduced-motion pagination overrides directional hover displacement', async () => {
+  const css = postcss.parse(await readFile(path.join(root, 'site/src/styles/docs.css'), 'utf8'));
+  let reset;
+  css.walkAtRules('media', media => {
+    if (!/prefers-reduced-motion:\s*reduce/.test(media.params)) return;
+    media.walkRules(rule => { if (rule.selector === '.pagination-links a[rel]:hover svg') reset = rule; });
+  });
+  assert.ok(reset, 'reduced-motion hover reset retains rel attribute specificity');
+  assert.ok(reset.nodes.some(node => node.prop === 'transform' && node.value === 'none'));
+});
+
+test('landing keeps the example compact and links to the specialist catalog', async () => {
+  const tree = parse(await readFile(path.join(output, 'index.html'), 'utf8'));
   let catalog = false;
-  walk(section, node => {
-    if (node.tagName === 'li') {
-      const heading = node.childNodes.find(child => child.tagName === 'h3');
-      roles.push(heading?.childNodes[0]?.value);
-      const icon = node.childNodes.find(child => child.tagName === 'svg');
-      assert.equal(attr(icon, 'aria-hidden'), 'true');
-    }
+  let duplicatedRoles = false;
+  walk(tree, node => {
+    if (attr(node, 'id') === 'landing-specialists') duplicatedRoles = true;
     if (attr(node, 'href') === '/docs/catalog/') catalog = true;
   });
-  assert.deepEqual(roles, ['Research', 'Planning', 'Design', 'Development', 'Testing', 'Review']);
   assert.ok(catalog);
+  assert.equal(duplicatedRoles, false);
 });
 
 test('README banner contains only the Foundry logo and name on a self-contained background', async () => {
@@ -218,7 +237,8 @@ test('README banner contains only the Foundry logo and name on a self-contained 
   const logoPath = /<path d="([^"]+)"/.exec(wordmark)?.[1];
   assert.ok(logoPath);
   assert.ok(banner.includes(logoPath));
-  assert.match(banner, /<rect[^>]+fill="#fafafa"/);
+  assert.match(banner, /<rect[^>]+fill="#f5f3f0"/);
+  assert.match(banner, /Instrument Sans outlines/);
   assert.doesNotMatch(banner, /<script|<image|<foreignObject|<text\b/);
   assert.doesNotMatch(banner, /Research|Plan|Design|Build|Review|Handoff|framework for building|YOUR AI|YOUR CODE|OPEN SOURCE/);
   assert.match(banner, /<title>Foundry<\/title>/);
@@ -251,7 +271,7 @@ test('README banner contains only the Foundry logo and name on a self-contained 
   const scale = 76 / height;
   const groupWidth = 134 + width * scale;
   assert.ok(groupWidth < 1200 && 104 < 260, 'centered identity fits within the banner');
-  assert.match(wordmark, /Inter glyph outlines, SIL OFL 1\.1/);
+  assert.match(wordmark, /Instrument Sans outlines, SIL OFL 1\.1/);
   assert.doesNotMatch(banner + wordmark, /Cormorant|#cd150c/);
   assert.match(readme, /^\[license\]: https:\/\/github\.com\/dabhiram13\/foundry\/blob\/main\/LICENSE$/m);
   assert.doesNotMatch(readme, /^\[[^\]]+\]: (?!https?:\/\/)\S+/m);
@@ -376,43 +396,90 @@ test('docs standalone search and code-copy targets retain 44px bounds in both in
   assert.match(css, /\.expressive-code \.frame \.ec-line \.code\s*\{[^}]*padding-inline-end: calc\(44px \+ 1rem\)/);
 });
 
-test('product journey remains native, readable and honest about connection boundaries', async () => {
+test('docs brand compacts its separator on narrow phones while keeping both links touchable', async () => {
+  const source = await readFile(path.join(root, 'site/src/components/SiteTitle.astro'), 'utf8');
+  assert.match(source, /a \{[^}]*min-height: 44px/);
+  assert.match(source, /\.docs-label \{[^}]*flex-shrink: 0[^}]*min-width: 44px/);
+  assert.match(source, /@media \(max-width: 25rem\)[\s\S]*\.foundry-docs-brand > span \{ display: none;/);
+  assert.doesNotMatch(source, /\.docs-label \{[^}]*display: none/);
+});
+
+test('docs search uses a content-sized capsule rather than a full-width input-shaped trigger', async () => {
+  const css = postcss.parse(await readFile(path.join(root, 'site/src/styles/docs.css'), 'utf8'));
+  const trigger = css.nodes.find(node => node.selector === 'site-search > button');
+  const declarations = new Map(trigger.nodes.map(node => [node.prop, node.value]));
+  assert.equal(declarations.get('width'), 'max-content');
+  assert.equal(declarations.get('height'), '44px');
+  assert.equal(declarations.get('border-radius'), '999px');
+  assert.equal(declarations.get('background'), 'transparent');
+  const face = css.nodes.find(node => node.selector === 'site-search > button::before');
+  assert.ok(face.nodes.some(node => node.prop === 'inset' && node.value === '4px 0'));
+  const theme = css.nodes.find(node => node.selector === 'starlight-theme-select select');
+  assert.ok(theme.nodes.some(node => node.prop === 'height' && node.value === '44px'));
+  assert.ok(theme.nodes.some(node => node.prop === 'padding-block' && node.value === '0'));
+  const brand = await readFile(path.join(root, 'site/src/components/SiteTitle.astro'), 'utf8');
+  assert.match(brand, /\.docs-label::before\s*\{[^}]*inset: 4px 0/);
+  for (const slug of pages.values()) {
+    const tree = parse(await readFile(path.join(output, pageUrl(slug), 'index.html'), 'utf8'));
+    let search;
+    walk(tree, node => { if (node.tagName === 'button' && attr(node, 'data-open-modal') !== undefined) search = node; });
+    assert.ok(search, slug);
+    assert.equal(attr(search, 'aria-label'), 'Search');
+    assert.equal(attr(search, 'aria-keyshortcuts'), 'Control+K');
+  }
+});
+
+test('manual workflow has named tabs, a labeled initial panel and honest connection boundaries', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
   const tree = parse(html);
   const stages = [];
   const faqs = [];
   let mobileMenu;
+  let panel;
   walk(tree, node => {
+    if (attr(node, 'role') === 'tab') stages.push(node);
+    if (attr(node, 'role') === 'tabpanel') panel = node;
     if (node.tagName !== 'details') return;
     const summary = node.childNodes.find(child => child.tagName === 'summary');
     assert.ok(summary && textContent(summary).trim(), 'native disclosures have names');
-    if (attr(node, 'name') === 'foundry-stages') stages.push(node);
     if (attr(node, 'class') === 'mobile-menu') mobileMenu = node;
     if (textContent(summary).replace(/[+−]\s*$/, '').trim().endsWith('?')) faqs.push(node);
   });
   assert.equal(stages.length, 6);
   const labels = stages.map(node => {
-    let heading;
-    walk(node, child => { if (child.tagName === 'h3') heading = textContent(child); });
-    return heading;
+    let label;
+    walk(node, child => { if (child.tagName === 'strong') label = textContent(child); });
+    return label;
   });
   assert.deepEqual(labels, ['Research', 'Plan', 'Design', 'Build', 'Review', 'Handoff']);
-  assert.equal(stages.filter(node => attr(node, 'open') !== undefined).length, 1);
+  assert.equal(stages.filter(node => attr(node, 'aria-selected') === 'true').length, 1);
+  assert.equal(stages.filter(node => attr(node, 'tabindex') === '0').length, 1);
+  assert.equal(attr(panel, 'aria-labelledby'), attr(stages[0], 'id'));
+  assert.match(textContent(panel), /Define the problem/);
   for (const stage of stages) {
-    assert.match(textContent(stage), /Role/);
-    assert.match(textContent(stage), /Result/);
+    assert.equal(attr(stage, 'type'), 'button');
+    assert.equal(attr(stage, 'aria-controls'), attr(panel, 'id'));
+    assert.ok(stage.childNodes.some(child => attr(child, 'class') === 'stage-surface'), 'each stage has an inset selected face');
   }
+  const source = await readFile(path.join(root, 'site/src/landing/components/product-walkthrough.tsx'), 'utf8');
+  for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End']) assert.ok(source.includes(`'${key}'`));
+  assert.doesNotMatch(source, /setInterval|setTimeout/);
+  assert.match(source, /Approve desktop, mobile and error states/);
   assert.equal(faqs.length, 5);
   assert.ok(mobileMenu);
-  assert.match(textContent(mobileMenu), /How it worksSpecialistsDocumentation/);
-  assert.match(textContent(tree), /Role names are not separate running agents/);
+  assert.match(textContent(mobileMenu), /How it worksInstallDocumentation/);
+  assert.match(textContent(tree), /A built-in browser workspace and PR follow-up are not available yet/);
   assert.match(textContent(tree), /Not in npm 0\.5\.1/);
-  assert.match(textContent(tree), /Managed workspace\s+Not available yet/);
-  assert.match(textContent(tree), /running preview and captured desktop and mobile views/);
+  assert.match(textContent(tree), /Managed workspace\s+In development/);
+  assert.match(textContent(tree), /Example, not a live session/);
   assert.doesNotMatch(html, /full specialist journey is not yet exposed/);
-  assert.match(html, /not a working coding workspace/);
-  assert.match(html, /Ship writes a project summary; it does not publish or deploy/);
-  assert.doesNotMatch(html, /role="tab"|<canvas|<iframe|Imageory|Spline/);
+  assert.match(html, /Not a standalone coding workspace yet/);
+  assert.match(html, /Handoff saves a local summary; it does not publish/);
+  assert.doesNotMatch(html, /<iframe|Imageory|Spline|WORKFLOW \/ STUDIO BOOKING|live-indicator/);
+  const canvases = [];
+  walk(tree, node => { if (node.tagName === 'canvas') canvases.push(node); });
+  assert.equal(canvases.length, 1);
+  assert.equal(attr(canvases[0], 'aria-hidden'), 'true');
 });
 
 test('connected setup is reachable and keeps source, checks and owner approval explicit', async () => {
@@ -462,24 +529,57 @@ test('public introductions use plain words instead of AI slogans and runtime jar
   assert.match(readme, /Service work needs no images/);
 });
 
-test('neutral public system uses local fonts and no obsolete production art or motion', async () => {
+test('warm public system uses original texture and local licensed typography without a shader runtime', async () => {
   const html = await readFile(path.join(output, 'index.html'), 'utf8');
   const script = await readFile(path.join(output, 'public.js'), 'utf8');
   const css = await readFile(path.join(output, 'style.css'), 'utf8');
-  assert.match(css, /inter-latin-wght-normal\.woff2/);
+  assert.match(css, /instrument-sans-latin\.woff2/);
   assert.doesNotMatch(html + css + script, /assets\/art\/|cormorant-garamond|MotionConfig|AnimatePresence/);
   assert.doesNotMatch(css, /fonts\.googleapis|fonts\.gstatic|https:\/\/.*\.(?:woff2|ttf)/);
   const source = await readFile(path.join(root, 'site/src/landing/landing.css'), 'utf8');
   assert.match(source, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(source, /min-height: 44px/);
-  assert.doesNotMatch(source, /linear-gradient|backdrop-filter|\.foundry-art/);
+  assert.match(source, /workbench-texture\.svg/);
+  assert.match(source, /workbench-halftone\.webp/);
+  const halftone = await readFile(path.join(output, 'assets/workbench-halftone.webp'));
+  assert.equal(halftone.toString('ascii', 8, 12), 'WEBP');
+  assert.ok(halftone.byteLength < 900_000, 'original halftone stays below 900 kB');
+  assert.match(source, /background-size: 5px 5px/);
+  assert.doesNotMatch(html + css + script, /lightsprint\.ai\/(?:images|_ploy_static)|Suisse|PaperShader|OpticalSignal/);
+  const texture = await readFile(path.join(output, 'assets/workbench-texture.svg'), 'utf8');
+  assert.match(texture, /feTurbulence/);
+  assert.doesNotMatch(texture, /<image|<script|<foreignObject|href="https?:/);
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
   assert.equal(manifest.devDependencies.motion, undefined);
   assert.equal(manifest.devDependencies['tw-animate-css'], undefined);
   for (const asset of ['assets/art', 'assets/cormorant-garamond-latin-600.ttf', 'assets/animate-ui.LICENSE.md']) {
     assert.equal(await stat(path.join(output, asset)).catch(() => null), null, `${asset}: not shipped`);
   }
-  assert.ok(gzipSync(script).byteLength < 100_000, 'neutral public JS stays below 100 kB gzip');
+  assert.ok(gzipSync(script).byteLength < 100_000, 'warm public JS stays below 100 kB gzip');
+});
+
+test('original text wave and floating navigation preserve native content and cleanup', async () => {
+  const wave = await readFile(path.join(root, 'site/src/landing/components/dot-wave-text.tsx'), 'utf8');
+  for (const behavior of ['prefers-reduced-motion: reduce', 'document.fonts.ready', 'ResizeObserver', 'IntersectionObserver', 'cancelAnimationFrame', 'document.hidden', 'observer.disconnect()', 'resize.disconnect()', 'aria-hidden="true"']) assert.ok(wave.includes(behavior), behavior);
+  assert.match(wave, /<span>\{text\}<\/span>/);
+  assert.match(wave, /const width = Math.ceil\(bounds.width\);/);
+  assert.match(wave, /surface!\.style\.width = `\$\{bounds.width\}px`/);
+  assert.doesNotMatch(wave, /setInterval|fetch\(/);
+  const header = await readFile(path.join(root, 'site/src/landing/components/header-nav.tsx'), 'utf8');
+  for (const behavior of ['offsetLeft', 'offsetWidth', '--reading-progress', 'removeEventListener', 'observer.disconnect()', "aria-current={current === index ? 'location'"]) assert.ok(header.includes(behavior), behavior);
+  const css = await readFile(path.join(root, 'site/src/landing/landing.css'), 'utf8');
+  const canvas = postcss.parse(css).nodes.find(node => node.selector === '.dither-text canvas');
+  assert.ok(canvas.nodes.some(node => node.prop === 'display' && node.value === 'none'), 'settled decorative canvas has no overflow box');
+  const selected = postcss.parse(css).nodes.find(node => node.selector?.startsWith(".walkthrough-stages button[aria-selected='true'],"));
+  assert.ok(selected);
+  assert.equal(selected.nodes.some(node => /background|box-shadow|border-color/.test(node.prop)), false, 'no filled or boxed selected workflow row');
+  const surface = postcss.parse(css).nodes.find(node => node.selector === '.stage-surface');
+  assert.ok(surface.nodes.some(node => node.prop === 'inset' && node.value === '5px 0'), 'pill face is inset inside the 44px target');
+  const selectedSurface = postcss.parse(css).nodes.find(node => node.selector?.startsWith(".walkthrough-stages button[aria-selected='true'] .stage-surface"));
+  assert.ok(selectedSurface.nodes.some(node => node.prop === 'background' && node.value === '#fff0df'), 'selected state has an ivory capsule');
+  const workflow = await readFile(path.join(root, 'site/src/landing/components/product-walkthrough.tsx'), 'utf8');
+  assert.ok(workflow.indexOf('role="tablist"') < workflow.indexOf('role="tabpanel"'), 'tablist precedes its panel in focus order');
+  assert.doesNotMatch(workflow, /ChevronRight|LockKeyhole|Circle|Studio booking|live-indicator/);
 });
 
 test('shared palette has readable body, primary, link, error and focus contrast in both themes', async () => {
@@ -488,12 +588,43 @@ test('shared palette has readable body, primary, link, error and focus contrast 
       .map(channel => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
     return rgb.reduce((sum, value, i) => sum + value * [.2126, .7152, .0722][i], 0);
   };
-  for (const [foreground, background] of [['18181b', 'fafafa'], ['61616b', 'fafafa'], ['61616b', 'ffffff'], ['ffffff', '18181b'], ['2563eb', 'fafafa'], ['b91c1c', 'ffffff'], ['fafafa', '101012'], ['a1a1aa', '101012'], ['a1a1aa', '18181b'], ['18181b', 'f4f4f5'], ['93c5fd', '18181b'], ['fca5a5', '18181b']]) {
+  const palettes = [];
+  postcss.parse(await readFile(path.join(root, 'site/src/styles/tokens.css'), 'utf8')).walkRules(rule => {
+    const palette = new Map();
+    rule.walkDecls(decl => palette.set(decl.prop, decl.value.replace('#', '')));
+    palettes.push(palette);
+  });
+  const pairs = palettes.flatMap(palette => [
+    ['--foreground', '--background'], ['--muted-foreground', '--background'],
+    ['--muted-foreground', '--card'], ['--primary-foreground', '--primary'],
+    ['--primary', '--background'], ['--destructive', '--card'], ['--ring', '--background'],
+  ].map(([foreground, background]) => [palette.get(foreground), palette.get(background)]));
+  // Cover the painted button faces, not just the semantic tokens.
+  pairs.push(['ffffff', 'b83b13'], ['ffffff', 'a8330f'], ['241912', 'ffad78'], ['241912', 'ff9f67']);
+  for (const [foreground, background] of pairs) {
     const [light, dark] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
     assert.ok((light + .05) / (dark + .05) >= 4.5, `${foreground} on ${background}: body contrast`);
   }
   const license = await readFile(path.join(output, 'assets/licenses/Inter-OFL.txt'), 'utf8');
   assert.match(license, /SIL OPEN FONT LICENSE/);
+  assert.match(await readFile(path.join(output, 'assets/licenses/InstrumentSans-OFL.txt'), 'utf8'), /SIL OPEN FONT LICENSE/);
+});
+
+test('landing theme and tactile controls share docs preference and preserve explicit states', async () => {
+  const tree = parse(await readFile(path.join(output, 'index.html'), 'utf8'));
+  const themeButtons = [];
+  walk(tree, node => { if (['Light mode', 'Dark mode'].includes(attr(node, 'aria-label'))) themeButtons.push(node); });
+  assert.equal(themeButtons.length, 2);
+  assert.equal(themeButtons.filter(node => attr(node, 'aria-pressed') === 'true').length, 1);
+  const theme = await readFile(path.join(root, 'site/src/landing/components/theme-toggle.tsx'), 'utf8');
+  assert.match(theme, /starlight-theme/);
+  assert.match(theme, /removeEventListener/);
+  const controls = await readFile(path.join(root, 'site/src/landing/controls.css'), 'utf8');
+  for (const state of [':hover', ':active', ':focus-visible', ':disabled']) assert.ok(controls.includes(state));
+  assert.match(controls, /inset 0 1px/);
+  assert.match(controls, /prefers-reduced-motion/);
+  const copy = await readFile(path.join(root, 'site/src/landing/components/ui/copy-button.tsx'), 'utf8');
+  for (const state of ['idle', 'copying', 'copied', 'error', 'unavailable']) assert.ok(copy.includes(`'${state}'`));
 });
 
 test('share artwork and SVG identity are self-contained and clearly attributed', async () => {

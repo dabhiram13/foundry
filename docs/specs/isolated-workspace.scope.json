@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "criteria": [
+    { "id": "W1", "requirement": "Reject unsafe images, unapproved sessions and concurrent resources without poisoning first use", "checks": ["isolated-workspace"] },
+    { "id": "W2", "requirement": "Snapshot eligible current regular source without host authority, links or tracked deletions", "checks": ["isolated-workspace"] },
+    { "id": "W3", "requirement": "Run explicit bounded commands in the constrained container without invoking image entrypoints", "checks": ["isolated-workspace"] },
+    { "id": "W4", "requirement": "Inspect source diffs only after confirmed shutdown while preserving owner files", "checks": ["isolated-workspace"] },
+    { "id": "W5", "requirement": "Owner CLI Stop interrupts active commands and crash recovery confirms resource removal", "checks": ["isolated-workspace"] },
+    { "id": "W6", "requirement": "Scope owner commands to the managed session without changing approval or task completion authority", "checks": ["isolated-workspace", "managed-executor", "runtime", "static-site", "tooling", "catalog", "secrets"] }
+  ]
+}

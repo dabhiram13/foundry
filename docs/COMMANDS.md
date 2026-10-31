@@ -53,6 +53,53 @@ The terminal accepts slash commands, not shell input:
 Freeform input is not evaluated as shell or sent to a model. Use explicit `new`
 options to provide an idea. Input remains responsive while a run is active.
 
+## Private owner terminal preview
+
+The source-only Linux owner terminal creates a private project copy in Docker.
+It does **not** run the managed coding agent in that container yet. Only use a
+trusted disposable project and a reviewed image. Docker is not a VM or a complete
+security boundary. No provider credentials, project authority records, host home
+or Docker socket are mounted. Network access is disabled.
+
+Start an approved managed session first. Explicitly pull your selected Node 24+
+image with Docker and use its immutable digest, not a moving tag:
+
+```text
+foundry workspace open --image IMAGE@sha256:DIGEST
+foundry workspace status
+foundry workspace exec -- node --version
+foundry workspace exec --timeout-ms 3000 -- node scripts/check.mjs
+foundry workspace stop
+foundry workspace diff
+foundry workspace resume
+```
+
+All commands accept `--project PATH`, `--storage PRIVATE_DIRECTORY` and `--json`.
+Use the same storage as the session. `exec` takes a program and arguments after
+`--`, not an implicit shell string. Its default deadline is 30 seconds; a shorter
+deadline may be selected. Output is limited to 64 KiB. A timeout or excess output
+stops the whole container. `stop` also interrupts an active terminal command and
+returns success only after removal is confirmed. An interrupted host leaves an
+inspection-required state: inspect, explicitly stop, then resume. Nothing is
+silently replayed.
+
+The snapshot excludes ignored files, `.git`, `.foundry`, `node_modules`, `.env`
+variants and common credential files. These exclusions cannot recognize every
+secret. Review the project first. Symlinks, hardlinks, files over 1 MiB and copies
+over 64 MiB are refused. The original project is never automatically updated.
+`diff` requires confirmed stop so background processes cannot race its file reads.
+It shows copied-source changes; copied files remain after stop, and resume
+preserves them. There is no apply or disposal command yet. An active or uncertain
+workspace blocks the separate trusted-local managed executor and session release.
+This preview does not approve, verify or complete the managed task.
+The writable source copy has no filesystem quota yet. Do not use this preview
+for untrusted code; CPU, memory and PID limits do not limit host disk consumption.
+
+For required qualification, select a local image using
+`FOUNDRY_WORKSPACE_QUALIFY_IMAGE` and run `npm run test:isolated-workspace`.
+It exercises the installed CLI and real Docker, and fails rather than skipping
+if the selected image or daemon is unavailable.
+
 ## Managed session preview
 
 This **source-only Linux preview** uses an approved scoped Builder task in a

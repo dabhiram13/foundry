@@ -40,7 +40,7 @@ export class OpenCodeLifecycleError extends Error {
 }
 
 function fail(code: FailureCode): never { throw new OpenCodeLifecycleError(code, false); }
-function nested(parent: string, child: string): boolean {
+export function nested(parent: string, child: string): boolean {
   const relative = path.relative(parent, child);
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 }

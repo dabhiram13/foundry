@@ -20,7 +20,7 @@ export class ManagedService {
 
   static async open(rootInput: string, directory: string, runtime: string): Promise<ManagedService> {
     const root = await requireRuntimeWorkspace(rootInput, 'open a managed session in');
-    validateManagedStorage(root, directory);
+    await validateManagedStorage(root, directory);
     await privateDirectory(directory);
     const identity = await withProcessLock(path.join(directory, 'identity.lock'), async () => {
       const filename = path.join(directory, 'identity.json');

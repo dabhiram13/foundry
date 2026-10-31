@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "criteria": [
+    { "id": "MS-01", "requirement": "Managed storage inside, equal to or above the project is rejected after resolving existing links, including folder names that start with two dots.", "checks": ["runtime", "managed-executor"] },
+    { "id": "MS-02", "requirement": "Managed storage that is outside the project is still accepted.", "checks": ["runtime", "managed-executor"] },
+    { "id": "MS-03", "requirement": "Runtime, managed executor, packaging, public site, tooling, catalog and secret checks pass.", "checks": ["runtime", "managed-executor", "static-site", "tooling", "catalog", "secrets"] }
+  ]
+}

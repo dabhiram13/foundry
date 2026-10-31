@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { access, lstat, mkdir, open, readdir, readFile } from 'node:fs/promises';
+import { access, lstat, mkdir, open, readdir, readFile, realpath } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { atomicJson, canonicalJson, digest, FoundryError, rejectSymlinkComponents } from '../core/fs.js';
 import { managedProfileSchema, type ManagedProfile } from '../core/managed-profile.js';
 import { executableDigest, executableStamp, localRequest, openCodeEnvironment, OPENCODE_VERSION,
-  privateDirectory, projectIdentity, serverAddress, stopServer } from './opencode.js';
+  nested, privateDirectory, projectIdentity, serverAddress, stopServer } from './opencode.js';
 
 const uuid = z.uuid();
 const launchSchema = z.strictObject({
@@ -104,7 +104,7 @@ export function managedLaunchDirectory(parent: string, sessionId: string, execut
 export async function validateManagedExecutor(root: string, parent: string, input: unknown): Promise<ManagedProfile> {
   const profile = managedProfileSchema.parse(input);
   if (process.platform !== 'linux') throw new FoundryError('Managed trusted-local preview currently requires Linux');
-  validateManagedStorage(root, parent);
+  await validateManagedStorage(root, parent);
   await privateDirectory(parent);
   const stamp = await executableStamp(profile.binary);
   if (!(await lstat(profile.binary)).isFile()) throw new FoundryError('Selected executor must be an executable file');
@@ -114,11 +114,21 @@ export async function validateManagedExecutor(root: string, parent: string, inpu
   return profile;
 }
 
-export function validateManagedStorage(root: string, parent: string): void {
+async function canonicalPath(target: string): Promise<string> {
+  const missing: string[] = [];
+  for (let current = path.resolve(target); ; current = path.dirname(current)) {
+    try { return path.join(await realpath(current), ...missing.reverse()); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT' || current === path.dirname(current)) throw error;
+      missing.push(path.basename(current));
+    }
+  }
+}
+
+export async function validateManagedStorage(root: string, parent: string): Promise<void> {
   if (!path.isAbsolute(parent)) throw new FoundryError('Managed storage must be an absolute private path');
-  const relative = path.relative(root, parent);
-  const inverse = path.relative(parent, root);
-  if (!relative.startsWith('..') || !inverse.startsWith('..')) throw new FoundryError('Managed storage must be outside the project');
+  const [project, storage] = await Promise.all([canonicalPath(root), canonicalPath(parent)]);
+  if (nested(project, storage) || nested(storage, project)) throw new FoundryError('Managed storage must be outside the project');
 }
 
 export async function inspectManagedLaunch(parent: string, sessionId: string, executionId: string): Promise<{ digest: string; stopped: boolean; phase: Launch['phase'] }> {

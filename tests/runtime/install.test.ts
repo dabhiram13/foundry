@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, chown, copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { install, installWorkspace } from '../../src/core/install.js';
+import { install, installWorkspace, sharedInstallGuardPath } from '../../src/core/install.js';
+import { migrateWorkspace } from '../../src/core/migrate.js';
 import { readRuntimeMarker } from '../../src/core/lifecycle.js';
 
 test('installed runtime is copied and usable without Python', async (t) => {
@@ -247,4 +248,71 @@ test('CLI rejects unknown options, missing values, and boolean values before dis
     const result = spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
     assert.equal(result.status, 2, result.stderr);
   }
+});
+
+async function withHome<T>(action: (home: string) => Promise<T>): Promise<T> {
+  const home = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-lock-home-'));
+  const saved = process.env.HOME;
+  process.env.HOME = home;
+  try {
+    return await action(home);
+  } finally {
+    if (saved === undefined) delete process.env.HOME;
+    else process.env.HOME = saved;
+  }
+}
+
+test('install guards live in a private per-user lock directory', async () => {
+  await withHome(async (home) => {
+    const target = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-guard-'));
+    const guard = sharedInstallGuardPath(target);
+    assert.equal(path.dirname(guard), path.join(home, '.foundry/locks'));
+    assert.equal(guard.startsWith(`${os.tmpdir()}${path.sep}product-foundry-install-`), false);
+    if (process.platform !== 'win32') assert.equal((await stat(path.dirname(guard))).mode & 0o777, 0o700);
+    await install(path.resolve('.'), target);
+    await assert.rejects(stat(guard), { code: 'ENOENT' });
+  });
+});
+
+test('install and migrate fail closed on a symlinked guard without deleting its target', async () => {
+  await withHome(async () => {
+    const target = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-guard-link-'));
+    const victim = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-guard-victim-'));
+    await writeFile(path.join(victim, 'keep.txt'), 'keep');
+    await writeFile(path.join(victim, 'owner.json'), JSON.stringify({ pid: 2 ** 31 - 1, token: 'dead-owner' }));
+    await symlink(victim, sharedInstallGuardPath(target), 'dir');
+    await assert.rejects(install(path.resolve('.'), target), /Symlink paths are not allowed/);
+    await assert.rejects(migrateWorkspace(target, path.resolve('.'), 'dry-run'), /Symlink paths are not allowed/);
+    assert.deepEqual(await readdir(target), []);
+    assert.deepEqual((await readdir(victim)).sort(), ['keep.txt', 'owner.json']);
+  });
+});
+
+test('install refuses a lock directory other users can write', { skip: process.platform === 'win32' }, async () => {
+  await withHome(async (home) => {
+    const locks = path.join(home, '.foundry/locks');
+    await mkdir(locks, { recursive: true });
+    await chmod(locks, 0o777);
+    const target = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-guard-shared-'));
+    await assert.rejects(install(path.resolve('.'), target), /must be owned by this user and private/);
+    assert.deepEqual(await readdir(target), []);
+  });
+});
+
+test('install fails closed on a foreign-owned dead guard without deleting it', {
+  skip: process.getuid?.() !== 0 && 'creating a foreign-owned guard requires root',
+}, async () => {
+  await withHome(async () => {
+    const target = await mkdtemp(path.join(os.tmpdir(), 'foundry-runtime-guard-foreign-'));
+    const guard = sharedInstallGuardPath(target);
+    await mkdir(path.join(guard, 'nested'), { recursive: true });
+    await writeFile(path.join(guard, 'nested/keep.txt'), 'keep');
+    await writeFile(path.join(guard, 'owner.json'), JSON.stringify({ pid: 2 ** 31 - 1, token: 'dead-owner' }));
+    for (const entry of [guard, path.join(guard, 'nested'), path.join(guard, 'nested/keep.txt'), path.join(guard, 'owner.json')]) {
+      await chown(entry, 65534, 65534);
+    }
+    await assert.rejects(install(path.resolve('.'), target), /Another process owns this lock/);
+    assert.equal(await readFile(path.join(guard, 'nested/keep.txt'), 'utf8'), 'keep');
+    assert.deepEqual(await readdir(target), []);
+  });
 });

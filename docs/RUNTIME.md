@@ -19,6 +19,10 @@ connection; use the source launcher for those commands.
 New product workspaces default to `~/.foundry/products`. `--products-dir PATH`
 selects another location, including a directory used by an earlier installation.
 
+`init`, `init --update`, `migrate` and `new` hold a per-folder lock in
+`~/.foundry/locks`. That folder must belong to you and stay private; Foundry
+refuses to run if other users can write to it.
+
 ## Initialize a repository
 
 ```sh

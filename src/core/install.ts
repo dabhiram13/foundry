@@ -1,10 +1,9 @@
 import { chmod, lstat, mkdir, open, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod';
 import {
   atomicJson, atomicWrite, digest, exists, findProjectRoot, FoundryError, rejectSymlinkComponents,
-  expandUserPath, within, withProcessLock,
+  expandUserPath, userLockDirectory, within, withProcessLock,
 } from './fs.js';
 import { readRuntimeMarker, type RuntimeMarker } from './lifecycle.js';
 import { loadRoles } from './roles.js';
@@ -181,7 +180,7 @@ export async function install(sourceInput: string, targetInput: string, update =
 
 export function sharedInstallGuardPath(target: string): string {
   const normalized = path.resolve(target);
-  return path.join(tmpdir(), `product-foundry-install-${digest(normalized).slice(0, 24)}.guard`);
+  return path.join(userLockDirectory(), `install-${digest(normalized).slice(0, 24)}.guard`);
 }
 
 async function installWorkspaceCore(

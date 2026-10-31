@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { lstatSync, mkdirSync, statSync } from 'node:fs';
-import { access, mkdir, open, readFile, rename, rm, stat } from 'node:fs/promises';
+import { access, lstat, mkdir, open, readFile, rename, rm, rmdir, stat, unlink } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import path from 'node:path';
 
 export class FoundryError extends Error {
@@ -226,11 +227,29 @@ async function acquireReclaimGuard(absolute: string): Promise<{ absolute: string
   return { absolute: guard, token };
 }
 
+function ownedByCurrentUser(info: { uid: number }): boolean {
+  return !process.getuid || info.uid === process.getuid();
+}
+
+async function removeLockDirectory(absolute: string): Promise<void> {
+  const directory = await lstat(absolute);
+  if (!directory.isDirectory() || directory.isSymbolicLink() || !ownedByCurrentUser(directory)) {
+    throw new FoundryError('Lock directory is not owned by this user');
+  }
+  const ownerPath = path.join(absolute, 'owner.json');
+  const owner = await lstat(ownerPath);
+  if (!owner.isFile() || owner.nlink !== 1 || !ownedByCurrentUser(owner)) {
+    throw new FoundryError('Lock owner record is not owned by this user');
+  }
+  await unlink(ownerPath);
+  await rmdir(absolute);
+}
+
 async function releaseReclaimGuard(guard: { absolute: string; token: string }): Promise<boolean> {
   try {
     const owner = JSON.parse(await readFile(path.join(guard.absolute, 'owner.json'), 'utf8')) as { token?: string };
     if (owner.token !== guard.token) return false;
-    await rm(guard.absolute, { recursive: true });
+    await removeLockDirectory(guard.absolute);
     return true;
   } catch {
     return false;
@@ -240,6 +259,8 @@ async function releaseReclaimGuard(guard: { absolute: string; token: string }): 
 async function reclaimDeadLock(absolute: string): Promise<boolean> {
   let owner: { pid?: number; token?: string };
   try {
+    const directory = await lstat(absolute);
+    if (!directory.isDirectory() || directory.isSymbolicLink() || !ownedByCurrentUser(directory)) return false;
     const ownerPath = path.join(absolute, 'owner.json');
     rejectSymlinkComponents(ownerPath);
     owner = JSON.parse(await readFile(ownerPath, 'utf8')) as { pid?: number; token?: string };
@@ -258,11 +279,27 @@ async function reclaimDeadLock(absolute: string): Promise<boolean> {
     rejectSymlinkComponents(ownerPath);
     const current = JSON.parse(await readFile(ownerPath, 'utf8')) as { pid?: number; token?: string };
     if (current.pid !== owner.pid || current.token !== owner.token) return false;
-    await rm(absolute, { recursive: true });
+    await removeLockDirectory(absolute);
     return true;
   } catch {
     return false;
   }
+}
+
+export function userLockDirectory(): string {
+  const base = path.join(homedir(), '.foundry');
+  const locks = path.join(base, 'locks');
+  rejectSymlinkComponents(locks);
+  mkdirSync(locks, { recursive: true, mode: 0o700 });
+  rejectSymlinkComponents(locks);
+  const parent = lstatSync(base);
+  const directory = lstatSync(locks);
+  if (!parent.isDirectory() || !directory.isDirectory()) throw new FoundryError(`Expected a private lock directory: ${locks}`);
+  if (process.getuid && process.platform !== 'win32'
+    && (!ownedByCurrentUser(parent) || !ownedByCurrentUser(directory) || (parent.mode & 0o022) || (directory.mode & 0o077))) {
+    throw new FoundryError(`Lock directory must be owned by this user and private: ${locks}`);
+  }
+  return locks;
 }
 
 export async function withProcessLock<T>(lockPath: string, action: () => Promise<T>): Promise<T> {
@@ -303,7 +340,7 @@ export async function withProcessLock<T>(lockPath: string, action: () => Promise
     if (lockEstablished) {
       try {
         const current = JSON.parse(await readFile(owner, 'utf8')) as { token?: string };
-        if (current.token === token) await rm(absolute, { recursive: true });
+        if (current.token === token) await removeLockDirectory(absolute);
       } catch {
         // A lock whose ownership cannot be established is deliberately left in place.
       }

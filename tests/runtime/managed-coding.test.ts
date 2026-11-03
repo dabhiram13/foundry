@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,7 +12,7 @@ import { managedProfileSchema, type ManagedProfile } from '../../src/core/manage
 import { ManagedService } from '../../src/runtime/managed-service.js';
 import { readManagedClaim } from '../../src/core/workspace-ownership.js';
 import { executableDigest } from '../../src/runtime/opencode.js';
-import { inspectManagedLaunch, ManagedExecutorError } from '../../src/runtime/managed-opencode.js';
+import { inspectManagedLaunch, ManagedExecutorError, validateManagedStorage } from '../../src/runtime/managed-opencode.js';
 
 const binary = process.env.FOUNDRY_OPENCODE_QUALIFY_BINARY;
 const runtime = path.resolve(process.env.FOUNDRY_MANAGED_TEST_RUNTIME ?? 'dist/runtime');
@@ -126,6 +126,20 @@ test('managed profiles require explicit authority, model, permission, limits and
   }
   for (const baseURL of ['https://provider.example/v1', 'http://localhost:1234/v1', 'http://user:secret@127.0.0.1:1234/v1', 'http://127.0.0.1:1234/v1?key=value']) assert.equal(managedProfileSchema.safeParse({ ...profile, provider: { ...profile.provider, baseURL } }).success, false);
   assert.equal(managedProfileSchema.safeParse({ ...profile, owner: { id: randomUUID() } }).success, false);
+});
+
+test('managed storage must sit outside the project after resolving links', async t => {
+  for (const inside of ['/p', '/p/store', '/p/..store', '/p/..', '/p/.store/deep', '/']) await assert.rejects(validateManagedStorage('/p', inside), /outside the project/);
+  for (const outside of ['/other/store', '/p..store', '/pstore']) await validateManagedStorage('/p', outside);
+  await assert.rejects(validateManagedStorage('/p', 'p/store'), /absolute private path/);
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'foundry-managed-storage-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const root = path.join(directory, 'project');
+  await mkdir(root);
+  await symlink(root, path.join(directory, 'project-link'));
+  await assert.rejects(validateManagedStorage(root, path.join(directory, 'project-link', '..store')), /outside the project/);
+  await assert.rejects(validateManagedStorage(path.join(directory, 'project-link'), path.join(root, '..store')), /outside the project/);
+  await validateManagedStorage(root, path.join(directory, 'private', 'store'));
 });
 
 test('managed service refuses unapproved assignments without any upstream request', async t => {

@@ -79,6 +79,10 @@ const PATH_OUTCOMES: Record<string, string> = {
   release: 'Authorized target, verified revision and recovery procedure',
   learn: 'Outcome measurements and scoped customer-feedback followups',
 };
+const OWNER_STAGE_LIMITS: Record<string, string> = {
+  release: 'Owner-performed: the owner chooses the target and releases; Foundry records the decision and evidence but does not publish or deploy',
+  learn: 'Owner-performed: the owner records outcomes and feedback; evaluated workflow learning is planned, not implemented',
+};
 
 function text(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -607,6 +611,37 @@ export async function gate(rootInput: string, stage?: string): Promise<JsonRecor
   };
 }
 
+async function releaseReady(root: string): Promise<boolean> {
+  const required = ((await gate(root)).criteria as JsonRecord[])
+    .filter((criterion) => criterion.required && !(String(criterion.stage) in OWNER_STAGE_LIMITS));
+  return required.length > 0 && required.every((criterion) => criterion.status === 'pass');
+}
+
+async function releaseOutcome(root: string, records: JsonRecord[]): Promise<{ stage: string; action: string; reason: string }> {
+  const released = records.some((record) => record.kind === 'artifact' && record.stage === 'release'
+    && record.freshness === 'active' && record.status === 'accepted');
+  if (!released) {
+    return {
+      stage: 'release',
+      action: `Ask the owner to decide and perform any release, then record it as an accepted release artifact: ${PATH_OUTCOMES.release}`,
+      reason: 'Required criteria have fresh passing evidence; release authority stays with the owner and guidance does not deploy',
+    };
+  }
+  const releaseCriteria = ((await gate(root, 'release')).criteria as JsonRecord[]).filter((criterion) => criterion.required);
+  if (releaseCriteria.some((criterion) => criterion.status !== 'pass')) {
+    return {
+      stage: 'release',
+      action: 'Record fresh evidence for the required release criteria, such as the released revision and recovery check',
+      reason: 'A recorded release is not checked until its required release criteria pass',
+    };
+  }
+  return {
+    stage: 'learn',
+    action: 'Record outcome measurements and customer feedback; a feedback record\'s next task opens the next scoped request',
+    reason: 'Foundry stores owner-recorded outcomes and feedback; evaluated workflow learning is a proposed spec, not implemented',
+  };
+}
+
 export async function guide(
   rootInput: string,
   request?: string,
@@ -706,6 +741,11 @@ export async function guide(
         ? 'Compare acceptance evidence and record local completion'
         : "Continue the existing run's next scoped task and exercise its behavior";
       reason = 'Continue the existing run; runtime verification and product acceptance are separate';
+    } else if (resolvedComplexity === 'product' && await releaseReady(root)) {
+      const outcome = await releaseOutcome(root, records);
+      stage = outcome.stage;
+      action = outcome.action;
+      reason = outcome.reason;
     } else {
       stage = 'build';
       action = 'Prepare the next scoped implementation from the accepted criteria and existing documents';
@@ -725,12 +765,18 @@ export async function guide(
       records: records.length,
       accepted_criteria: criteria.length,
     },
-    next: { stage, action, reason },
+    next: { stage, action, reason, owner_performed: stage in OWNER_STAGE_LIMITS },
     user_needed: userNeeded,
-    path: stages.map((name) => ({ stage: name, outcome: PATH_OUTCOMES[name] })),
+    path: stages.map((name) => ({
+      stage: name,
+      outcome: PATH_OUTCOMES[name],
+      owner_performed: name in OWNER_STAGE_LIMITS,
+      ...(OWNER_STAGE_LIMITS[name] ? { limit: OWNER_STAGE_LIMITS[name] } : {}),
+    })),
     limits: [
       'Recommendation only: no files, runs, connections, purchases, deployments or background jobs were created',
       'Complexity/surface are explicit inputs or saved intake; defaults are feature/api until the coordinator supplies task context',
+      ...stages.filter((name) => OWNER_STAGE_LIMITS[name]).map((name) => `${name}: ${OWNER_STAGE_LIMITS[name]}`),
     ],
   };
 }

@@ -150,7 +150,69 @@ test('workflow guide recommends adaptive paths and reports capability blockers',
   ]);
   assert.equal((result.next as Record<string, unknown>).stage, 'research');
   assert.equal((result.user_needed as Record<string, unknown>[])[0]?.capability, 'browser automation');
+  const steps = result.path as Record<string, unknown>[];
+  assert.deepEqual(steps.filter((item) => item.owner_performed).map((item) => item.stage), ['release', 'learn']);
+  assert.match(String(steps.find((item) => item.stage === 'learn')?.limit), /evaluated workflow learning is planned, not implemented/);
+  assert.ok((result.limits as string[]).some((item) => item.startsWith('release: Owner-performed')));
+  assert.equal((result.next as Record<string, unknown>).owner_performed, false);
   const defaultGuide = await guide(root);
   assert.equal((defaultGuide.current as Record<string, unknown>).intent, 'plan');
   assert.deepEqual((defaultGuide.path as Record<string, unknown>[]).map((item) => item.stage), ['scope', 'build', 'verify']);
+});
+
+test('workflow guide routes verified product work to owner release and learn records', async () => {
+  const root = await project();
+  const nextStage = async () => (await guide(root, 'Build a booking site', 'implement', 'product', 'web')).next as Record<string, unknown>;
+  await record(root, {
+    id: 'criterion-1', kind: 'criterion', title: 'Booking works', source: source(),
+    basis: 'observed', status: 'accepted', stage: 'build', required: true,
+    expected: 'passes', method: 'command', command: ['node', 'fixture'], inputs: ['input.txt'],
+  });
+  for (const stage of ['opportunity', 'flows', 'prototype', 'design']) {
+    await record(root, {
+      id: `artifact-${stage}`, kind: 'artifact', title: `${stage} handoff`, source: source(),
+      basis: 'observed', status: 'accepted', path: 'input.txt', stage,
+      owner: 'owner', next_action: 'continue', criteria: ['criterion-1'],
+    });
+  }
+  assert.equal((await nextStage()).stage, 'build');
+  await record(root, {
+    id: 'evidence-1', kind: 'evidence', title: 'Observed booking', source: source(),
+    basis: 'observed', status: 'accepted', claim: 'Booking passed', artifact: 'receipt.json',
+    method: 'command', outcome: 'pass', observed: 'fixture', criteria: ['criterion-1'],
+  });
+  const release = await nextStage();
+  assert.equal(release.stage, 'release');
+  assert.equal(release.owner_performed, true);
+  assert.match(String(release.action), /owner to decide and perform any release/);
+  assert.match(String(release.reason), /guidance does not deploy/);
+  const feature = (await guide(root, 'Build a booking site', 'implement', 'feature', 'web')).next as Record<string, unknown>;
+  assert.equal(feature.stage, 'build');
+
+  await record(root, {
+    id: 'criterion-release', kind: 'criterion', title: 'Released revision is checked', source: source(),
+    basis: 'observed', status: 'accepted', stage: 'release', required: true,
+    expected: 'released revision matches', method: 'manual', inputs: ['input.txt'],
+  });
+  assert.equal((await nextStage()).stage, 'release', 'release criteria do not block the release decision');
+  await record(root, {
+    id: 'artifact-release', kind: 'artifact', title: 'Owner release record', source: source(),
+    basis: 'observed', status: 'accepted', path: 'input.txt', stage: 'release',
+    owner: 'owner', next_action: 'measure outcomes', criteria: ['criterion-release'],
+  });
+  const unchecked = await nextStage();
+  assert.equal(unchecked.stage, 'release');
+  assert.match(String(unchecked.action), /fresh evidence for the required release criteria/);
+  await record(root, {
+    id: 'evidence-release', kind: 'evidence', title: 'Released revision observed', source: source(),
+    basis: 'observed', status: 'accepted', claim: 'Released revision matches', artifact: 'log.txt', method: 'manual',
+    outcome: 'pass', observed: 'owner compared the released revision', criteria: ['criterion-release'],
+  });
+  const learn = await nextStage();
+  assert.equal(learn.stage, 'learn');
+  assert.equal(learn.owner_performed, true);
+  assert.match(String(learn.reason), /evaluated workflow learning is a proposed spec, not implemented/);
+
+  await writeFile(path.join(root, 'receipt.json'), '{"changed":true}\n');
+  assert.notEqual((await nextStage()).stage, 'learn', 'stale build evidence leaves the release path');
 });

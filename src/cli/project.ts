@@ -224,6 +224,9 @@ async function workflowCommand(arguments_: string[]): Promise<number> {
         next_stage: next.stage,
         next_action: next.action,
         next_reason: next.reason,
+        path: (guidance.path as Record<string, unknown>[])
+          .map((item) => item.owner_performed ? `${String(item.stage)} (owner)` : String(item.stage))
+          .join(', '),
         user_needed: userNeeded,
       }, false);
     }

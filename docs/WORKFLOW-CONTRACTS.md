@@ -8,6 +8,16 @@ hand-edit state or receipts.
 Use `foundry work workflow` to manage the evidence ledger. Its existing filename,
 `docs/project/marketcraft.json`, is retained so saved projects remain readable.
 
+`foundry work workflow guide` recommends one next step and creates nothing.
+Product paths end with release and learn, which the owner performs. When every
+required criterion before release has fresh passing evidence, guide asks the
+owner to decide on any release and record it as an accepted `release` artifact.
+Required release criteria then need their own evidence before guide moves to
+learn, which asks for outcome and feedback records. Guide never publishes or
+deploys. Evaluated workflow learning is a [proposed spec](specs/evaluated-workflow-learning.md),
+not implemented. `maintain` is a record label for later criteria and evidence;
+guide does not route to it.
+
 ## Exact approvals
 
 Plan and Design approval binds to the exact document revision shown by

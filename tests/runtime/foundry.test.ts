@@ -297,3 +297,32 @@ test('work and provider subcommands reuse the scoped Node contracts without star
   assert.equal(tasks.status, 0, tasks.stderr);
   assert.deepEqual(JSON.parse(tasks.stdout), []);
 });
+
+test('deliver requires a shipped project, an exact displayed revision and bounded watch options', async (t) => {
+  const base = await mkdtemp(path.join(os.tmpdir(), 'foundry-cli-deliver-'));
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const products = path.join(base, 'products');
+  const service = new ProjectService(sourceRoot, products);
+  const created = await service.create({
+    name: 'Delivery CLI Fixture',
+    idea: 'Keep delivery behind an explicit owner authorization.',
+    adapter: 'codex',
+  });
+  const identifier = String(created.id);
+  const deliver = (...extra: string[]) => runCommand(['deliver', identifier, ...extra, '--products-dir', products]);
+
+  await assert.rejects(deliver(), /completed Ship summary/);
+  await assert.rejects(deliver('--repository', 'acme/widget', '--base', 'main', '--head', 'feature'), /completed Ship summary/);
+  await assert.rejects(deliver('--apply'), /--revision/);
+  await assert.rejects(deliver('--apply', '--watch', '--revision', 'f'.repeat(64)), /cannot be combined/);
+  await assert.rejects(deliver('--apply', '--revision', 'f'.repeat(64), '--head', 'other'), /preview the delivery first/);
+  await assert.rejects(deliver('--revision', 'f'.repeat(64)), /only with --apply/);
+  await assert.rejects(deliver('--watch', '--polls', '0'), /--polls must be a whole number from 1 to 60/);
+  await assert.rejects(deliver('--watch', '--interval', '1'), /--interval must be a whole number from 5 to 300/);
+  await assert.rejects(deliver('--polls', '2'), /only with --watch/);
+  await assert.rejects(deliver('--repository', 'acme/widget'), /--base/);
+  await assert.rejects(
+    runCommand(['deliver', identifier, '--apply', '--revision', 'f'.repeat(64), '--products-dir', products], true),
+    /Preview the delivery in this terminal before authorizing it/,
+  );
+});

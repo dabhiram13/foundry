@@ -104,6 +104,8 @@ before approving.
 After both approvals, Foundry builds in small tasks, runs checks and attempts
 limited repairs. It stops if work fails or needs recovery. The final **Ship**
 step writes a local summary; **it does not publish or deploy your project**.
+To open a pull request afterward, see `foundry deliver` in the
+[command reference](COMMANDS.md#product-commands).
 See [how Foundry works](WORKFLOW.md) for what each stage does.
 
 Use `/stop` to interrupt work, `/projects` to list projects and `/exit` to

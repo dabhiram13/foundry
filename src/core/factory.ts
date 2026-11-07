@@ -1731,6 +1731,33 @@ export async function recoverFactory(rootInput: string): Promise<FactoryState> {
   });
 }
 
+export async function withShippedFactory<T>(
+  rootInput: string,
+  action: (root: string, state: FactoryState) => Promise<T>,
+): Promise<T> {
+  const root = await requireController(rootInput, 'deliver a shipped TypeScript factory');
+  return withFactoryMutation(root, async () => {
+    const state = await load(root);
+    if (state.status !== 'completed' || !state.ship || !state.completed_stages.includes('release')) {
+      throw new FoundryError('Delivery needs a completed Ship summary. Finish Ship first.');
+    }
+    if (!(await completedLifecycleMatches(root, state))) {
+      throw new FoundryError('The workspace changed after Ship. Only the tested and reviewed revision can be delivered.');
+    }
+    await assertFactoryShipGate(root, state.lifecycle_run_id!, state.verification_receipt!, state.review!.workspace_revision);
+    return action(root, state);
+  });
+}
+
+export async function shippedFactoryRoot(rootInput: string): Promise<string> {
+  const root = await requireController(rootInput, 'inspect delivery for');
+  const state = await load(root);
+  if (state.status !== 'completed' || !state.ship) {
+    throw new FoundryError('Delivery needs a completed Ship summary. Finish Ship first.');
+  }
+  return root;
+}
+
 export function factoryHelp(): string {
   return [
     'factory init --name NAME --idea TEXT --adapter NAME [--model MODEL] [--reasoning LEVEL]',

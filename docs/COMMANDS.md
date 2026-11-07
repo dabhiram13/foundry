@@ -57,8 +57,10 @@ options to provide an idea. Input remains responsive while a run is active.
 
 This **source-only Linux preview** uses an approved scoped Builder task in a
 trusted disposable repository. It supports a local fake OpenAI-compatible test
-endpoint, not live provider accounts. Build the runtime first. Use the connected
-client for everyday coding until live-model qualification is available.
+endpoint or an owner-registered remote connection. Remote connections are
+checked offline only, not in a live-model trial. Build the runtime first. Use
+the connected client for everyday coding until live-model qualification is
+available.
 
 ```text
 foundry session start --profile FILE --confirmed --request-id UUID
@@ -101,8 +103,34 @@ path, SHA-256 and local fixture endpoint with your selected values:
 The binary must be OpenCode 1.19.0. Use `sha256sum /absolute/path/to/opencode`
 to obtain its digest. `read-edit` denies shell tools; `read-edit-shell` also
 allows them. Turn limits are 1-3, step limits 1-12 and deadlines 1-120 seconds.
-No provider key is accepted. Profiles are bound to the session and cannot be
-silently replaced. This boundary is not a sandbox: use trusted projects only,
+A local test profile accepts no provider key. Profiles are bound to the session
+and cannot be silently replaced.
+
+To use a remote model, first register its connection as described in
+[managed connection profiles](PROVIDERS.md#managed-connection-profiles). Then
+set `"inference": "consented-remote"`, repeat the registered `profile` object
+exactly as `provider`, and add limits and billing terms:
+
+```json
+{
+  "inference": "consented-remote",
+  "provider": {
+    "mode": "remote",
+    "id": "example",
+    "model": "example-model",
+    "baseURL": "https://api.example.com/v1",
+    "api": "openai-chat-completions",
+    "credential": { "kind": "env", "name": "EXAMPLE_API_KEY" }
+  },
+  "limits": { "maxRequests": 16, "maxOutputTokens": 4096 },
+  "billing": { "mode": "api", "dollarCap": "not-enforced-by-foundry" }
+}
+```
+
+Request limits are 1-64 per execution and output-token limits 1-32768 per
+request. The provider bills for requests it receives; Foundry does not enforce a
+dollar cap. `start` and `run` refuse unregistered connections and unset
+credential variables. This boundary is not a sandbox: use trusted projects only,
 and keep production secrets out of them.
 
 `start` derives the current approved task, records consent and queues one turn.

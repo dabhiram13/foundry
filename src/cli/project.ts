@@ -4,7 +4,7 @@ import { approveScope, captureWorkSources, complete, finishTask, pauseOrResume, 
   saveTaskPlan, specialists, start, status, verify, workContext } from '../core/lifecycle.js';
 import { readBoundedText } from '../core/factory-contract.js';
 import { context, gate, guide, record } from '../core/workflow.js';
-import { cancel, execute, inspectAdapter, providerStatus, registry, reconcile } from '../runtime/providers.js';
+import { cancel, execute, inspectAdapter, inspectConnections, providerStatus, registry, reconcile } from '../runtime/providers.js';
 import { renderScopeReview, renderWorkContext, writeResult } from './output.js';
 
 type Options = Record<string, string | boolean | string[]>;
@@ -258,8 +258,9 @@ async function providersCommand(arguments_: string[]): Promise<number> {
   const root = rootOption(options);
   if (!requested) {
     const adapters = await registry(root);
-    output(Object.fromEntries(await Promise.all(Object.entries(adapters)
-      .map(async ([name, adapter]) => [name, await inspectAdapter(root, adapter)]))), options.json === true);
+    output(Object.fromEntries([...await Promise.all(Object.entries(adapters)
+      .map(async ([name, adapter]) => [name, await inspectAdapter(root, adapter)])),
+    ...(await inspectConnections(root)).map(entry => [`connection:${String(entry.name)}`, entry])]), options.json === true);
     return 0;
   }
   if (requested === 'status') {

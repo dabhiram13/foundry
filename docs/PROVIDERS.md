@@ -13,7 +13,7 @@ account and tools instead.
 | --- | --- | --- |
 | Foundry inside OpenCode, from source | OpenCode's provider settings and model picker | OpenCode's tools, using Foundry's saved assignments |
 | Foundry terminal, including npm 0.5.1 | The selected adapter's settings; `--model` when supported | An installed coding tool that implements Foundry's process interface |
-| Foundry-managed coding session | Not available yet | Internal startup/shutdown and trusted edit tests are not a usable coding agent |
+| Foundry-managed coding session, from source | A [registered connection profile](#managed-connection-profiles) in a consented session profile | Managed OpenCode in a trusted disposable project; checked offline, not live-qualified |
 
 There is no `foundry --base-url` connection. An OpenAI-compatible API supplies
 model responses, not a coding tool. Use it through OpenCode below, or implement
@@ -306,6 +306,53 @@ The adapter names `codex` and `chatgpt` are reserved; `chatgpt` is an unsupporte
 legacy entry. Other adapters can use `codex-jsonl` only when their command
 implements that runtime's CLI and event format. Protocol selection, not the
 adapter's name, controls command and event handling.
+
+## Managed connection profiles
+
+Managed sessions reach a remote model only through a connection the project
+owner registers in `.foundry/connections.json`. Nothing is registered by
+default, so remote access is denied until you add one. Each entry names the
+provider, model, HTTPS base URL and the environment variable that holds the
+key. The file never contains the key itself:
+
+```json
+{
+  "connections": [
+    {
+      "name": "example",
+      "profile": {
+        "mode": "remote",
+        "id": "example",
+        "model": "example-model",
+        "baseURL": "https://api.example.com/v1",
+        "api": "openai-chat-completions",
+        "credential": { "kind": "env", "name": "EXAMPLE_API_KEY" }
+      }
+    }
+  ]
+}
+```
+
+Base URLs must be HTTPS on the default port without user names, passwords,
+query strings or fragments. Loopback hosts are reserved for `local-test`
+connections. Credential names must be upper-case environment names; Foundry,
+OpenCode, XDG and core system names are reserved. `foundry provider --json`
+lists registered connections with `credential: present` or `missing` and
+`authentication: not_checked`; it never prints the value or contacts the
+endpoint.
+
+A managed [session profile](COMMANDS.md#managed-session-preview) selects one
+registered connection by repeating it exactly. Foundry reads the referenced
+variable only for that session and keeps it in the supervisor. OpenCode talks to
+a private loopback relay with a random per-run token. The relay accepts only
+chat completions for the selected model, clamps output tokens, refuses requests
+past the profile's limit and adds the key when it forwards to the HTTPS
+endpoint. Pause and Stop cancel forwarded requests. Model tools can see the
+per-run token but not the key.
+
+These checks run against fake loopback endpoints. They do not prove that a
+particular provider, model, tool format or streaming behavior works, and they
+are not a dollar cap: providers bill for the requests they receive.
 
 ## Boundaries
 

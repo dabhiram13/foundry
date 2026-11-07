@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "criteria": [
+    { "id": "MCN-01", "requirement": "Connection profiles require an explicit provider, model, HTTPS endpoint and credential reference; local test mode stays loopback-only.", "checks": ["runtime"] },
+    { "id": "MCN-02", "requirement": "Remote managed execution is denied unless the exact profile is registered, consented with limits and its credential reference is set.", "checks": ["runtime"] },
+    { "id": "MCN-03", "requirement": "The managed executor and its tools never receive the credential; an offline relay forwards only bounded requests for the selected model.", "checks": ["runtime", "managed-executor"] },
+    { "id": "MCN-04", "requirement": "The provider registry lists registered connections without printing credential values or contacting endpoints.", "checks": ["runtime"] },
+    { "id": "MCN-05", "requirement": "Runtime, packaging, public site, tooling, catalog and secret checks pass.", "checks": ["runtime", "static-site", "tooling", "catalog", "secrets"] }
+  ]
+}

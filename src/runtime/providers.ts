@@ -13,9 +13,13 @@ import {
 import { readBoundedBytes } from '../core/factory-contract.js';
 import { requireRuntimeWorkspace } from '../core/lifecycle.js';
 import { providerEnvironment } from './environment.js';
+import {
+  SENSITIVE_ENVIRONMENT_NAME, adapterCredentialSchema, describeCredentials, missingCredentials,
+  openCredentialSession, validateAdapterCredentials, type CredentialSession,
+} from './credentials.js';
 import { assertNoManagedClaim, withWorkspaceMutation } from '../core/workspace-ownership.js';
 
-const CAPABILITIES = ['jsonl', 'structured_output', 'resume', 'cancel', 'permissions', 'tools', 'browser', 'model_selection', 'reasoning_selection'] as const;
+const CAPABILITIES = ['jsonl', 'structured_output', 'resume', 'cancel', 'permissions', 'tools', 'browser', 'model_selection', 'reasoning_selection', 'usage_metering'] as const;
 const BILLING_MODES = ['subscription', 'api', 'local'] as const;
 const adapterSchema = z.object({
   name: z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/),
@@ -26,6 +30,7 @@ const adapterSchema = z.object({
   protocol: z.enum(['foundry-jsonl-v1', 'marketcraft-jsonl-v1', 'codex-jsonl']).optional(),
   environment: z.array(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/)).max(64)
     .refine(names => new Set(names).size === names.length, 'Environment names must be unique').optional(),
+  credentials: z.array(adapterCredentialSchema).max(8).optional(),
 }).strict();
 const requestSchema = z.object({
   adapter: z.string().min(1),
@@ -42,6 +47,7 @@ const requestSchema = z.object({
     allow_api: z.boolean().optional(),
     acknowledge_posthoc_cost: z.boolean().optional(),
     reservation_dollars: z.number().nonnegative().optional(),
+    provider_limit_dollars: z.number().nonnegative().optional(),
   }).passthrough().default({ mode: 'local' }),
   budget: z.object({
     max_attempts: z.number().int().positive().default(1),
@@ -94,6 +100,21 @@ const savedAttemptSchema = z.object({
   resolved_model: z.string().min(1).nullable().optional(),
   usage: attemptUsageSchema,
   api_reservation_dollars: z.number().nonnegative(),
+  metered_usage: z.object({
+    input_tokens: z.number().int().nonnegative().nullable(),
+    output_tokens: z.number().int().nonnegative().nullable(),
+    api_dollars: z.number().nonnegative().nullable(),
+    events: z.number().int().positive(),
+  }).strict().optional(),
+  credentials: z.array(z.object({
+    id: z.string().min(1),
+    delivery: z.enum(['broker', 'environment']),
+    credential_reference: z.string().min(1),
+    exposed_to_adapter_process: z.boolean(),
+    upstream_origin: z.string().min(1).optional(),
+    requests: z.number().int().nonnegative().optional(),
+    rejected_requests: z.number().int().nonnegative().optional(),
+  }).strict()).max(16).optional(),
   side_effects: z.literal('not_verified'),
   pid: z.number().int().positive().optional(),
   command_digest: z.string().regex(/^[0-9a-f]{64}$/).optional(),
@@ -127,6 +148,7 @@ const savedSettingsSchema = z.object({
     allow_api: z.boolean().optional(),
     acknowledge_posthoc_cost: z.boolean().optional(),
     reservation_dollars: z.number().nonnegative().optional(),
+    provider_limit_dollars: z.number().nonnegative().optional(),
   }).strict(),
   budget: z.object({
     max_attempts: z.number().int().positive(),
@@ -134,6 +156,18 @@ const savedSettingsSchema = z.object({
     max_elapsed_seconds: z.number().positive(),
     max_api_dollars: z.number().nonnegative(),
   }).strict(),
+}).strict();
+
+const spendControlSchema = z.object({
+  mode: z.enum(BILLING_MODES),
+  max_api_dollars: z.number().nonnegative(),
+  reservation_dollars: z.number().nonnegative(),
+  provider_enforced_limit_dollars: z.number().nonnegative().nullable(),
+  provider_enforced_limit: z.enum(['owner_attested_not_verified', 'none']),
+  runtime_metering: z.enum(['adapter_usage_events', 'none']),
+  runtime_stop: z.enum(['cancel_at_reservation', 'cancel_on_any_api_charge']),
+  accounting: z.literal('post_hoc_provider_reported'),
+  hard_dollar_cap: z.literal(false),
 }).strict();
 
 const savedTaskSchema = z.object({
@@ -157,6 +191,7 @@ const savedTaskSchema = z.object({
   requested_model: z.string().min(1).nullable().optional(),
   resolved_model: z.string().min(1).nullable().optional(),
   billing_assurance: z.string().min(1).optional(),
+  spend_control: spendControlSchema.optional(),
 }).strict();
 
 export type ProviderRequest = z.infer<typeof requestSchema>;
@@ -184,7 +219,7 @@ function codexExecutable(): string {
 }
 
 function builtinRegistry(): Record<string, ProviderAdapter> {
-  const capabilities = [...CAPABILITIES].filter((value) => value !== 'browser');
+  const capabilities = [...CAPABILITIES].filter((value) => value !== 'browser' && value !== 'usage_metering');
   return {
     codex: {
       name: 'codex', kind: 'agent-runtime', command: [codexExecutable()],
@@ -222,6 +257,10 @@ export async function registry(root: string, sourceConfiguration?: Uint8Array | 
     if (parsed.data.kind === 'bounded-model'
       && parsed.data.capabilities.some((capability) => ['tools', 'browser', 'permissions', 'resume'].includes(capability))) {
       throw new FoundryError('A bounded-model adapter cannot advertise agent session/tools/permissions');
+    }
+    validateAdapterCredentials(parsed.data.credentials ?? [], parsed.data.environment ?? []);
+    if (parsed.data.credentials?.length && parsed.data.protocol === 'codex-jsonl') {
+      throw new FoundryError('codex-jsonl adapters cannot use credential references; their API keys follow the API billing route');
     }
     result[parsed.data.name] = { ...parsed.data, protocol: parsed.data.protocol ?? 'marketcraft-jsonl-v1' };
   }
@@ -262,6 +301,7 @@ export async function inspectAdapter(root: string, adapter: ProviderAdapter): Pr
     executable: path.basename(command),
     availability: adapter.unsupported ? 'unsupported' : available ? 'available' : 'missing',
     authentication: 'not_checked',
+    ...(adapter.credentials?.length ? { credentials: describeCredentials(adapter.credentials) } : {}),
   };
 }
 
@@ -273,12 +313,17 @@ export async function requireAdapterExecutable(root: string, name: string): Prom
   }
 }
 
-function redactor(environment: NodeJS.ProcessEnv, selectedNames: readonly string[] = []): (value: unknown) => unknown {
+function redactor(
+  environment: NodeJS.ProcessEnv,
+  selectedNames: readonly string[] = [],
+  extraSecrets: readonly string[] = [],
+): (value: unknown) => unknown {
   const sensitiveKey = /secret|password|passwd|api[_-]?key|authorization|cookie|credential|private[_-]?key|^token$|access[_-]?token|refresh[_-]?token/i;
   const secrets = Object.entries(environment)
     .filter(([key, value]) => typeof value === 'string' && value.length > 0
       && (selectedNames.includes(key) || (sensitiveKey.test(key) && value.length >= 4)))
     .map(([, value]) => value as string)
+    .concat(extraSecrets.filter(secret => secret.length > 0))
     .sort((left, right) => right.length - left.length);
   const clean = (value: unknown, key?: string): unknown => {
     if (key && sensitiveKey.test(key)) return '[redacted]';
@@ -429,7 +474,7 @@ async function prepare(root: string, request: ProviderRequest): Promise<{ adapte
     validateSchema(request.output_schema);
   }
   const billing = request.billing;
-  if (Object.keys(billing).some((key) => !['mode', 'confirmed', 'allow_api', 'acknowledge_posthoc_cost', 'reservation_dollars'].includes(key))) {
+  if (Object.keys(billing).some((key) => !['mode', 'confirmed', 'allow_api', 'acknowledge_posthoc_cost', 'reservation_dollars', 'provider_limit_dollars'].includes(key))) {
     throw new FoundryError('Invalid billing contract');
   }
   if (Object.keys(request.budget).some((key) => !['max_attempts', 'max_concurrency', 'max_elapsed_seconds', 'max_api_dollars'].includes(key))) {
@@ -443,9 +488,21 @@ async function prepare(root: string, request: ProviderRequest): Promise<{ adapte
   if (billing.mode === 'api') {
     const reserve = number(billing.reservation_dollars, 'reservation_dollars', true);
     if (reserve > request.budget.max_api_dollars) throw new FoundryError('API reservation must fit the max_api_dollars budget');
+    if (billing.provider_limit_dollars !== undefined) {
+      const limit = number(billing.provider_limit_dollars, 'provider_limit_dollars', true);
+      if (limit > request.budget.max_api_dollars) throw new FoundryError('A provider-enforced limit above max_api_dollars does not bound this task');
+    }
+    if (adapter.capabilities.includes('usage_metering')) required.add('usage_metering');
+    else if (billing.provider_limit_dollars === undefined) {
+      throw new FoundryError('API billing needs a provider-enforced limit (provider_limit_dollars) or an adapter that streams usage dollars (usage_metering); unbounded paid execution is refused');
+    }
   } else if (billing.reservation_dollars) {
     throw new FoundryError('Only API billing uses dollar reservations');
+  } else if (billing.provider_limit_dollars !== undefined) {
+    throw new FoundryError('Only API billing uses provider-enforced dollar limits');
   }
+  const missing = missingCredentials(adapter.credentials ?? [], billing.mode);
+  if (missing.length) throw new FoundryError(`Selected credentials are not set: ${missing.join(', ')}`);
   const budget = {
     max_attempts: number(request.budget.max_attempts, 'max_attempts', true),
     max_concurrency: number(request.budget.max_concurrency, 'max_concurrency', true),
@@ -531,8 +588,28 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
     attempt.error = { code: 'elapsed_budget_exhausted', message: 'Elapsed budget exhausted' };
     return 'timed_out';
   }
-  const environment = providerEnvironment(adapter, String((settings.billing as JsonRecord).mode));
-  const clean = redactor(process.env, adapter.environment);
+  const billing = settings.billing as JsonRecord;
+  const mode = String(billing.mode);
+  const environment = providerEnvironment(adapter, mode);
+  let credentials: CredentialSession;
+  try {
+    credentials = await openCredentialSession(adapter.credentials ?? [], mode);
+  } catch (error) {
+    attempt.error = { code: 'credential_unavailable', message: (error as Error).message };
+    return 'unavailable';
+  }
+  Object.assign(environment, credentials.environment);
+  attempt.credentials = [...credentials.receipts];
+  const passedCredentials = (adapter.environment ?? []).filter(name => SENSITIVE_ENVIRONMENT_NAME.test(name));
+  if (adapter.protocol === 'codex-jsonl' && mode === 'api') passedCredentials.push('OPENAI_API_KEY', 'CODEX_API_KEY');
+  for (const name of passedCredentials) {
+    if (!environment[name]) continue;
+    (attempt.credentials as JsonRecord[]).push({
+      id: name.toLowerCase().replaceAll('_', '-'), delivery: 'environment', credential_reference: `env:${name}`, exposed_to_adapter_process: true,
+    });
+  }
+  const clean = redactor(process.env, adapter.environment, credentials.secrets);
+  const reservation = Number(billing.reservation_dollars ?? 0);
   let child: ChildProcess;
   try {
     child = spawn(command[0] ?? '', command.slice(1), {
@@ -540,6 +617,7 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
       stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
     });
   } catch (error) {
+    await credentials.close();
     attempt.error = { code: 'unavailable', message: (error as Error).message };
     return 'unavailable';
   }
@@ -549,7 +627,8 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
   attempt.evidence = `${directory}/events.jsonl`;
   const start = performance.now();
   let outputBytes = 0;
-  let stopping: 'unknown' | 'canceled' | 'timed_out' | 'failed' | 'unavailable' | null = null;
+  type StopOutcome = 'unknown' | 'canceled' | 'timed_out' | 'failed' | 'unavailable' | 'budget_exceeded' | 'billing_violation';
+  let stopping: StopOutcome | null = null;
   let terminalCount = 0;
   let terminationRequested = false;
   let killTimer: NodeJS.Timeout | undefined;
@@ -563,6 +642,7 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
   const requestTermination = (): void => {
     if (terminationRequested) return;
     terminationRequested = true;
+    credentials.revoke();
     try {
       killGroup(child, 'SIGTERM');
     } catch (error) {
@@ -581,7 +661,7 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
     });
   };
   const fail = (
-    outcome: 'unknown' | 'canceled' | 'timed_out' | 'failed' | 'unavailable',
+    outcome: StopOutcome,
     error?: { code: string; message: string },
   ): void => {
     if (stopping === null) {
@@ -638,6 +718,39 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
       const item = parsed.item;
       if (typeof item === 'object' && item !== null && (item as JsonRecord).type === 'agent_message') {
         attempt.output = (item as JsonRecord).text;
+      }
+    }
+    if (adapter.protocol !== 'codex-jsonl' && parsed.type === 'usage') {
+      if (parsed.reliable !== true) return;
+      const previous = attempt.metered_usage as JsonRecord | undefined;
+      const metered: JsonRecord = { events: Number(previous?.events ?? 0) + 1 };
+      try {
+        for (const field of ['input_tokens', 'output_tokens', 'api_dollars']) {
+          const value = parsed[field];
+          if (value == null) {
+            metered[field] = previous?.[field] ?? null;
+            continue;
+          }
+          if (field !== 'api_dollars' && !Number.isInteger(value)) throw new FoundryError(`reported ${field} must be a nonnegative integer`);
+          const reported = number(value, `reported ${field}`);
+          if (typeof previous?.[field] === 'number' && reported < Number(previous[field])) {
+            throw new FoundryError(`reported ${field} must be cumulative`);
+          }
+          metered[field] = reported;
+        }
+      } catch (error) {
+        fail('unknown', { code: 'invalid_usage', message: (error as Error).message });
+        return;
+      }
+      attempt.metered_usage = metered;
+      const dollars = metered.api_dollars;
+      if (typeof dollars === 'number' && mode === 'api' && dollars >= reservation) {
+        fail('budget_exceeded', { code: 'reservation_reached', message: 'Metered API spend reached the attempt reservation; the provider was stopped' });
+        return;
+      }
+      if (typeof dollars === 'number' && mode !== 'api' && dollars > 0) {
+        fail('billing_violation', { code: 'unexpected_api_charge', message: 'Provider reported API charges outside API billing; it was stopped' });
+        return;
       }
     }
     const terminal = adapter.protocol === 'codex-jsonl' ? parsed.type === 'turn.completed' : parsed.type === 'result';
@@ -853,6 +966,20 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
       child.stdin?.destroy();
     }
     await Promise.allSettled(outputPromises);
+    await credentials.close();
+    attempt.credentials = [
+      ...credentials.receipts.map(receipt => ({ ...receipt })),
+      ...(attempt.credentials as JsonRecord[]).slice(credentials.receipts.length),
+    ];
+    const metered = attempt.metered_usage as JsonRecord | undefined;
+    const usage = attempt.usage as JsonRecord;
+    if (typeof metered?.api_dollars === 'number') {
+      if (stopping === 'budget_exceeded' || stopping === 'billing_violation') usage.api_dollars = null;
+      else if (typeof usage.api_dollars !== 'number' || usage.api_dollars < metered.api_dollars) {
+        usage.api_dollars = metered.api_dollars;
+        attempt.usage_source = 'metered usage events; invoice/allowance not independently verified';
+      }
+    }
     try {
       await rm(within(root, `${STATE}/cancel/${taskId}.json`), { force: true });
     } catch {
@@ -920,6 +1047,8 @@ export async function execute(
           throw new FoundryError('API reservation would exceed the remaining known-dollar budget');
         }
       }
+      task.spend_control = spendControl(adapter, settings);
+      task.billing_assurance = billingAssurance(task.spend_control as JsonRecord);
       attempt = {
         number: attempts.length + 1, started_at: now(), status: 'running',
         prompt_digest: digest(request.prompt), terminal_count: 0,
@@ -952,7 +1081,6 @@ export async function execute(
       attempt.status = outcome;
       attempt.finished_at = now();
       saved.status = outcome;
-      saved.billing_assurance = 'request attestation; auth not inspected; no hard dollar cap with posthoc usage';
       const usage = summarizeUsage(saved.attempts as JsonRecord[]);
       saved.usage = usage;
       const knownApiDollars = Number(usage.known_api_dollars ?? 0);
@@ -964,6 +1092,37 @@ export async function execute(
       });
     });
   }));
+}
+
+function spendControl(adapter: ProviderAdapter, settings: JsonRecord): JsonRecord {
+  const billing = settings.billing as JsonRecord;
+  const metering = adapter.capabilities.includes('usage_metering');
+  const providerLimit = typeof billing.provider_limit_dollars === 'number' ? billing.provider_limit_dollars : null;
+  return {
+    mode: billing.mode,
+    max_api_dollars: Number((settings.budget as JsonRecord).max_api_dollars),
+    reservation_dollars: Number(billing.reservation_dollars ?? 0),
+    provider_enforced_limit_dollars: providerLimit,
+    provider_enforced_limit: providerLimit === null ? 'none' : 'owner_attested_not_verified',
+    runtime_metering: metering ? 'adapter_usage_events' : 'none',
+    runtime_stop: billing.mode === 'api' ? 'cancel_at_reservation' : 'cancel_on_any_api_charge',
+    accounting: 'post_hoc_provider_reported',
+    hard_dollar_cap: false,
+  };
+}
+
+function billingAssurance(control: JsonRecord): string {
+  if (control.mode !== 'api') {
+    return 'request attestation; auth not inspected; reported API charges stop the provider and mark a billing violation';
+  }
+  const parts = ['API consent recorded; auth not inspected; max_api_dollars is checked post-hoc from provider-reported usage'];
+  if (control.runtime_metering === 'adapter_usage_events') {
+    parts.push('streamed usage stops the provider at the reservation, but later or delayed charges can exceed it');
+  }
+  if (control.provider_enforced_limit === 'owner_attested_not_verified') {
+    parts.push(`owner attests a provider-enforced limit of ${String(control.provider_enforced_limit_dollars)} dollars; Foundry did not verify it`);
+  }
+  return parts.join('; ');
 }
 
 function summarizeUsage(attempts: JsonRecord[]): JsonRecord {
@@ -980,8 +1139,14 @@ function summarizeUsage(attempts: JsonRecord[]): JsonRecord {
     else hasAllInput = false;
     if (typeof usage?.output_tokens === 'number') output += usage.output_tokens;
     else hasAllOutput = false;
-    if (typeof usage?.api_dollars !== 'number') hasAllApi = false;
-    else {
+    const metered = attempt.metered_usage as JsonRecord | undefined;
+    if (typeof usage?.api_dollars !== 'number') {
+      hasAllApi = false;
+      if (typeof metered?.api_dollars === 'number') {
+        knownApi += metered.api_dollars;
+        hasKnownApi = true;
+      }
+    } else {
       knownApi += usage.api_dollars;
       hasKnownApi = true;
     }

@@ -25,7 +25,7 @@ local-test-only path, not a replacement for that client.
 | Code changes | Connected-client editing; managed OpenCode edits in disposable trusted projects against a local test endpoint. Candidates need existing Foundry checks and task recording. | Consented live-model execution and an isolated workspace. |
 | Terminal and browser | Use the host coding tool's tools. Foundry records supplied interface evidence. | A Foundry-owned interactive terminal, browser and isolated workspace. |
 | Delivery | Local Git checkpoints and a handoff summary in terminal product work. | Foundry-managed PR creation, CI/review follow-up, merge and deployment. |
-| Costs and credentials | Explicit adapter selection, billing consent and filtered process environments. Connected OpenCode owns its account and costs. | A unified credential manager or guaranteed live spending cap across providers. |
+| Costs and credentials | Explicit adapter selection, billing consent, filtered process environments, brokered API keys for process adapters, reservations and usage-metered stopping. Connected OpenCode owns its account and costs. | A credential store or account connection, and a guaranteed live spending cap: `max_api_dollars` is post-hoc unless the provider enforces a limit. |
 | Learning | Saved project progress and bounded repairs. | Evaluated cross-project skill learning or recursive self-improvement. |
 
 The required managed-executor check installs the built package and drives real

@@ -162,7 +162,13 @@ test('workflow guide recommends adaptive paths and reports capability blockers',
 
 test('workflow guide routes verified product work to owner release and learn records', async () => {
   const root = await project();
-  const nextStage = async () => (await guide(root, 'Build a booking site', 'implement', 'product', 'web')).next as Record<string, unknown>;
+  const nextStage = async () => (await guide(root)).next as Record<string, unknown>;
+  await record(root, {
+    id: 'brief-1', kind: 'brief', title: 'Booking site', source: source(),
+    basis: 'observed', status: 'accepted', accepted_by: 'owner', acceptance_ref: 'owner-intake',
+    goal: 'Build a booking site', buyer: 'studio owners', intent: 'implement', complexity: 'product',
+    surface: 'web', constraints: ['local only'], capabilities: [],
+  });
   await record(root, {
     id: 'criterion-1', kind: 'criterion', title: 'Booking works', source: source(),
     basis: 'observed', status: 'accepted', stage: 'build', required: true,
@@ -188,6 +194,8 @@ test('workflow guide routes verified product work to owner release and learn rec
   assert.match(String(release.reason), /guidance does not deploy/);
   const feature = (await guide(root, 'Build a booking site', 'implement', 'feature', 'web')).next as Record<string, unknown>;
   assert.equal(feature.stage, 'build');
+  const newRequest = (await guide(root, 'Add gift cards', 'implement', 'product', 'web')).next as Record<string, unknown>;
+  assert.equal(newRequest.stage, 'build', 'a new request does not inherit the saved brief release decision');
 
   await record(root, {
     id: 'criterion-release', kind: 'criterion', title: 'Released revision is checked', source: source(),
@@ -215,6 +223,7 @@ test('workflow guide routes verified product work to owner release and learn rec
   });
   const learn = await nextStage();
   assert.equal(learn.stage, 'learn');
+  assert.equal(((await guide(root, 'Add gift cards', 'implement', 'product', 'web')).next as Record<string, unknown>).stage, 'build');
   assert.equal(learn.owner_performed, true);
   assert.match(String(learn.reason), /evaluated workflow learning is a proposed spec, not implemented/);
 

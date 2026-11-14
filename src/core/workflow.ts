@@ -743,7 +743,7 @@ export async function guide(
         ? 'Compare acceptance evidence and record local completion'
         : "Continue the existing run's next scoped task and exercise its behavior";
       reason = 'Continue the existing run; runtime verification and product acceptance are separate';
-    } else if (resolvedComplexity === 'product' && await releaseReady(root)) {
+    } else if (resolvedComplexity === 'product' && briefs.length && resolvedRequest === String(brief.goal) && await releaseReady(root)) {
       const outcome = await releaseOutcome(root, records);
       stage = outcome.stage;
       action = outcome.action;

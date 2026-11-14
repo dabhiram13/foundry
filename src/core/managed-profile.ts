@@ -17,9 +17,11 @@ export const localManagedProfileSchema = z.strictObject({
 });
 export const remoteManagedProfileSchema = z.strictObject({
   ...common, inference: z.literal('consented-remote'), provider: remoteConnectionSchema,
-  // A same-user host shell can read other processes' startup environments, so shell tools
-  // stay unavailable for remote credentials until a demonstrated containment boundary exists.
+  // Same-user host code, including checks that run model-edited files, can read the supervisor's
+  // startup environment through /proc. The owner must acknowledge that exposure; shell tools stay
+  // unavailable so the model cannot read it directly.
   permissions: z.literal('read-edit'),
+  credentialExposure: z.literal('same-user-host-code'),
   limits: z.strictObject({ maxRequests: z.number().int().min(1).max(64), maxOutputTokens: z.number().int().min(1).max(32_768) }),
   billing: z.strictObject({ mode: z.literal('api'), dollarCap: z.literal('not-enforced-by-foundry') }),
 });

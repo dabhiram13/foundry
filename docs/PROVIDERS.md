@@ -349,10 +349,14 @@ chat completions for the selected model, clamps output tokens, refuses requests
 past the profile's limit and adds the key when it forwards to the HTTPS
 endpoint. It rejects multiple completions per request and connects only to
 public addresses, including after DNS lookup. Pause and Stop cancel forwarded
-requests. Remote sessions must use `read-edit` permissions: a same-user shell
-could read the key from the supervisor's startup environment, so shell tools
-stay off until a demonstrated containment boundary exists. Model tools can see
-the per-run token but not the key.
+requests. Model tools can see the per-run token but not the key.
+
+This is not credential isolation. Any code running as the same user can read the
+key from the supervisor's startup environment, including configured checks that
+run files the model edited. Remote profiles therefore set
+`"credentialExposure": "same-user-host-code"` and use `read-edit` permissions so
+the model has no direct shell. Use a key with limited scope and spending, and
+use an externally contained environment for work you do not trust.
 
 These checks run against fake loopback endpoints. They do not prove that a
 particular provider, model, tool format or streaming behavior works, and they

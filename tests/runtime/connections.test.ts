@@ -23,7 +23,7 @@ const remote: RemoteConnection = { mode: 'remote', id: 'example', model: 'exampl
 async function remoteProfile(): Promise<RemoteManagedProfile> {
   return { schemaVersion: 1, id: randomUUID(), consentRef: randomUUID(), boundary: 'trusted-local-disposable', inference: 'consented-remote',
     binary: process.execPath, binaryDigest: await executableDigest(process.execPath), provider: remote, permissions: 'read-edit',
-    maxTurns: 1, maxSteps: 4, deadlineMs: 5000, limits: { maxRequests: 2, maxOutputTokens: 256 }, billing: { mode: 'api', dollarCap: 'not-enforced-by-foundry' } };
+    maxTurns: 1, maxSteps: 4, deadlineMs: 5000, limits: { maxRequests: 2, maxOutputTokens: 256 }, credentialExposure: 'same-user-host-code', billing: { mode: 'api', dollarCap: 'not-enforced-by-foundry' } };
 }
 
 async function project(t: TestContext, connections?: unknown) {
@@ -64,6 +64,9 @@ test('remote managed profiles require consented billing terms and bounded reques
   assert.equal(managedProfileSchema.safeParse({ ...profile, inference: 'local-test-only' }).success, false);
   assert.equal(managedProfileSchema.safeParse({ ...profile, limits: { maxRequests: 0, maxOutputTokens: 1 } }).success, false);
   assert.equal(managedProfileSchema.safeParse({ ...profile, billing: { mode: 'api', dollarCap: 5 } }).success, false);
+  const { credentialExposure: _exposure, ...unacknowledged } = profile;
+  assert.equal(managedProfileSchema.safeParse(unacknowledged).success, false);
+  assert.equal(managedProfileSchema.safeParse({ ...profile, credentialExposure: 'none' }).success, false);
 });
 
 test('credentials are read only by reference and reported only as present or missing', () => {

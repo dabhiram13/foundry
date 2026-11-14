@@ -122,13 +122,17 @@ exactly as `provider`, and add limits and billing terms:
     "api": "openai-chat-completions",
     "credential": { "kind": "env", "name": "EXAMPLE_API_KEY" }
   },
+  "permissions": "read-edit",
+  "credentialExposure": "same-user-host-code",
   "limits": { "maxRequests": 16, "maxOutputTokens": 4096 },
   "billing": { "mode": "api", "dollarCap": "not-enforced-by-foundry" }
 }
 ```
 
 Remote profiles must use `"permissions": "read-edit"`; shell tools are not
-available with a remote credential. Request limits are 1-64 per execution and
+available with a remote credential. `credentialExposure` acknowledges that the
+key stays readable to code running as the same user on the host, including
+configured checks that run files the model edited. Request limits are 1-64 per execution and
 output-token limits 1-32768 per request. The provider bills for requests it receives; Foundry does not enforce a
 dollar cap. `start` and `run` refuse unregistered connections and unset
 credential variables. This boundary is not a sandbox: use trusted projects only,

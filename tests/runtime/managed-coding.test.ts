@@ -155,7 +155,7 @@ test('real managed OpenCode reaches a registered remote connection only through 
   const provider = { mode: 'remote' as const, id: 'example', model: 'test-model', baseURL: 'https://api.example.test/v1', api: 'openai-chat-completions' as const,
     credential: { kind: 'env' as const, name: 'EXAMPLE_RELAY_KEY' } };
   const { provider: _local, inference: _inference, permissions: _permissions, ...common } = fixture.profile;
-  const profile: ManagedProfile = { ...common, inference: 'consented-remote', provider, permissions: 'read-edit',
+  const profile: ManagedProfile = { ...common, inference: 'consented-remote', provider, permissions: 'read-edit', credentialExposure: 'same-user-host-code',
     limits: { maxRequests: 8, maxOutputTokens: 512 }, billing: { mode: 'api', dollarCap: 'not-enforced-by-foundry' } };
   assert.equal(managedProfileSchema.safeParse({ ...profile, permissions: 'read-edit-shell' }).success, false);
   const run = (signal = new AbortController().signal) => runManagedOpenCode(fixture.root, fixture.storage, profile, { sessionId: randomUUID(), executionId: randomUUID(),
@@ -186,6 +186,20 @@ test('real managed OpenCode reaches a registered remote connection only through 
   assert.ok(forwarded.every(item => typeof item.maxTokens === 'number' && item.maxTokens <= 512));
   assert.equal(JSON.stringify(fixture.requests).includes(REMOTE_SECRET), false);
   assert.equal(JSON.stringify(fixture.requests).includes('EXAMPLE_RELAY_KEY='), false);
+
+  // Checks run model-edited code on the host. Their environment is scrubbed, but the supervisor's
+  // startup environment stays readable to same-user code, which is why remote profiles must
+  // acknowledge credentialExposure instead of claiming isolation.
+  await writeFile(fixture.profileFile, JSON.stringify({ ...fixture.profile, permissions: 'read-edit' }));
+  assert.equal((await fixture.command(['start', '--profile', fixture.profileFile, '--confirmed', '--request-id', randomUUID()])).code, 0);
+  fixture.configure({ source: `import { readFileSync, writeFileSync } from 'node:fs';
+const inherited = readFileSync('/proc/' + process.ppid + '/environ', 'utf8').split('\\0').includes('EXAMPLE_RELAY_KEY=${REMOTE_SECRET}');
+writeFileSync(new URL('./exposure.txt', import.meta.url), 'parent:' + inherited + ' child:' + (process.env.EXAMPLE_RELAY_KEY !== undefined));
+${good}` });
+  const edited = await fixture.command(['run', '--profile', fixture.profileFile]);
+  assert.equal(edited.code, 0, edited.error);
+  await fixture.command(['verify']);
+  assert.equal(await readFile(path.join(fixture.root, 'exposure.txt'), 'utf8'), 'parent:true child:false');
 });
 
 test('managed service refuses unapproved assignments without any upstream request', async t => {

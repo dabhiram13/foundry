@@ -30,10 +30,12 @@ consent, credential and lifecycle boundaries.
   tokens, refuses requests past the limit or with more than one completion,
   connects only to public addresses after DNS lookup, does not follow redirects
   and cancels forwarded requests on Pause or Stop.
-- Remote profiles are limited to `read-edit` permissions. The supervisor's own
-  startup environment can hold the key and is readable by same-user processes
-  through `/proc`, so shell tools require a demonstrated containment boundary
-  first.
+- Remote profiles are limited to `read-edit` permissions and must set
+  `credentialExposure: same-user-host-code`. The supervisor's startup
+  environment can hold the key and is readable through `/proc` by same-user
+  code, including configured checks that run model-edited files. Foundry keeps
+  the key out of executor and check environments, configuration, arguments and
+  records, but this is not isolation from same-user host code.
 - `foundry provider` and `foundry providers` list registered connections with
   credential presence and `authentication: not_checked`.
 
@@ -42,8 +44,10 @@ consent, credential and lifecycle boundaries.
 No live account was connected and no paid inference was run. Offline relay
 checks are not live-model qualification. Request and token limits bound usage
 but are not a dollar cap. The boundary remains trusted-local and host-process
-based, not a sandbox; model tools can use the per-run relay token within the
-limits.
+based, not a sandbox: same-user host code, including checks that run
+model-edited files, can read the key, and model tools can use the per-run relay
+token within the limits. A demonstrated containment boundary is required before
+this can change.
 
 ## Acceptance
 

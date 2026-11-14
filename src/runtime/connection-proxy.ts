@@ -70,7 +70,14 @@ export function publicForward(resolve: AddressResolver = hostname => dnsLookup(h
       for (const [key, value] of Object.entries(response.headers)) {
         for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) headers.append(key, item);
       }
-      settle(new Response(Readable.toWeb(response) as unknown as ReadableStream, { status, headers }));
+      try {
+        const body = status === 204 || status === 205 ? null : Readable.toWeb(response) as unknown as ReadableStream;
+        if (!body) response.resume();
+        settle(new Response(body, { status, headers }));
+      } catch (error) {
+        response.destroy();
+        fail(error);
+      }
     });
     request.once('error', fail);
     request.end(typeof init.body === 'string' ? init.body : undefined);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { createServer } from 'node:http';
+import { createServer, get as httpGet } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { test, type TestContext } from 'node:test';
@@ -11,7 +11,7 @@ import {
   type RemoteConnection,
 } from '../../src/core/connection-profile.js';
 import { managedProfileSchema, type RemoteManagedProfile } from '../../src/core/managed-profile.js';
-import { publicForward, startConnectionProxy, type ConnectionForward } from '../../src/runtime/connection-proxy.js';
+import { publicForward, startConnectionProxy, upstreamResponse, type ConnectionForward } from '../../src/runtime/connection-proxy.js';
 import { inspectConnections } from '../../src/runtime/providers.js';
 import { validateManagedExecutor } from '../../src/runtime/managed-opencode.js';
 import { executableDigest } from '../../src/runtime/opencode.js';
@@ -180,7 +180,19 @@ test('offline relay stops in-flight upstream requests when the managed execution
 test('remote forwarding connects only to public addresses and refuses redirects', async () => {
   for (const address of ['8.8.8.8', '2001:4860:4860::8888']) assert.equal(publicAddress(address), true);
   for (const address of ['10.1.2.3', '127.0.0.1', '172.20.0.1', '192.168.0.1', '169.254.169.254', '100.100.0.1', '0.0.0.0', '::1', '::',
-    'fc00::1', 'fe80::1', '::ffff:192.168.0.1', 'not-an-ip']) assert.equal(publicAddress(address), false, address);
+    'fc00::1', 'fe80::1', '::ffff:192.168.0.1', '64:ff9b::a00:1', '64:ff9b:1::a00:1', '2002:a00:1::1', '2001:0:a00:1::1', '2001:db8::1',
+    'not-an-ip']) assert.equal(publicAddress(address), false, address);
+  for (const status of [200, 204, 205]) {
+    const server = createServer((_request, reply) => { reply.writeHead(status, { 'x-status': String(status) }); reply.end(status === 200 ? 'ok' : undefined); });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as { port: number };
+    const message = await new Promise<import('node:http').IncomingMessage>(resolve => httpGet(`http://127.0.0.1:${port}/`, resolve));
+    const converted = upstreamResponse(message);
+    assert.equal(converted.status, status);
+    assert.equal(converted.headers.get('x-status'), String(status));
+    assert.equal(await converted.text(), status === 200 ? 'ok' : '');
+    await new Promise(resolve => server.close(resolve));
+  }
   const init = (signal?: AbortSignal): RequestInit => ({ method: 'POST', headers: { authorization: `Bearer ${SECRET}` }, body: '{}', ...(signal ? { signal } : {}) });
   for (const addresses of [[{ address: '10.0.0.5', family: 4 }], [{ address: '8.8.8.8', family: 4 }, { address: '127.0.0.1', family: 4 }], []]) {
     await assert.rejects(publicForward(async () => addresses)('https://api.example.test/v1/chat/completions', init()), /public addresses/);
@@ -190,4 +202,11 @@ test('remote forwarding connects only to public addresses and refuses redirects'
   const attempt = publicForward(async () => { setTimeout(() => controller.abort(), 50); return [{ address: '192.0.2.1', family: 4 }]; })(
     'https://api.example.test/v1/chat/completions', init(controller.signal));
   await assert.rejects(attempt, (error: Error) => !/public addresses/.test(error.message));
+});
+
+test('remote connections accept namespaced model identifiers but not path tricks', () => {
+  const remote = (model: string) => connectionProfileSchema.safeParse({ mode: 'remote', id: 'example', model, baseURL: 'https://api.example.test/v1',
+    api: 'openai-chat-completions', credential: { kind: 'env', name: 'EXAMPLE_API_KEY' } }).success;
+  for (const model of ['org/coding-model', 'vendor/family/model-1.5', 'model:latest']) assert.equal(remote(model), true, model);
+  for (const model of ['/model', 'org//model', 'org/../model', 'org/', 'a/b/c/d/e', 'model name', '../model']) assert.equal(remote(model), false, model);
 });

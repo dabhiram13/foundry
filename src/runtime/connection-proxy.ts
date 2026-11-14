@@ -41,6 +41,20 @@ function bounded(document: Record<string, unknown>, limit: number): void {
   if (!applied) document.max_tokens = limit;
 }
 
+/** Converts an upstream message to a fetch Response; null-body statuses carry no stream. */
+export function upstreamResponse(response: IncomingMessage): Response {
+  const status = response.statusCode ?? 502;
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(response.headers)) {
+    for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) headers.append(key, item);
+  }
+  if (status === 204 || status === 205) {
+    response.resume();
+    return new Response(null, { status, headers });
+  }
+  return new Response(Readable.toWeb(response) as unknown as ReadableStream, { status, headers });
+}
+
 /**
  * HTTPS forwarder that connects only to the public addresses it validated, so a registered
  * hostname cannot be pointed at a private host by DNS. Redirects are refused, not followed.
@@ -66,14 +80,8 @@ export function publicForward(resolve: AddressResolver = hostname => dnsLookup(h
         fail(new Error('Remote connection redirects are not followed'));
         return;
       }
-      const headers = new Headers();
-      for (const [key, value] of Object.entries(response.headers)) {
-        for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) headers.append(key, item);
-      }
       try {
-        const body = status === 204 || status === 205 ? null : Readable.toWeb(response) as unknown as ReadableStream;
-        if (!body) response.resume();
-        settle(new Response(body, { status, headers }));
+        settle(upstreamResponse(response));
       } catch (error) {
         response.destroy();
         fail(error);

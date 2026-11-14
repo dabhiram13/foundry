@@ -4,7 +4,10 @@ import { FoundryError } from './fs.js';
 const ENVIRONMENT_NAME = /^[A-Z_][A-Z0-9_]{0,127}$/;
 const RESERVED_ENVIRONMENT = /^(?:PATH|HOME|USER|SHELL|TMPDIR|LANG|TZ|NODE_OPTIONS|OPENCODE_.*|FOUNDRY_.*|XDG_.*)$/;
 
-/** Names an owner-held secret without containing it. Foundry reads the value only for the selected connection. */
+/**
+ * Names an owner-held secret without containing it. Purpose, provider and adapter metadata
+ * belong to the record that holds the reference, not to the reference itself.
+ */
 export const credentialReferenceSchema = z.strictObject({
   kind: z.literal('env'),
   name: z.string().regex(ENVIRONMENT_NAME).refine(value => !RESERVED_ENVIRONMENT.test(value), 'Reserved environment name'),

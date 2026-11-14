@@ -63,9 +63,11 @@ export function publicForward(resolve: AddressResolver = hostname => dnsLookup(h
   return (url, init) => new Promise<Response>((settle, fail) => {
     const target = new URL(url);
     if (target.protocol !== 'https:') { fail(new Error('Remote connections require HTTPS')); return; }
+    if (init.signal?.aborted) { fail(init.signal.reason); return; }
     const lookup = ((hostname: string, options: { all?: boolean }, callback: (...args: unknown[]) => void) => {
       resolve(hostname).then(addresses => {
-        if (!addresses.length || !addresses.every(item => publicAddress(item.address))) {
+        if (init.signal?.aborted) callback(init.signal.reason, '', 4);
+        else if (!addresses.length || !addresses.every(item => publicAddress(item.address))) {
           callback(new Error('Remote connection host does not resolve only to public addresses'), '', 4);
         } else if (options.all) callback(null, addresses);
         else callback(null, addresses[0]!.address, addresses[0]!.family);

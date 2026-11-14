@@ -198,10 +198,14 @@ test('remote forwarding connects only to public addresses and refuses redirects'
     await assert.rejects(publicForward(async () => addresses)('https://api.example.test/v1/chat/completions', init()), /public addresses/);
   }
   await assert.rejects(publicForward(async () => [])('http://api.example.test/v1/chat/completions', init()), /HTTPS/);
+  let resolved = 0;
+  const attempt = publicForward(async () => { resolved += 1; return [{ address: '8.8.8.8', family: 4 }]; })(
+    'https://api.example.test/v1/chat/completions', init(AbortSignal.abort()));
+  await assert.rejects(attempt, (error: Error) => error.name === 'AbortError');
+  assert.equal(resolved, 0);
   const controller = new AbortController();
-  const attempt = publicForward(async () => { setTimeout(() => controller.abort(), 50); return [{ address: '192.0.2.1', family: 4 }]; })(
-    'https://api.example.test/v1/chat/completions', init(controller.signal));
-  await assert.rejects(attempt, (error: Error) => !/public addresses/.test(error.message));
+  await assert.rejects(publicForward(async () => { controller.abort(); return [{ address: '8.8.8.8', family: 4 }]; })(
+    'https://api.example.test/v1/chat/completions', init(controller.signal)), (error: Error) => error.name === 'AbortError');
 });
 
 test('remote connections accept namespaced model identifiers but not path tricks', () => {

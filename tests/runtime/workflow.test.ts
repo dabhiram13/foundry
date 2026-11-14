@@ -194,7 +194,12 @@ test('workflow guide routes verified product work to owner release and learn rec
     basis: 'observed', status: 'accepted', stage: 'release', required: true,
     expected: 'released revision matches', method: 'manual', inputs: ['input.txt'],
   });
-  assert.equal((await nextStage()).stage, 'release', 'release criteria do not block the release decision');
+  await record(root, {
+    id: 'criterion-maintain', kind: 'criterion', title: 'Dependencies stay current', source: source(),
+    basis: 'observed', status: 'accepted', stage: 'maintain', required: true,
+    expected: 'dependencies reviewed', method: 'manual', inputs: ['input.txt'],
+  });
+  assert.equal((await nextStage()).stage, 'release', 'release and maintain criteria do not block the release decision');
   await record(root, {
     id: 'artifact-release', kind: 'artifact', title: 'Owner release record', source: source(),
     basis: 'observed', status: 'accepted', path: 'input.txt', stage: 'release',

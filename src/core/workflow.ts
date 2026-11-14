@@ -611,9 +611,11 @@ export async function gate(rootInput: string, stage?: string): Promise<JsonRecor
   };
 }
 
+const POST_RELEASE_STAGES = new Set(['release', 'learn', 'maintain']);
+
 async function releaseReady(root: string): Promise<boolean> {
   const required = ((await gate(root)).criteria as JsonRecord[])
-    .filter((criterion) => criterion.required && !(String(criterion.stage) in OWNER_STAGE_LIMITS));
+    .filter((criterion) => criterion.required && !POST_RELEASE_STAGES.has(String(criterion.stage)));
   return required.length > 0 && required.every((criterion) => criterion.status === 'pass');
 }
 

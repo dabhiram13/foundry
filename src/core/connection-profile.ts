@@ -1,17 +1,12 @@
+import { BlockList, isIP } from 'node:net';
 import { z } from 'zod';
 import { readBoundedBytes } from './factory-contract.js';
+import { credentialReferenceSchema, resolveCredential } from './credential-reference.js';
 import { canonicalJson, exists, FoundryError } from './fs.js';
 
-const name = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/);
-const ENVIRONMENT_NAME = /^[A-Z_][A-Z0-9_]{0,127}$/;
-const RESERVED_ENVIRONMENT = /^(?:PATH|HOME|USER|SHELL|TMPDIR|LANG|TZ|NODE_OPTIONS|OPENCODE_.*|FOUNDRY_.*|XDG_.*)$/;
+export { credentialReferenceSchema, resolveCredential, type CredentialReference } from './credential-reference.js';
 
-/** Names an owner-held secret without containing it. Foundry reads the value only for the selected connection. */
-export const credentialReferenceSchema = z.strictObject({
-  kind: z.literal('env'),
-  name: z.string().regex(ENVIRONMENT_NAME).refine(value => !RESERVED_ENVIRONMENT.test(value), 'Reserved environment name'),
-});
-export type CredentialReference = z.infer<typeof credentialReferenceSchema>;
+const name = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/);
 
 function plainUrl(value: string): URL | null {
   try {
@@ -26,6 +21,27 @@ function loopbackHost(hostname: string): boolean {
     || host === '0.0.0.0' || host === '::';
 }
 
+const NON_PUBLIC = new BlockList();
+for (const [network, prefix] of [['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16],
+  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['224.0.0.0', 4], ['240.0.0.0', 4]] as const) {
+  NON_PUBLIC.addSubnet(network, prefix, 'ipv4');
+}
+for (const [network, prefix] of [['::', 127], ['64:ff9b::', 96], ['100::', 64], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8]] as const) {
+  NON_PUBLIC.addSubnet(network, prefix, 'ipv6');
+}
+
+/** True only for globally routable unicast addresses. Remote connections never reach private, loopback or link-local hosts. */
+export function publicAddress(value: string): boolean {
+  const address = value.replace(/^\[|\]$/g, '').toLowerCase();
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(address)?.[1];
+  if (mapped) return publicAddress(mapped);
+  if (/^::ffff:/.test(address)) return false;
+  const family = isIP(address);
+  if (family === 4) return !NON_PUBLIC.check(address, 'ipv4');
+  if (family === 6) return !NON_PUBLIC.check(address, 'ipv6');
+  return false;
+}
+
 export const localTestEndpoint = z.url().max(2048).refine(value => {
   const url = plainUrl(value);
   return !!url && url.protocol === 'http:' && url.hostname === '127.0.0.1' && url.pathname === '/v1' && Number(url.port) > 0;
@@ -33,9 +49,10 @@ export const localTestEndpoint = z.url().max(2048).refine(value => {
 
 export const remoteEndpoint = z.url().max(2048).refine(value => {
   const url = plainUrl(value);
-  return !!url && url.protocol === 'https:' && !loopbackHost(url.hostname) && (!url.port || url.port === '443')
+  return !!url && url.protocol === 'https:' && !loopbackHost(url.hostname)
+    && (!isIP(url.hostname.replace(/^\[|\]$/g, '')) || publicAddress(url.hostname)) && (!url.port || url.port === '443')
     && /^\/[A-Za-z0-9._~/-]{0,256}$/.test(url.pathname) && !url.pathname.split('/').includes('..');
-}, 'Remote endpoints must be plain HTTPS base URLs without credentials, query or fragment');
+}, 'Remote endpoints must be plain public HTTPS base URLs without credentials, query or fragment');
 
 export const localTestConnectionSchema = z.strictObject({
   mode: z.literal('local-test'), id: name, model: name, baseURL: localTestEndpoint,
@@ -53,15 +70,6 @@ export const connectionRegistrySchema = z.strictObject({
     .refine(items => new Set(items.map(item => item.name)).size === items.length, 'Connection names must be unique'),
 });
 
-/** Reads only the referenced variable. The value is never returned to callers that report or persist state. */
-export function resolveCredential(reference: CredentialReference, source: NodeJS.ProcessEnv = process.env): string {
-  const parsed = credentialReferenceSchema.parse(reference);
-  const value = source[parsed.name];
-  if (typeof value !== 'string' || value.length < 8 || value.length > 4096 || /[\s\0]/.test(value)) {
-    throw new FoundryError(`Credential reference ${parsed.name} is not set to a usable value`);
-  }
-  return value;
-}
 
 export function inspectConnection(profile: ConnectionProfile, source: NodeJS.ProcessEnv = process.env): Record<string, unknown> {
   const parsed = connectionProfileSchema.parse(profile);

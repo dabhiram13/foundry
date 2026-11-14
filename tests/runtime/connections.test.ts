@@ -7,11 +7,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { test, type TestContext } from 'node:test';
 import {
-  connectionProfileSchema, credentialReferenceSchema, inspectConnection, requireRegisteredConnection, resolveCredential,
+  connectionProfileSchema, credentialReferenceSchema, publicAddress, inspectConnection, requireRegisteredConnection, resolveCredential,
   type RemoteConnection,
 } from '../../src/core/connection-profile.js';
 import { managedProfileSchema, type RemoteManagedProfile } from '../../src/core/managed-profile.js';
-import { startConnectionProxy, type ConnectionForward } from '../../src/runtime/connection-proxy.js';
+import { publicForward, startConnectionProxy, type ConnectionForward } from '../../src/runtime/connection-proxy.js';
 import { inspectConnections } from '../../src/runtime/providers.js';
 import { validateManagedExecutor } from '../../src/runtime/managed-opencode.js';
 import { executableDigest } from '../../src/runtime/opencode.js';
@@ -39,7 +39,9 @@ test('connection profiles require an explicit provider, model, HTTPS endpoint an
   assert.equal(connectionProfileSchema.safeParse(remote).success, true);
   assert.equal(connectionProfileSchema.safeParse({ mode: 'local-test', id: 'local', model: 'm', baseURL: 'http://127.0.0.1:9/v1' }).success, true);
   for (const baseURL of ['http://api.example.test/v1', 'https://127.0.0.1/v1', 'https://localhost/v1', 'https://[::1]/v1', 'https://user:pass@api.example.test/v1',
-    'https://api.example.test/v1?key=value', 'https://api.example.test/v1#x', 'https://api.example.test:8443/v1']) {
+    'https://api.example.test/v1?key=value', 'https://api.example.test/v1#x', 'https://api.example.test:8443/v1', 'https://10.0.0.5/v1',
+    'https://192.168.1.2/v1', 'https://169.254.169.254/v1', 'https://100.64.0.1/v1', 'https://[fd00::1]/v1', 'https://[fe80::1]/v1',
+    'https://[::ffff:10.0.0.1]/v1', 'https://[::ffff:7f00:1]/v1']) {
     assert.equal(connectionProfileSchema.safeParse({ ...remote, baseURL }).success, false, baseURL);
   }
   for (const key of ['id', 'model', 'baseURL', 'credential', 'api']) {
@@ -143,6 +145,7 @@ test('offline relay forwards only bounded chat completions for the selected mode
   assert.equal((await send({ model: 'example-model' }, { path: '/v1/models', method: 'GET' })).status, 403);
   assert.equal((await send({ model: 'example-model' }, { path: '/v1/embeddings' })).status, 403);
   assert.equal((await send({ model: 'other-model' })).status, 403);
+  assert.equal((await send({ model: 'example-model', messages: [], n: 4 })).status, 400);
   assert.equal(seen.length, 0);
   const first = await send({ model: 'example-model', messages: [], max_tokens: 100_000, stream: true });
   assert.equal(first.status, 200);
@@ -172,4 +175,19 @@ test('offline relay stops in-flight upstream requests when the managed execution
   const after = await fetch(`${relay.baseURL}/chat/completions`, { method: 'POST', headers: { authorization: `Bearer ${relay.token}` },
     body: JSON.stringify({ model: 'example-model', messages: [] }) }).then(response => response.status, () => 'closed');
   assert.notEqual(after, 200);
+});
+
+test('remote forwarding connects only to public addresses and refuses redirects', async () => {
+  for (const address of ['8.8.8.8', '2001:4860:4860::8888']) assert.equal(publicAddress(address), true);
+  for (const address of ['10.1.2.3', '127.0.0.1', '172.20.0.1', '192.168.0.1', '169.254.169.254', '100.100.0.1', '0.0.0.0', '::1', '::',
+    'fc00::1', 'fe80::1', '::ffff:192.168.0.1', 'not-an-ip']) assert.equal(publicAddress(address), false, address);
+  const init = (signal?: AbortSignal): RequestInit => ({ method: 'POST', headers: { authorization: `Bearer ${SECRET}` }, body: '{}', ...(signal ? { signal } : {}) });
+  for (const addresses of [[{ address: '10.0.0.5', family: 4 }], [{ address: '8.8.8.8', family: 4 }, { address: '127.0.0.1', family: 4 }], []]) {
+    await assert.rejects(publicForward(async () => addresses)('https://api.example.test/v1/chat/completions', init()), /public addresses/);
+  }
+  await assert.rejects(publicForward(async () => [])('http://api.example.test/v1/chat/completions', init()), /HTTPS/);
+  const controller = new AbortController();
+  const attempt = publicForward(async () => { setTimeout(() => controller.abort(), 50); return [{ address: '192.0.2.1', family: 4 }]; })(
+    'https://api.example.test/v1/chat/completions', init(controller.signal));
+  await assert.rejects(attempt, (error: Error) => !/public addresses/.test(error.message));
 });

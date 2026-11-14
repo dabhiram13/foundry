@@ -347,8 +347,12 @@ variable only for that session and keeps it in the supervisor. OpenCode talks to
 a private loopback relay with a random per-run token. The relay accepts only
 chat completions for the selected model, clamps output tokens, refuses requests
 past the profile's limit and adds the key when it forwards to the HTTPS
-endpoint. Pause and Stop cancel forwarded requests. Model tools can see the
-per-run token but not the key.
+endpoint. It rejects multiple completions per request and connects only to
+public addresses, including after DNS lookup. Pause and Stop cancel forwarded
+requests. Remote sessions must use `read-edit` permissions: a same-user shell
+could read the key from the supervisor's startup environment, so shell tools
+stay off until a demonstrated containment boundary exists. Model tools can see
+the per-run token but not the key.
 
 These checks run against fake loopback endpoints. They do not prove that a
 particular provider, model, tool format or streaming behavior works, and they

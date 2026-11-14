@@ -14,9 +14,11 @@ consent, credential and lifecycle boundaries.
 - `src/core/connection-profile.ts` defines one connection profile shared by
   managed sessions and the provider registry: `local-test` (loopback only) or
   `remote` (provider, model, plain HTTPS base URL, chat completions API and a
-  credential reference). `CredentialReference` is the small exported reference
-  type other subsystems reuse; it names an environment variable and never holds
-  the value.
+  credential reference).
+- `src/core/credential-reference.ts` holds the small `CredentialReference`
+  schema, type and resolver that other subsystems reuse; it names an environment
+  variable and never holds the value. Purpose or adapter metadata belongs to the
+  record holding the reference. `connection-profile.ts` re-exports it.
 - `.foundry/connections.json` is the owner-authored registry. A missing file or
   an unlisted profile denies remote access.
 - `src/core/managed-profile.ts` keeps the local test profile unchanged and adds
@@ -25,8 +27,13 @@ consent, credential and lifecycle boundaries.
 - `src/runtime/connection-proxy.ts` is a per-execution loopback relay. OpenCode
   receives a random token, never the key. The relay forwards only chat
   completions for the selected model to the selected endpoint, clamps output
-  tokens, refuses requests past the limit, does not follow redirects and cancels
-  forwarded requests on Pause or Stop.
+  tokens, refuses requests past the limit or with more than one completion,
+  connects only to public addresses after DNS lookup, does not follow redirects
+  and cancels forwarded requests on Pause or Stop.
+- Remote profiles are limited to `read-edit` permissions. The supervisor's own
+  startup environment can hold the key and is readable by same-user processes
+  through `/proc`, so shell tools require a demonstrated containment boundary
+  first.
 - `foundry provider` and `foundry providers` list registered connections with
   credential presence and `authentication: not_checked`.
 

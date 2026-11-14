@@ -65,6 +65,7 @@ assert.equal(process.env.OPENCODE_SERVER_PASSWORD, undefined);
   let tool = 'write';
   let source = good;
   let shell = '';
+  let toolArgs: Record<string, unknown> | undefined;
   const requests: Array<{ model: string; messages: Array<{ role: string; content?: unknown }> }> = [];
   const errors: string[] = [];
   const server = createServer(async (request, response) => {
@@ -79,8 +80,8 @@ assert.equal(process.env.OPENCODE_SERVER_PASSWORD, undefined);
       const answered = body.messages.some((message: { role: string }) => message.role === 'tool');
       const call = hasTools && !answered;
       const delta = call ? { tool_calls: [{ index: 0, id: `call_${requests.length}`, type: 'function', function: { name: tool,
-        arguments: JSON.stringify(tool === 'write' ? { filePath: path.join(root, 'math.ts'), content: source }
-          : { command: shell, timeout: 60_000, description: 'Local long running test' }),
+        arguments: JSON.stringify(toolArgs ?? (tool === 'write' ? { filePath: path.join(root, 'math.ts'), content: source }
+          : { command: shell, timeout: 60_000, description: 'Local long running test' })),
       } }] } : { content: 'Task candidate prepared. FOUNDRY_SUPERVISOR_SENTINEL must never be echoed.' };
       response.writeHead(200, { 'content-type': 'text/event-stream' });
       for (const [part, finish] of [[{ role: 'assistant' }, null], [delta, null], [{}, call ? 'tool_calls' : 'stop']]) response.write(`data: ${JSON.stringify({ id: 'chatcmpl-local', object: 'chat.completion.chunk', created: 1,
@@ -104,7 +105,9 @@ assert.equal(process.env.OPENCODE_SERVER_PASSWORD, undefined);
     await rm(directory, { recursive: true, force: true });
     assert.deepEqual(errors, []);
   });
-  const configure = (options: { tool?: string; source?: string; shell?: string }) => { tool = options.tool ?? 'write'; source = options.source ?? good; shell = options.shell ?? ''; };
+  const configure = (options: { tool?: string; source?: string; shell?: string; args?: Record<string, unknown> }) => {
+    tool = options.tool ?? 'write'; source = options.source ?? good; shell = options.shell ?? ''; toolArgs = options.args;
+  };
   const command = async (args: string[], started?: (child: ReturnType<typeof spawn>) => void) => {
     const child = spawn(process.execPath, [cli, 'session', ...args, '--project', root, '--storage', storage, '--json'], { stdio: ['ignore', 'pipe', 'pipe'] });
     let output = ''; let error = '';
@@ -128,20 +131,35 @@ test('managed profiles require explicit authority, model, permission, limits and
   assert.equal(managedProfileSchema.safeParse({ ...profile, owner: { id: randomUUID() } }).success, false);
 });
 
-test('real managed OpenCode reaches a registered remote connection only through the relay and never sees the credential', { skip: !binary, timeout: 120_000 }, async t => {
+const REMOTE_SECRET = 'sk-offline-relay-credential-value-0002';
+const remoteChild = process.env.FOUNDRY_REMOTE_ISOLATION_CHILD === '1';
+
+test('real managed OpenCode reaches a registered remote connection only through the relay and never sees the credential', { skip: !binary, timeout: 240_000 }, async t => {
+  if (!remoteChild) {
+    // The credential must be in the supervisor's startup environment, where /proc/<pid>/environ exposes it.
+    const { NODE_TEST_CONTEXT: _context, ...inherited } = process.env;
+    const child = spawn(process.execPath, ['--test-reporter=tap', '--test-name-pattern=^real managed OpenCode reaches a registered remote', __filename], {
+      env: { ...inherited, FOUNDRY_REMOTE_ISOLATION_CHILD: '1', EXAMPLE_RELAY_KEY: REMOTE_SECRET }, stdio: ['ignore', 'pipe', 'pipe'] });
+    let output = '';
+    child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
+    const status = await new Promise<number | null>(resolve => child.once('close', resolve));
+    assert.equal(status, 0, output);
+    assert.match(output, /^# pass 1$/m);
+    assert.match(output, /^# fail 0$/m);
+    return;
+  }
+  const startup = (await readFile(`/proc/${process.pid}/environ`, 'utf8')).split('\0');
+  assert.ok(startup.includes(`EXAMPLE_RELAY_KEY=${REMOTE_SECRET}`), 'supervisor started with the credential in its environment');
   const fixture = await setup(t);
-  const secret = 'sk-offline-relay-credential-value-0002';
-  const previous = process.env.EXAMPLE_RELAY_KEY;
-  process.env.EXAMPLE_RELAY_KEY = secret;
-  t.after(() => { if (previous === undefined) delete process.env.EXAMPLE_RELAY_KEY; else process.env.EXAMPLE_RELAY_KEY = previous; });
   const local = new URL(fixture.profile.provider.baseURL);
   const provider = { mode: 'remote' as const, id: 'example', model: 'test-model', baseURL: 'https://api.example.test/v1', api: 'openai-chat-completions' as const,
     credential: { kind: 'env' as const, name: 'EXAMPLE_RELAY_KEY' } };
-  const { provider: _local, inference: _inference, ...common } = fixture.profile;
-  const profile: ManagedProfile = { ...common, inference: 'consented-remote', provider, permissions: 'read-edit-shell',
+  const { provider: _local, inference: _inference, permissions: _permissions, ...common } = fixture.profile;
+  const profile: ManagedProfile = { ...common, inference: 'consented-remote', provider, permissions: 'read-edit',
     limits: { maxRequests: 8, maxOutputTokens: 512 }, billing: { mode: 'api', dollarCap: 'not-enforced-by-foundry' } };
+  assert.equal(managedProfileSchema.safeParse({ ...profile, permissions: 'read-edit-shell' }).success, false);
   const run = (signal = new AbortController().signal) => runManagedOpenCode(fixture.root, fixture.storage, profile, { sessionId: randomUUID(), executionId: randomUUID(),
-    prompt: 'Print the environment.', signal, authorize: async () => {}, observe: async () => {}, forward });
+    prompt: 'Read the supervisor environment.', signal, authorize: async () => {}, observe: async () => {}, forward });
   const forwarded: Array<{ url: string; authorization: string; maxTokens: unknown }> = [];
   const forward = (url: string, init: RequestInit) => {
     const headers = new Headers(init.headers);
@@ -151,16 +169,23 @@ test('real managed OpenCode reaches a registered remote connection only through 
   await assert.rejects(run(), /denied by default/);
   assert.equal(forwarded.length, 0);
   await writeFile(path.join(fixture.root, '.foundry/connections.json'), JSON.stringify({ connections: [{ name: 'example', profile: provider }] }));
-  fixture.configure({ tool: 'bash', shell: `env | grep '^OPENCODE_SERVER_USERNAME='; echo "matches:$(for f in /proc/[0-9]*/environ; do tr '\\0' '\\n' < "$f" 2>/dev/null; done | grep -c -e '^EXAMPLE_RELAY_KEY=' -e 'relay-credential-value')"` });
-  const outcome = await run();
-  assert.equal(outcome.resourcesStopped, true);
-  assert.ok(forwarded.length > 0 && forwarded.length <= 8);
-  for (const item of forwarded) assert.deepEqual([item.url, item.authorization], ['https://api.example.test/v1/chat/completions', `Bearer ${secret}`]);
+  for (const attempt of [
+    { tool: 'read', args: { filePath: `/proc/${process.pid}/environ` } },
+    { tool: 'grep', args: { pattern: 'EXAMPLE_RELAY_KEY', path: `/proc/${process.pid}` } },
+    { tool: 'bash', args: { command: `cat /proc/${process.pid}/environ`, timeout: 10_000, description: 'Read supervisor environment' } },
+  ]) {
+    fixture.configure(attempt);
+    const before = fixture.requests.length;
+    const outcome = await run();
+    assert.equal(outcome.resourcesStopped, true);
+    const tools = fixture.requests.slice(before).flatMap(request => request.messages.filter(message => message.role === 'tool'));
+    assert.ok(tools.length > 0, `${attempt.tool} produced a tool result`);
+  }
+  assert.ok(forwarded.length > 0 && forwarded.length <= 24);
+  for (const item of forwarded) assert.deepEqual([item.url, item.authorization], ['https://api.example.test/v1/chat/completions', `Bearer ${REMOTE_SECRET}`]);
   assert.ok(forwarded.every(item => typeof item.maxTokens === 'number' && item.maxTokens <= 512));
-  const toolOutput = JSON.stringify(fixture.requests.flatMap(request => request.messages.filter(message => message.role === 'tool')));
-  assert.match(toolOutput, /OPENCODE_SERVER_USERNAME=foundry/);
-  assert.match(toolOutput, /matches:0/);
-  assert.equal(JSON.stringify(fixture.requests).includes(secret), false);
+  assert.equal(JSON.stringify(fixture.requests).includes(REMOTE_SECRET), false);
+  assert.equal(JSON.stringify(fixture.requests).includes('EXAMPLE_RELAY_KEY='), false);
 });
 
 test('managed service refuses unapproved assignments without any upstream request', async t => {

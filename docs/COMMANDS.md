@@ -127,8 +127,9 @@ exactly as `provider`, and add limits and billing terms:
 }
 ```
 
-Request limits are 1-64 per execution and output-token limits 1-32768 per
-request. The provider bills for requests it receives; Foundry does not enforce a
+Remote profiles must use `"permissions": "read-edit"`; shell tools are not
+available with a remote credential. Request limits are 1-64 per execution and
+output-token limits 1-32768 per request. The provider bills for requests it receives; Foundry does not enforce a
 dollar cap. `start` and `run` refuse unregistered connections and unset
 credential variables. This boundary is not a sandbox: use trusted projects only,
 and keep production secrets out of them.

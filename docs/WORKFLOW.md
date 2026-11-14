@@ -24,7 +24,7 @@ local-test-only path, not a replacement for that client.
 | Saved sessions | Source terminal preview: durable sessions, observations, confirmed Pause/Stop, fresh-context resume and explicit recovery. | A managed app and live-provider qualification. |
 | Code changes | Connected-client editing; managed OpenCode edits in disposable trusted projects against a local test endpoint. Candidates need existing Foundry checks and task recording. | Consented live-model execution and an isolated workspace. |
 | Terminal and browser | Use the host coding tool's tools. Foundry records supplied interface evidence. | A Foundry-owned interactive terminal, browser and isolated workspace. |
-| Delivery | Local Git checkpoints and a handoff summary in terminal product work. | Foundry-managed PR creation, CI/review follow-up, merge and deployment. |
+| Delivery | Local Git checkpoints, a handoff summary and, after you authorize an exact repository, base, branch and commit, a pull request with bounded CI and review checks through your own `gh` sign-in. | A disposable-repository trial against a live forge, automatic CI repair, and isolated-workspace delivery. Merge and deployment stay your decisions. |
 | Costs and credentials | Explicit adapter selection, billing consent and filtered process environments. Connected OpenCode owns its account and costs. | A unified credential manager or guaranteed live spending cap across providers. |
 | Learning | Saved project progress and bounded repairs. | Evaluated cross-project skill learning or recursive self-improvement. |
 
@@ -82,6 +82,23 @@ Your idea → Research → Plan → Your approval → Design → Your approval
 | Build | Small coding tasks, configured checks, limited repair attempts and Git checkpoints. |
 | Test | Checks and a read-only review of the results against the plan. |
 | Ship | A local summary of completed work and evidence. **No publishing or deployment.** |
+
+Ship always records `publication: not_authorized`. Delivering a pull request is a
+separate step that you start:
+
+1. `foundry deliver PROJECT --repository OWNER/REPO --base main --head BRANCH`
+   previews the exact repository, base commit, branch, tested commit and `gh`
+   program. Nothing leaves your computer.
+2. `foundry deliver PROJECT --apply --revision HASH` authorizes that preview.
+   Foundry pushes the tested commit to a new branch and opens one pull request.
+   It refuses an existing branch or pull request that does not match, never
+   force-pushes, and checks the remote before retrying an uncertain step.
+3. `foundry deliver PROJECT --watch` checks CI and review status a bounded number
+   of times and reports what needs you. It never merges, publishes or deploys.
+
+Delivery uses your own Git and `gh` sign-in. Foundry does not read, store or
+share tokens, and it delivers only a clean work tree that still matches the
+reviewed Ship revision.
 
 Each explicit `foundry run PROJECT` performs one stage. Interactive `/run`
 continues until an approval, completion or failure boundary. Status reflects

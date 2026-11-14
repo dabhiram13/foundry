@@ -10,6 +10,7 @@ import {
 import {
   FACTORY_LOCK, readBoundedBytes, readBuildFailure, readFactoryState, reviewEvidenceDigests, writeFactoryState,
 } from '../../src/core/factory-contract.js';
+import { applyDelivery, deliveryStatus, previewDelivery, watchDelivery } from '../../src/core/delivery.js';
 import { installWorkspace } from '../../src/core/install.js';
 import { ProjectService } from '../../src/core/projects.js';
 import { complete as lifecycleComplete, recover as lifecycleRecover, setupChecks } from '../../src/core/lifecycle.js';
@@ -1209,4 +1210,225 @@ test('installed single-bin runtime bootstraps and ships two product-changing tas
   await assert.rejects(configureFactory(workspaceRoot, { model: 'replacement' }), /Completed Factory work cannot be reconfigured/);
   assert.equal(JSON.parse(await readFile(path.join(workspaceRoot, '.foundry/project.json'), 'utf8')).checks.length, 1);
   assert.ok(await readFactoryState(workspaceRoot));
+});
+
+const FAKE_FORGE = `#!/usr/bin/env node
+const fs=require('node:fs');
+const path=require('node:path');
+const {spawnSync}=require('node:child_process');
+const file=path.join(__dirname,'forge.json');
+const state=JSON.parse(fs.readFileSync(file,'utf8'));
+const args=process.argv.slice(2);
+const option=(name)=>{const index=args.indexOf('--'+name);return index===-1?undefined:args[index+1];};
+state.calls.push(args);
+state.environment=Object.keys(process.env).sort();
+const save=()=>fs.writeFileSync(file,JSON.stringify(state,null,2));
+const fields=(pr)=>({number:pr.number,url:pr.url,state:pr.state,headRefName:pr.headRefName,headRefOid:pr.headRefOid,baseRefName:pr.baseRefName,isCrossRepository:false});
+if(option('repo')!=='acme/widget'){save();process.stderr.write('wrong repository');process.exit(1);}
+if(args[0]==='pr'&&args[1]==='list'){
+  save();
+  process.stdout.write(JSON.stringify(state.prs.filter(pr=>pr.headRefName===option('head')).map(fields)));
+}else if(args[0]==='pr'&&args[1]==='create'){
+  if(state.mode==='fail-create'){save();process.stderr.write('HTTP 403: token ghp_abcdefghijklmnopqrstuvwxyz is not allowed');process.exit(1);}
+  const head=spawnSync('git',['--git-dir',state.bare,'rev-parse','refs/heads/'+option('head')],{encoding:'utf8'});
+  if(head.status!==0){save();process.stderr.write('head branch is missing');process.exit(1);}
+  const number=state.prs.length+1;
+  state.prs.push({number,url:'https://github.com/acme/widget/pull/'+number,state:'OPEN',headRefName:option('head'),headRefOid:head.stdout.trim(),baseRefName:option('base'),title:option('title'),body:fs.readFileSync(option('body-file'),'utf8')});
+  save();
+  if(state.mode==='lose-create-ack'){process.stderr.write('connection reset');process.exit(1);}
+  process.stdout.write('https://github.com/acme/widget/pull/'+number+'\\n');
+}else if(args[0]==='pr'&&args[1]==='view'){
+  const pr=state.prs.find(item=>String(item.number)===args[2]);
+  const rollup=state.rollups.length>1?state.rollups.shift():state.rollups[0];
+  save();
+  process.stdout.write(JSON.stringify({...fields(pr),reviewDecision:state.review,statusCheckRollup:rollup}));
+}else{save();process.stderr.write('unsupported');process.exit(1);}
+`;
+
+interface ForgeState {
+  bare: string;
+  mode: string;
+  prs: JsonRecord[];
+  calls: string[][];
+  rollups: JsonRecord[][];
+  review: string;
+  environment?: string[];
+}
+
+async function shippedDeliveryProject(t: { after(callback: () => Promise<void>): void }): Promise<{
+  root: string; bare: string; base: string; head: string; forge: string;
+  git: (cwd: string, ...args: string[]) => string;
+  forgeState: () => Promise<ForgeState>;
+  setForge: (update: Partial<ForgeState>) => Promise<void>;
+}> {
+  const parent = await mkdtemp(path.join(os.tmpdir(), 'foundry-delivery-'));
+  t.after(() => rm(parent, { recursive: true, force: true }));
+  const root = await project('success', true, false, [], parent);
+  await advanceToBuild(root, 'Delivery fixture');
+  await runFactory(root);
+  await runFactory(root);
+  await runFactory(root);
+  assert.equal((await readFactoryState(root))?.status, 'completed');
+  const git = (cwd: string, ...args: string[]): string => {
+    const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  const bare = path.join(parent, 'remote.git');
+  git(parent, 'init', '-q', '--bare', bare);
+  git(root, 'remote', 'add', 'origin', 'https://github.com/acme/widget.git');
+  git(root, 'config', `url.file://${bare}.insteadOf`, 'https://github.com/acme/widget.git');
+  const base = git(root, 'rev-list', '--max-parents=0', 'HEAD');
+  git(root, 'push', '-q', 'origin', `${base}:refs/heads/main`);
+  git(root, 'fetch', '-q', 'origin');
+  const tools = path.join(parent, 'tools');
+  await mkdir(tools);
+  const forge = path.join(tools, 'gh');
+  await writeFile(forge, FAKE_FORGE);
+  await chmod(forge, 0o700);
+  const forgeFile = path.join(tools, 'forge.json');
+  await writeFile(forgeFile, JSON.stringify({
+    bare, mode: 'success', prs: [], calls: [], rollups: [[]], review: '',
+  }));
+  const forgeState = async () => JSON.parse(await readFile(forgeFile, 'utf8')) as ForgeState;
+  const setForge = async (update: Partial<ForgeState>) => {
+    await writeFile(forgeFile, JSON.stringify({ ...await forgeState(), ...update }));
+  };
+  return { root, bare, base, head: git(root, 'rev-parse', 'HEAD'), forge, git, forgeState, setForge };
+}
+
+test('Ship delivery stays unauthorized until the owner authorizes an exact PR binding with bounded follow-up', async (t) => {
+  const unshipped = await project();
+  t.after(() => rm(unshipped, { recursive: true, force: true }));
+  await advanceToBuild(unshipped);
+  await assert.rejects(previewDelivery(unshipped, { repository: 'acme/widget', base: 'main', head: 'feature' }), /completed Ship/);
+
+  const fixture = await shippedDeliveryProject(t);
+  const { root, bare, forge } = fixture;
+  assert.deepEqual(
+    { status: (await deliveryStatus(root)).status, publication: (await deliveryStatus(root)).publication },
+    { status: 'not_requested', publication: 'not_authorized' },
+  );
+  await assert.rejects(previewDelivery(root, { repository: 'acme/other', base: 'main', head: 'feature', forge }), /does not point to github.com\/acme\/other/);
+  await assert.rejects(previewDelivery(root, { repository: 'acme/widget', base: 'release', head: 'feature', forge }), /Fetch the base branch first/);
+  await assert.rejects(previewDelivery(root, { repository: 'acme/widget', base: 'main', head: 'main', forge }), /different branch/);
+
+  const preview = await previewDelivery(root, { repository: 'acme/widget', base: 'main', head: 'feature', forge });
+  assert.equal(preview.status, 'proposed');
+  assert.equal(preview.publication, 'not_authorized');
+  assert.equal(preview.head, `feature @ ${fixture.head}`);
+  assert.equal(preview.base, `main @ ${fixture.base}`);
+  assert.equal(spawnSync('git', ['--git-dir', bare, 'rev-parse', '--verify', '--quiet', 'refs/heads/feature']).status, 1);
+  assert.deepEqual((await fixture.forgeState()).calls, []);
+  await assert.rejects(applyDelivery(root, '0'.repeat(64)), /must match the revision/);
+
+  process.env.FOUNDRY_DELIVERY_TEST_SECRET = 'private';
+  process.env.GH_TOKEN = 'fixture-token';
+  t.after(() => {
+    delete process.env.FOUNDRY_DELIVERY_TEST_SECRET;
+    delete process.env.GH_TOKEN;
+  });
+  const delivered = await applyDelivery(root, String(preview.revision));
+  assert.equal(delivered.status, 'pull_request_open');
+  assert.equal(delivered.publication, 'pull_request');
+  assert.equal(fixture.git(root, '--git-dir', bare, 'rev-parse', 'refs/heads/feature'), fixture.head);
+  let forgeState = await fixture.forgeState();
+  assert.equal(forgeState.prs.length, 1);
+  assert.equal(forgeState.prs[0]?.baseRefName, 'main');
+  assert.match(String(forgeState.prs[0]?.body), /Ship summary/);
+  assert.match(String(forgeState.prs[0]?.body), /does not merge, publish or deploy/);
+  assert.ok(forgeState.environment?.includes('GH_TOKEN'));
+  assert.ok(forgeState.environment?.includes('GH_PROMPT_DISABLED'));
+  assert.equal(forgeState.environment?.includes('FOUNDRY_DELIVERY_TEST_SECRET'), false);
+  assert.match(await readFile(path.join(root, '.foundry/state/factory/ship.json'), 'utf8'), /"publication": "not_authorized"/);
+
+  const repeated = await applyDelivery(root, String(preview.revision));
+  assert.equal(repeated.status, 'pull_request_open');
+  forgeState = await fixture.forgeState();
+  assert.equal(forgeState.prs.length, 1);
+  assert.equal(forgeState.calls.filter((call) => call[1] === 'create').length, 1);
+  await assert.rejects(previewDelivery(root, { repository: 'acme/widget', base: 'main', head: 'other', forge }), /already exists/);
+
+  await fixture.setForge({ rollups: [
+    [{ __typename: 'CheckRun', name: 'build', status: 'IN_PROGRESS', conclusion: '' }],
+    [{ __typename: 'CheckRun', name: 'build', status: 'COMPLETED', conclusion: 'FAILURE', detailsUrl: 'https://ci.example/1' },
+      { __typename: 'StatusContext', context: 'lint', state: 'SUCCESS' }],
+  ] });
+  await assert.rejects(watchDelivery(root, { polls: 61, intervalMs: 0 }), /--polls/);
+  const failing = await watchDelivery(root, { polls: 5, intervalMs: 0 });
+  const failingFollowUp = failing.follow_up as JsonRecord;
+  assert.equal(failingFollowUp.polls_used, 2);
+  assert.equal((failingFollowUp.last as JsonRecord).ci, 'failing');
+  assert.match(String(failing.next), /Checks failed: build/);
+
+  await fixture.setForge({
+    rollups: [[{ __typename: 'CheckRun', name: 'build', status: 'COMPLETED', conclusion: 'SUCCESS' }]],
+    review: 'APPROVED',
+  });
+  const passing = await watchDelivery(root, { polls: 3, intervalMs: 0 });
+  assert.equal((passing.follow_up as JsonRecord).polls_used, 3);
+  assert.match(String(passing.next), /Merging is your decision/);
+  forgeState = await fixture.forgeState();
+  assert.equal(forgeState.calls.some((call) => ['merge', 'close', 'edit', 'ready'].includes(String(call[1]))), false);
+  assert.equal(forgeState.prs[0]?.state, 'OPEN');
+
+  forgeState.prs[0]!.headRefOid = 'f'.repeat(40);
+  await fixture.setForge({ prs: forgeState.prs });
+  const changed = await watchDelivery(root, { polls: 2, intervalMs: 0 });
+  assert.equal(changed.status, 'needs_owner');
+  assert.equal((changed.attention as JsonRecord).code, 'head_changed');
+});
+
+test('delivery refuses dirty trees, branch conflicts, moved bases and changed tools, and inspects before retrying effects', async (t) => {
+  const fixture = await shippedDeliveryProject(t);
+  const { root, bare, forge, base } = fixture;
+  const request = (head: string) => ({ repository: 'acme/widget', base: 'main', head, forge });
+
+  await writeFile(path.join(root, 'notes.txt'), 'owner scratch');
+  await assert.rejects(previewDelivery(root, request('feature')), /changed after Ship|uncommitted/);
+  await rm(path.join(root, 'notes.txt'));
+
+  fixture.git(root, 'push', '-q', 'origin', `${base}:refs/heads/taken`);
+  const taken = await previewDelivery(root, request('taken'));
+  const conflict = await applyDelivery(root, String(taken.revision));
+  assert.equal(conflict.status, 'needs_owner');
+  assert.equal((conflict.attention as JsonRecord).code, 'head_conflict');
+  assert.equal(fixture.git(root, '--git-dir', bare, 'rev-parse', 'refs/heads/taken'), base);
+  assert.deepEqual((await fixture.forgeState()).calls, []);
+
+  const tree = fixture.git(root, '--git-dir', bare, 'rev-parse', `${base}^{tree}`);
+  const moved = fixture.git(root, '--git-dir', bare, 'commit-tree', tree, '-p', base, '-m', 'moved');
+  fixture.git(root, '--git-dir', bare, 'update-ref', 'refs/heads/main', moved);
+  const stale = await previewDelivery(root, request('feature'));
+  const baseMoved = await applyDelivery(root, String(stale.revision));
+  assert.equal((baseMoved.attention as JsonRecord).code, 'base_moved');
+  assert.equal(spawnSync('git', ['--git-dir', bare, 'rev-parse', '--verify', '--quiet', 'refs/heads/feature']).status, 1);
+  fixture.git(root, 'fetch', '-q', 'origin');
+  await assert.rejects(previewDelivery(root, request('feature')), /does not build on origin\/main/);
+  fixture.git(root, '--git-dir', bare, 'update-ref', 'refs/heads/main', base);
+  fixture.git(root, 'fetch', '-q', 'origin');
+
+  const preview = await previewDelivery(root, request('feature'));
+  const original = await readFile(forge, 'utf8');
+  await writeFile(forge, `${original}\n// changed\n`);
+  await assert.rejects(applyDelivery(root, String(preview.revision)), /inputs changed after the preview/);
+  await writeFile(forge, original);
+
+  await fixture.setForge({ mode: 'fail-create' });
+  const failed = await applyDelivery(root, String(preview.revision));
+  assert.equal((failed.attention as JsonRecord).code, 'pull_request_failed');
+  assert.doesNotMatch(String(failed.next), /ghp_/);
+  assert.equal(fixture.git(root, '--git-dir', bare, 'rev-parse', 'refs/heads/feature'), fixture.head);
+  assert.equal((failed.push as JsonRecord).status, 'completed');
+
+  await fixture.setForge({ mode: 'lose-create-ack' });
+  const recovered = await applyDelivery(root, String(preview.revision));
+  assert.equal(recovered.status, 'pull_request_open');
+  assert.equal((recovered.pull_request as JsonRecord).reused, false);
+  const forgeState = await fixture.forgeState();
+  assert.equal(forgeState.prs.length, 1);
+  assert.equal(forgeState.calls.filter((call) => call[1] === 'create').length, 2);
+  await fixture.setForge({ mode: 'success' });
+  await applyDelivery(root, String(preview.revision));
+  assert.equal((await fixture.forgeState()).prs.length, 1);
 });

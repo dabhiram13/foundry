@@ -59,7 +59,7 @@ test('starting pages distinguish connected work from unfinished managed executio
   assert.match(readme, /not yet a complete standalone coding agent/);
   assert.match(readme, /Terminal adapters use a separate\s+process interface/);
   const workflow = await readFile(path.join(root, 'docs/WORKFLOW.md'), 'utf8');
-  for (const term of ['## What works today', 'Foundry-managed PR creation', 'live spending cap', 'recursive self-improvement']) {
+  for (const term of ['## What works today', 'disposable-repository trial against a live forge', 'automatic CI repair', 'Merge and deployment stay your decisions', 'live spending cap', 'recursive self-improvement']) {
     assert.ok(workflow.includes(term), term);
   }
   const landing = textContent(parse(await readFile(path.join(output, 'index.html'), 'utf8')));

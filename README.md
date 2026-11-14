@@ -70,7 +70,9 @@ Research → Plan → Design → Build → Test → Ship
 - **Decisions carry forward**, with the plan, design and review available to the next session.
 
 Your code and history stay in your project. You can stop and recover work when
-needed. **Ship writes a local summary; it does not publish or deploy.**
+needed. **Ship writes a local summary; it does not publish or deploy.** After
+Ship, `foundry deliver` can open a pull request only when you authorize the exact
+repository, base, branch and commit. It never merges, publishes or deploys.
 Small changes to an existing repository use a [shorter workflow][runtime].
 See the [command reference][commands] for terminal controls and scripting.
 

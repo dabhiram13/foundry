@@ -4,8 +4,9 @@ import path from 'node:path';
 import { FoundryError, expandUserPath } from '../core/fs.js';
 import { installWorkspace } from '../core/install.js';
 import { migrateWorkspace } from '../core/migrate.js';
+import { MAX_POLLS_PER_WATCH } from '../core/delivery.js';
 import {
-  ProjectService, type ConfigureProjectOptions,
+  ProjectService, type ConfigureProjectOptions, type DeliveryCommand,
 } from '../core/projects.js';
 import { loadRoles } from '../core/roles.js';
 import { closeProjectRuns, isProjectRunActive, startProjectRun } from '../runtime/jobs.js';
@@ -35,9 +36,10 @@ interface CommandOptions {
 const VALUE_OPTIONS = new Set([
   'adapter', 'billing', 'idea', 'model', 'products-dir', 'project', 'reasoning', 'revision',
   'role', 'spec', 'source', 'target', 'request', 'task-id', 'stage', 'name', 'providers',
+  'repository', 'base', 'head', 'remote', 'forge', 'polls', 'interval',
 ]);
 const FLAG_OPTIONS = new Set([
-  'apply', 'confirmed', 'dry-run', 'json', 'recover', 'remove', 'revoke-consent', 'update',
+  'apply', 'confirmed', 'dry-run', 'json', 'recover', 'remove', 'revoke-consent', 'update', 'watch',
 ]);
 
 export function usage(): string {
@@ -57,6 +59,9 @@ Commands:
   approve PROJECT --revision HASH
   stop PROJECT
   recover PROJECT
+  deliver PROJECT [--repository OWNER/REPO --base BRANCH --head BRANCH] [--remote NAME] [--forge PATH]
+  deliver PROJECT --apply --revision HASH
+  deliver PROJECT --watch [--polls N] [--interval SECONDS]
   roles
   providers [PROJECT] [--providers FILE]
   init --project PATH
@@ -214,6 +219,53 @@ function roleMap(entries: string[] | undefined): Record<string, string> | undefi
 
 const terminalServices = new Set<ProjectService>();
 const terminalReviews = new Map<string, string>();
+const terminalDeliveries = new Map<string, string>();
+
+function integerOption(parsed: Parsed, name: string, minimum: number, maximum: number): number | undefined {
+  const raw = value(parsed, name);
+  if (raw === undefined) return undefined;
+  if (!/^\d+$/.test(raw) || Number(raw) < minimum || Number(raw) > maximum) {
+    throw new FoundryError(`--${name} must be a whole number from ${minimum} to ${maximum}`);
+  }
+  return Number(raw);
+}
+
+function deliveryCommand(parsed: Parsed, displayed?: string | null): DeliveryCommand {
+  const binding = ['repository', 'base', 'head', 'remote', 'forge'].filter((name) => value(parsed, name) !== undefined);
+  const follow = ['polls', 'interval'].filter((name) => value(parsed, name) !== undefined);
+  const apply = parsed.flags.has('apply');
+  const watch = parsed.flags.has('watch');
+  if (apply && watch) throw new FoundryError('--apply and --watch cannot be combined');
+  if (apply) {
+    if (binding.length || follow.length) throw new FoundryError('--apply takes only --revision; preview the delivery first');
+    let revision = value(parsed, 'revision');
+    if (displayed !== undefined) {
+      if (!displayed) throw new FoundryError('Preview the delivery in this terminal before authorizing it.');
+      if (revision && revision !== displayed) throw new FoundryError('Authorization must match the revision displayed in this terminal.');
+      revision = displayed;
+    }
+    return { mode: 'apply', revision: revision ?? required(parsed, 'revision') };
+  }
+  if (value(parsed, 'revision') !== undefined) throw new FoundryError('--revision is valid only with --apply');
+  if (watch) {
+    if (binding.length) throw new FoundryError('--watch does not change the delivery binding');
+    const polls = integerOption(parsed, 'polls', 1, MAX_POLLS_PER_WATCH);
+    const interval = integerOption(parsed, 'interval', 5, 300);
+    return { mode: 'watch', options: { polls, intervalMs: interval === undefined ? undefined : interval * 1000 } };
+  }
+  if (follow.length) throw new FoundryError('--polls and --interval are valid only with --watch');
+  if (!binding.length) return { mode: 'status' };
+  return {
+    mode: 'preview',
+    request: {
+      repository: required(parsed, 'repository'),
+      base: required(parsed, 'base'),
+      head: required(parsed, 'head'),
+      remote: value(parsed, 'remote'),
+      forge: value(parsed, 'forge'),
+    },
+  };
+}
 
 function reviewKey(service: ProjectService, identifier: string): string {
   return `${service.productsDir}\0${identifier}`;
@@ -373,6 +425,12 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
     approve: { values: ['project', 'products-dir', 'revision'], minPositionals: 0, maxPositionals: 1 },
     stop: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
     recover: { values: ['project', 'products-dir'], minPositionals: 0, maxPositionals: 1 },
+    deliver: {
+      values: ['project', 'products-dir', 'repository', 'base', 'head', 'remote', 'forge', 'revision', 'polls', 'interval'],
+      flags: ['apply', 'watch'],
+      minPositionals: 0,
+      maxPositionals: 1,
+    },
     roles: { minPositionals: 0, maxPositionals: 0 },
     providers: { values: ['project', 'products-dir', 'providers'], minPositionals: 0, maxPositionals: 1 },
   };
@@ -445,6 +503,16 @@ export async function runCommand(arguments_: string[], terminalMode = false): Pr
     result = await service.stop(selectedIdentifier(parsed, context));
   } else if (command === 'recover') {
     result = await service.recover(selectedIdentifier(parsed, context));
+  } else if (command === 'deliver') {
+    const identifier = selectedIdentifier(parsed, context);
+    result = await service.deliver(identifier, deliveryCommand(parsed, terminalMode
+      ? terminalDeliveries.get(reviewKey(service, identifier)) ?? null : undefined));
+    const delivery = result as JsonRecord;
+    if (terminalMode && delivery.status === 'proposed') {
+      terminalDeliveries.set(reviewKey(service, identifier), String(delivery.revision));
+    } else if (terminalMode && parsed.flags.has('apply')) {
+      terminalDeliveries.delete(reviewKey(service, identifier));
+    }
   } else if (command === 'roles') {
     result = (await loadRoles(sourceRoot())).map((role) => ({
       name: role.name, description: role.description, sandbox: role.sandbox,

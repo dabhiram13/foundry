@@ -12,6 +12,7 @@ import {
 import {
   atomicWrite, digest, expandUserPath, exists, FoundryError, rejectSymlinkComponents, within,
 } from './fs.js';
+import { applyDelivery, deliveryStatus, previewDelivery, watchDelivery, type DeliveryRequest, type WatchOptions } from './delivery.js';
 import { installWorkspace } from './install.js';
 import { readRuntimeMarker } from './lifecycle.js';
 import { loadRoles } from './roles.js';
@@ -73,6 +74,12 @@ export interface ConfigureProjectOptions {
   factory_roles?: FactoryRoleMap;
   role_settings?: FactoryState['role_settings'];
 }
+
+export type DeliveryCommand =
+  | { mode: 'status' }
+  | { mode: 'preview'; request: DeliveryRequest }
+  | { mode: 'apply'; revision: string }
+  | { mode: 'watch'; options: WatchOptions };
 
 export interface ProjectSummary extends JsonRecord {
   id: string;
@@ -658,6 +665,15 @@ export class ProjectService {
   async stop(identifier: string): Promise<JsonRecord> {
     const project = await this.locate(identifier);
     return cancelFactory(project.root);
+  }
+
+  async deliver(identifier: string, command: DeliveryCommand): Promise<JsonRecord> {
+    const project = await this.locate(identifier);
+    if (!project.state) throw new FoundryError(safeError());
+    if (command.mode === 'preview') return previewDelivery(project.root, command.request);
+    if (command.mode === 'apply') return applyDelivery(project.root, command.revision);
+    if (command.mode === 'watch') return watchDelivery(project.root, command.options);
+    return deliveryStatus(project.root);
   }
 
   async recover(identifier: string): Promise<JsonRecord> {

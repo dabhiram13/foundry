@@ -45,6 +45,7 @@ The terminal accepts slash commands, not shell input:
 | `/approve` | Approve the displayed revision |
 | `/stop` | Stop the selected project run |
 | `/recover` | Inspect and recover an interrupted run |
+| `/deliver OPTIONS` | Preview, authorize or watch a pull request for a shipped project |
 | `/configure OPTIONS` | Configure the selected project |
 | `/roles` | List available neutral roles |
 | `/providers` | List available provider adapters |
@@ -141,6 +142,10 @@ foundry review PROJECT
 foundry approve PROJECT --revision HASH
 foundry stop PROJECT
 foundry recover PROJECT
+foundry deliver PROJECT [--repository OWNER/REPO --base BRANCH --head BRANCH]
+  [--remote NAME] [--forge PATH]
+foundry deliver PROJECT --apply --revision HASH
+foundry deliver PROJECT --watch [--polls N] [--interval SECONDS]
 foundry roles
 foundry providers [PROJECT]
 foundry providers --providers FILE
@@ -150,6 +155,17 @@ Each explicit `run PROJECT` performs one stage. Approval requires the exact
 revision printed for the pending Plan or Design; do not shorten or substitute it.
 `--confirmed` is explicit billing consent. No command silently enables API
 billing. `--json` produces structured output rather than interactive prompts.
+
+`deliver` works only after Ship. With binding options it previews a pull request
+for the exact repository, base commit, head branch, tested commit and `gh`
+program; it changes nothing remote. `--apply --revision HASH` authorizes that
+exact preview, pushes the tested commit to the new branch and opens or reuses one
+matching pull request. It refuses existing branches or pull requests that do not
+match and never force-pushes. `--watch` checks CI and review status up to
+`--polls` times (1 to 60, at most 240 per delivery) every `--interval` seconds
+(5 to 300). In the terminal, `/deliver --apply` uses the revision displayed by
+the last preview. No form merges, publishes or deploys. Delivery uses your own
+Git and `gh` sign-in; Foundry does not read, store or share tokens.
 
 New projects require an explicit adapter. Existing projects retain their saved
 provider and model settings. `--providers FILE` reads a reviewed registry for

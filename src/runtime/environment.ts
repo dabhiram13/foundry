@@ -1,4 +1,4 @@
-const BASE_ENVIRONMENT = [
+export const BASE_ENVIRONMENT = [
   'PATH', 'HOME', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH', 'SystemRoot', 'WINDIR',
   'PATHEXT', 'TMP', 'TEMP', 'TMPDIR', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ', 'TERM',
 ];

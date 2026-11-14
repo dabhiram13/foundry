@@ -24,6 +24,7 @@ const HELP = [
   '/approve    approve the selected displayed revision',
   '/stop       stop the selected project',
   '/recover    recover the selected project',
+  '/deliver    preview, authorize or watch a pull request for a shipped project',
   '/configure  configure the selected project',
   '/roles      list available roles',
   '/providers  inspect provider connections',
@@ -169,7 +170,7 @@ export async function runTerminal(options: TerminalOptions): Promise<number> {
             ...(command === 'providers' && selected ? [selected] : []),
             ...args,
           ]);
-        } else if (['run', 'review', 'approve', 'stop', 'recover', 'configure'].includes(command ?? '')) {
+        } else if (['run', 'review', 'approve', 'stop', 'recover', 'configure', 'deliver'].includes(command ?? '')) {
           if (!selected) throw new Error(`/${command} requires a selected project; use /use first`);
           lastCode = await options.execute([command!, selected, ...args]);
           if (command === 'run' && lastCode === 0) startRefresh();

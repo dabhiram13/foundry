@@ -1,7 +1,11 @@
 # Foundry: from a task to a working product
 
 Status: staged delivery plan approved by the owner. D1 is the local managed coding
-preview; later stages remain future work and need their own evidence.
+preview; later stages remain future work and need their own evidence. The source
+now has an owner-authorized pull request step with bounded CI and review checks
+(`foundry deliver`), tested with local fakes. That is a D3 building block, not a
+passed D3 gate: the disposable-repository trial, bounded CI repair and D2
+isolation are still required.
 
 This plan builds on the source at `99b6b75`. It describes future behavior, not
 features in npm 0.5.1. No model account, paid run, publication or deployment is

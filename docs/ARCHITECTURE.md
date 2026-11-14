@@ -211,6 +211,16 @@ Ship requires current review and verification records. Its summary is exposed
 only after its hash and bindings are validated. Private state is not an arbitrary
 document API. Publication, deployment and accounts remain separate decisions.
 
+`src/core/delivery.ts` adds an owner-started pull request step after Ship. A
+preview binds the Ship record, lifecycle run, reviewed workspace revision,
+repository, remote URLs, base commit, head branch, tested commit and the hash of
+the selected `gh` program. Applying requires that exact revision and the same
+inputs. Push and pull request effects are journaled before they run and checked
+against the remote afterward, so a retry inspects instead of repeating an
+uncertain effect. Follow-up polling is bounded and read-only. The forge process
+gets a filtered environment with prompts disabled. Merge, publication and
+deployment are not implemented.
+
 ## Durability and limits
 
 Locks and journals prevent competing writers and expose uncertain outcomes.

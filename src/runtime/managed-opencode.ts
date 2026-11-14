@@ -7,7 +7,9 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { createOpencodeClient, type Config } from '@opencode-ai/sdk/v2/client';
 import { z } from 'zod';
 import { atomicJson, canonicalJson, digest, FoundryError, rejectSymlinkComponents } from '../core/fs.js';
+import { requireRegisteredConnection, resolveCredential } from '../core/connection-profile.js';
 import { managedProfileSchema, type ManagedProfile } from '../core/managed-profile.js';
+import { startConnectionProxy, type ConnectionForward, type ConnectionProxy } from './connection-proxy.js';
 import { executableDigest, executableStamp, localRequest, openCodeEnvironment, OPENCODE_VERSION,
   privateDirectory, projectIdentity, serverAddress, stopServer } from './opencode.js';
 
@@ -111,6 +113,10 @@ export async function validateManagedExecutor(root: string, parent: string, inpu
   try { await access(profile.binary, constants.X_OK); }
   catch { throw new FoundryError('Selected executor must be an executable file'); }
   if (await executableDigest(profile.binary) !== profile.binaryDigest || await executableStamp(profile.binary) !== stamp) throw new FoundryError('Selected executor binary changed');
+  if (profile.inference === 'consented-remote') {
+    await requireRegisteredConnection(root, profile.provider);
+    resolveCredential(profile.provider.credential);
+  }
   return profile;
 }
 
@@ -131,7 +137,7 @@ export async function inspectManagedLaunch(parent: string, sessionId: string, ex
 
 export async function runManagedOpenCode(root: string, parent: string, input: unknown, execution: {
   sessionId: string; executionId: string; prompt: string; signal: AbortSignal;
-  authorize: () => Promise<void>; observe: (text: string) => Promise<void>;
+  authorize: () => Promise<void>; observe: (text: string) => Promise<void>; forward?: ConnectionForward;
 }): Promise<{ resourcesStopped: true; outcome: 'candidate' | 'interrupted' | 'failed' }> {
   const profile = await validateManagedExecutor(root, parent, input);
   const project = await projectIdentity(root);
@@ -145,14 +151,17 @@ export async function runManagedOpenCode(root: string, parent: string, input: un
   await atomicJson(directory, 'launch.json', record);
   const permission = { '*': 'deny', read: 'allow', glob: 'allow', grep: 'allow', list: 'allow', edit: 'allow',
     ...(profile.permissions === 'read-edit-shell' ? { bash: 'allow' as const } : {}), external_directory: 'deny', doom_loop: 'deny' } as const;
-  const config: Config = {
+  const configure = (endpoint: { baseURL: string; apiKey: string }): Config => ({
     enabled_providers: [profile.provider.id],
-    provider: { [profile.provider.id]: { npm: '@ai-sdk/openai-compatible', name: 'Selected local test endpoint',
-      options: { baseURL: profile.provider.baseURL, apiKey: 'local-protocol-fixture' }, models: { [profile.provider.model]: { name: 'Selected test model' } } } },
+    provider: { [profile.provider.id]: { npm: '@ai-sdk/openai-compatible',
+      name: profile.inference === 'local-test-only' ? 'Selected local test endpoint' : 'Selected remote connection',
+      options: endpoint, models: { [profile.provider.model]: { name: profile.inference === 'local-test-only' ? 'Selected test model' : 'Selected model' } } } },
     model: `${profile.provider.id}/${profile.provider.model}`, small_model: `${profile.provider.id}/${profile.provider.model}`,
     default_agent: 'build', permission, agent: { build: { steps: profile.maxSteps, permission }, explore: { disable: true }, general: { disable: true } },
     plugin: [], mcp: {}, instructions: [], snapshot: false, share: 'disabled', autoupdate: false, lsp: false, formatter: false,
-  };
+  });
+  let config = configure({ baseURL: profile.provider.baseURL, apiKey: 'local-protocol-fixture' });
+  let relay: ConnectionProxy | undefined;
   for (const name of ['home', 'config', 'data', 'state', 'cache', 'tmp', 'managed']) await mkdir(path.join(directory, name), { mode: 0o700 });
   const password = randomBytes(32).toString('hex');
   const controller = new AbortController();
@@ -166,6 +175,10 @@ export async function runManagedOpenCode(root: string, parent: string, input: un
   try {
     await execution.authorize();
     if (controller.signal.aborted) throw new ManagedExecutorError(true);
+    if (profile.inference === 'consented-remote') {
+      relay = await startConnectionProxy(profile, resolveCredential(profile.provider.credential), controller.signal, execution.forward);
+      config = configure({ baseURL: relay.baseURL, apiKey: relay.token });
+    }
     child = spawn(profile.binary, ['serve', '--hostname', '127.0.0.1', '--port', '0'], {
       cwd: root, env: { ...openCodeEnvironment(directory, password, config), [MARKER]: record.token }, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -231,6 +244,7 @@ export async function runManagedOpenCode(root: string, parent: string, input: un
     clearTimeout(timeout);
     execution.signal.removeEventListener('abort', abort);
     controller.abort();
+    await relay?.close();
     let descendantsStopped = true;
     try { await stopOwned(record, child?.pid); }
     catch { descendantsStopped = false; }

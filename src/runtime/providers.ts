@@ -12,6 +12,7 @@ import {
 } from '../core/fs.js';
 import { readBoundedBytes } from '../core/factory-contract.js';
 import { requireRuntimeWorkspace } from '../core/lifecycle.js';
+import { CONNECTIONS_FILE, inspectConnection, readConnections } from '../core/connection-profile.js';
 import { providerEnvironment } from './environment.js';
 import { assertNoManagedClaim, withWorkspaceMutation } from '../core/workspace-ownership.js';
 
@@ -226,6 +227,14 @@ export async function registry(root: string, sourceConfiguration?: Uint8Array | 
     result[parsed.data.name] = { ...parsed.data, protocol: parsed.data.protocol ?? 'marketcraft-jsonl-v1' };
   }
   return result;
+}
+
+/** Lists owner-registered connection profiles. Presence of a credential is reported, never its value. */
+export async function inspectConnections(root: string, source: NodeJS.ProcessEnv = process.env): Promise<JsonRecord[]> {
+  return (await readConnections(root)).map(entry => ({
+    source: CONNECTIONS_FILE, name: entry.name, kind: 'connection', ...inspectConnection(entry.profile, source),
+    connection_sha256: digest(canonicalJson(entry.profile)),
+  }));
 }
 
 export async function inspectAdapter(root: string, adapter: ProviderAdapter): Promise<JsonRecord> {

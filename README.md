@@ -46,9 +46,10 @@ visual workflow has local test coverage, not a live-model trial. Homebrew is not
 [the OpenCode guide][connected-client].
 
 **Foundry is not yet a complete standalone coding agent.** Source builds include
-a Linux managed-session preview for trusted disposable projects and local test
-endpoints: real OpenCode edits, Pause/Stop, resume and Foundry checks. This is
-not a live-provider connection or an isolated workspace. A built-in terminal/browser
+a Linux managed-session preview for trusted disposable projects: real OpenCode
+edits, Pause/Stop, resume and Foundry checks against a local test endpoint or an
+owner-registered remote connection. Remote connections are checked offline, not
+in a live-model trial, and this is not an isolated workspace. A built-in terminal/browser
 workspace and automatic PR/CI follow-up are still missing. See
 [what works today][current-scope] and [session commands][managed-sessions].
 

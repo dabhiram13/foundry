@@ -15,7 +15,7 @@ import {
 import { installWorkspace } from './install.js';
 import { readRuntimeMarker } from './lifecycle.js';
 import { loadRoles } from './roles.js';
-import { inspectAdapter, registry, type ProviderAdapter } from '../runtime/providers.js';
+import { inspectAdapter, inspectConnections, registry, type ProviderAdapter } from '../runtime/providers.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -670,13 +670,14 @@ export class ProjectService {
     if (identifier && providersFile !== undefined) throw new FoundryError('A saved project uses its own provider configuration; omit --providers');
     const root = identifier ? (await this.locate(identifier)).root : this.sourceRoot;
     const configuration = await providerConfiguration(root, providersFile);
-    return Promise.all(Object.values(await registry(root, configuration)).map(async adapter => {
+    const connections = providersFile === undefined ? await inspectConnections(root) : [];
+    return [...await Promise.all(Object.values(await registry(root, configuration)).map(async adapter => {
       const inspected = await inspectAdapter(root, adapter);
       if (providersFile !== undefined && inspected.source !== 'builtin') {
         inspected.source = path.resolve(expandUserPath(providersFile));
       }
       return inspected;
-    }));
+    })), ...connections];
   }
 
   async artifact(identifier: string, relative: string): Promise<JsonRecord> {

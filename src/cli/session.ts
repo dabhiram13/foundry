@@ -8,7 +8,7 @@ import { writeResult } from './output.js';
 export async function sessionCommand(args: string[], runtime: string): Promise<number> {
   const [action, ...rest] = args;
   if (!action || action === '--help') {
-    process.stdout.write(`Foundry managed session preview (Linux, disposable trusted projects, local test endpoint only)
+    process.stdout.write(`Foundry managed session preview (Linux, disposable trusted projects, local test endpoint or a registered remote connection)
   session start --profile FILE --confirmed --request-id UUID
   session run --profile FILE
   session status|events|verify|record|release

@@ -424,3 +424,173 @@ test('provider status can inspect an unmarked workspace but execution cannot mut
   assert.deepEqual(await providerStatus(root), []);
   await assert.rejects(execute(root, request()), /unmarked or legacy workspace/);
 });
+
+async function configureAdapter(root: string, changes: JsonRecord, script: string): Promise<void> {
+  const configPath = path.join(root, '.foundry/providers.json');
+  const config = JSON.parse(await readFile(configPath, 'utf8')) as { adapters: JsonRecord[] };
+  Object.assign(config.adapters[0]!, changes);
+  await writeFile(configPath, JSON.stringify(config));
+  await writeFile(path.join(root, 'fake.mjs'), script);
+}
+
+function apiRequest(billing: JsonRecord = {}, budget: JsonRecord = {}): JsonRecord {
+  return {
+    ...request(),
+    billing: { mode: 'api', allow_api: true, acknowledge_posthoc_cost: true, reservation_dollars: 0.5, ...billing },
+    budget: { max_elapsed_seconds: 5, max_api_dollars: 1, ...budget },
+  };
+}
+
+const METERED = [...['jsonl', 'structured_output', 'resume', 'cancel', 'permissions', 'model_selection', 'reasoning_selection'], 'usage_metering'];
+
+test('brokered credentials reach the upstream without entering the adapter environment or saved state', async (t) => {
+  const secret = 'fixture-provider-secret-5521';
+  const previous = process.env.FOUNDRY_PROVIDER_TEST_SECRET;
+  process.env.FOUNDRY_PROVIDER_TEST_SECRET = secret;
+  const received: string[] = [];
+  const { createServer } = await import('node:http');
+  const upstream = createServer((incoming, response) => {
+    received.push(String(incoming.headers['x-api-key']));
+    response.end(JSON.stringify({ answer: 'fixture' }));
+  });
+  await new Promise<void>(resolve => upstream.listen(0, '127.0.0.1', resolve));
+  const root = await project();
+  t.after(async () => {
+    if (previous === undefined) delete process.env.FOUNDRY_PROVIDER_TEST_SECRET;
+    else process.env.FOUNDRY_PROVIDER_TEST_SECRET = previous;
+    upstream.close();
+    await rm(root, { recursive: true, force: true });
+  });
+  const port = (upstream.address() as { port: number }).port;
+  await configureAdapter(root, {
+    capabilities: METERED, billing_modes: ['local', 'api'],
+    credentials: [{
+      id: 'fixture-api', delivery: 'broker', source_env: 'FOUNDRY_PROVIDER_TEST_SECRET', billing_modes: ['api'],
+      upstream: `http://127.0.0.1:${port}`, header: 'x-api-key', base_url_env: 'FIXTURE_BASE_URL', token_env: 'FIXTURE_API_KEY',
+    }],
+  }, `process.stdin.on('data', async () => {
+    const reply = await fetch(process.env.FIXTURE_BASE_URL + '/v1/messages', { method: 'POST', headers: { 'x-api-key': process.env.FIXTURE_API_KEY }, body: '{}' });
+    const answer = await reply.json();
+    const values = Object.values(process.env);
+    console.log(JSON.stringify({ type: 'session.started', session_id: 'broker-session' }));
+    console.log(JSON.stringify({ type: 'usage', reliable: true, input_tokens: 3, output_tokens: 1, api_dollars: 0.01 }));
+    console.log(JSON.stringify({ type: 'result', status: 'completed', output: { answer, token: process.env.FIXTURE_API_KEY, saw_raw_value: values.includes(${JSON.stringify(secret)}) }, usage: { reliable: true, input_tokens: 3, output_tokens: 1, api_dollars: 0.01 } }));
+  });`);
+  const inspection = await inspectAdapter(root, (await registry(root)).fixture!);
+  assert.equal(JSON.stringify(inspection).includes(secret), false);
+  const result = await execute(root, apiRequest());
+  assert.equal(result.status, 'completed');
+  const attempt = (result.attempts as JsonRecord[])[0]!;
+  assert.deepEqual(attempt.output, { answer: { answer: 'fixture' }, token: '[redacted]', saw_raw_value: false });
+  assert.deepEqual(received, [secret]);
+  assert.deepEqual(attempt.credentials, [{
+    id: 'fixture-api', delivery: 'broker', source_env: 'FOUNDRY_PROVIDER_TEST_SECRET', exposed_to_adapter_process: false,
+    upstream_origin: `http://127.0.0.1:${port}`, requests: 1, rejected_requests: 0,
+  }]);
+  const evidence = await readFile(path.join(root, String(attempt.evidence)), 'utf8');
+  const saved = await readFile(path.join(root, `.foundry/state/providers/tasks/${String(result.task_id)}.json`), 'utf8');
+  for (const text of [JSON.stringify(result), evidence, saved]) assert.equal(text.includes(secret), false);
+});
+
+test('missing selected credentials fail closed before a provider starts', async (t) => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  delete process.env.FOUNDRY_PROVIDER_MISSING_SECRET;
+  await configureAdapter(root, {
+    capabilities: METERED, billing_modes: ['local', 'api'],
+    credentials: [{ id: 'absent', delivery: 'environment', source_env: 'FOUNDRY_PROVIDER_MISSING_SECRET', target_env: 'PROVIDER_KEY', billing_modes: ['api'] }],
+  }, "process.stdin.on('data',()=>process.exit(9));");
+  await assert.rejects(execute(root, apiRequest()), /Selected credentials are not set: absent/);
+  await assert.rejects(readdir(path.join(root, '.foundry/state/providers/tasks')));
+  assert.equal((await execute(root, { ...request(), budget: { max_elapsed_seconds: 2 } })).status, 'failed');
+});
+
+test('API billing without usage metering or a provider-enforced limit is refused', async (t) => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await configureAdapter(root, { billing_modes: ['local', 'api'] }, "process.stdin.on('data',()=>process.exit(9));");
+  await assert.rejects(execute(root, apiRequest()), /unbounded paid execution is refused/);
+  await assert.rejects(execute(root, apiRequest({ allow_api: false, provider_limit_dollars: 1 })), /explicit consent/);
+  await assert.rejects(execute(root, apiRequest({ provider_limit_dollars: 2 })), /above max_api_dollars/);
+  await assert.rejects(execute(root, { ...request(), billing: { mode: 'local', provider_limit_dollars: 1 } }), /Only API billing/);
+  await assert.rejects(readdir(path.join(root, '.foundry/state/providers/tasks')));
+});
+
+test('owner-attested provider limits are recorded separately from post-hoc accounting', async (t) => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await configureAdapter(root, { billing_modes: ['local', 'api'] }, `process.stdin.on('data',()=>{console.log(JSON.stringify({type:'session.started',session_id:'limit'}));console.log(JSON.stringify({type:'result',status:'completed',output:{ok:true},usage:{reliable:true,input_tokens:1,output_tokens:1,api_dollars:0.2}}));});`);
+  const result = await execute(root, apiRequest({ provider_limit_dollars: 0.75 }));
+  assert.equal(result.status, 'completed');
+  assert.deepEqual(result.spend_control, {
+    mode: 'api', max_api_dollars: 1, reservation_dollars: 0.5,
+    provider_enforced_limit_dollars: 0.75, provider_enforced_limit: 'owner_attested_not_verified',
+    runtime_metering: 'none', runtime_stop: 'cancel_at_reservation', accounting: 'post_hoc_provider_reported', hard_dollar_cap: false,
+  });
+  assert.match(String(result.billing_assurance), /did not verify/);
+  assert.equal((result.usage as JsonRecord).known_api_dollars, 0.2);
+});
+
+test('streamed usage stops the provider at its reservation and blocks further paid attempts', async (t) => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await configureAdapter(root, { capabilities: METERED, billing_modes: ['local', 'api'] }, `process.stdin.on('data',()=>{
+    const emit = value => console.log(JSON.stringify(value));
+    emit({type:'session.started',session_id:'metered'});
+    emit({type:'usage',reliable:false,api_dollars:9});
+    emit({type:'usage',reliable:true,input_tokens:10,output_tokens:2,api_dollars:0.2});
+    setTimeout(()=>emit({type:'usage',reliable:true,input_tokens:40,output_tokens:9,api_dollars:0.55}),50);
+    setInterval(()=>{},1000);
+  });`);
+  const started = Date.now();
+  const result = await execute(root, apiRequest({}, { max_attempts: 2 }));
+  assert.ok(Date.now() - started < 4000, 'metered stop should not wait for the elapsed budget');
+  assert.equal(result.status, 'budget_exceeded');
+  const attempt = (result.attempts as JsonRecord[])[0]!;
+  assert.equal((attempt.error as JsonRecord).code, 'reservation_reached');
+  assert.deepEqual(attempt.metered_usage, { input_tokens: 40, output_tokens: 9, api_dollars: 0.55, events: 2 });
+  assert.equal((attempt.usage as JsonRecord).api_dollars, null);
+  assert.equal((result.usage as JsonRecord).api_dollars, null);
+  assert.equal((result.usage as JsonRecord).known_api_dollars, 0.55);
+  assert.equal((result.spend_control as JsonRecord).runtime_metering, 'adapter_usage_events');
+  assert.equal((result.spend_control as JsonRecord).hard_dollar_cap, false);
+  await assert.rejects(execute(root, apiRequest({}, { max_attempts: 2 }), String(result.task_id)), /cost is unknown/);
+});
+
+test('streamed usage must be cumulative and API charges outside API billing stop the provider', async (t) => {
+  const root = await project();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await configureAdapter(root, {}, `process.stdin.on('data',()=>{
+    console.log(JSON.stringify({type:'usage',reliable:true,output_tokens:5}));
+    console.log(JSON.stringify({type:'usage',reliable:true,output_tokens:2}));
+    setInterval(()=>{},1000);
+  });`);
+  const regressed = await execute(root, request());
+  assert.equal(regressed.status, 'unknown');
+  assert.equal(((regressed.attempts as JsonRecord[])[0]!.error as JsonRecord).code, 'invalid_usage');
+  const second = await project();
+  t.after(() => rm(second, { recursive: true, force: true }));
+  await writeFile(path.join(second, 'fake.mjs'), `process.stdin.on('data',()=>{console.log(JSON.stringify({type:'usage',reliable:true,api_dollars:0.01}));setInterval(()=>{},1000);});`);
+  const charged = await execute(second, request());
+  assert.equal(charged.status, 'billing_violation');
+  assert.equal(((charged.attempts as JsonRecord[])[0]!.error as JsonRecord).code, 'unexpected_api_charge');
+});
+
+test('credential-like names passed through environment are recorded as exposed', async (t) => {
+  const previous = process.env.FOUNDRY_FIXTURE_API_TOKEN;
+  process.env.FOUNDRY_FIXTURE_API_TOKEN = 'fixture-exposed-value-3310';
+  const root = await project();
+  t.after(async () => {
+    if (previous === undefined) delete process.env.FOUNDRY_FIXTURE_API_TOKEN;
+    else process.env.FOUNDRY_FIXTURE_API_TOKEN = previous;
+    await rm(root, { recursive: true, force: true });
+  });
+  await configureAdapter(root, { environment: ['FOUNDRY_FIXTURE_API_TOKEN', 'FOUNDRY_FIXTURE_REGION'] }, `process.stdin.on('data',()=>{console.log(JSON.stringify({type:'session.started',session_id:'exposed'}));console.log(JSON.stringify({type:'result',status:'completed',output:{seen:process.env.FOUNDRY_FIXTURE_API_TOKEN}}));});`);
+  const result = await execute(root, request());
+  assert.equal(result.status, 'completed');
+  const attempt = (result.attempts as JsonRecord[])[0]!;
+  assert.deepEqual(attempt.credentials, [{
+    id: 'foundry-fixture-api-token', delivery: 'environment', source_env: 'FOUNDRY_FIXTURE_API_TOKEN', exposed_to_adapter_process: true,
+  }]);
+  assert.deepEqual(attempt.output, { seen: '[redacted]' });
+});

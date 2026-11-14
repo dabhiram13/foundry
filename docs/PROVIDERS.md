@@ -159,8 +159,9 @@ providers are intended for tests and do not incur external inference.
 
 Replace `NAME` with a registered adapter. Authenticate its runtime through
 the provider's official instructions. Do not paste credentials into product
-documents. Foundry filters child-process environment and redacts reported
-values, but this is not an operating-system sandbox.
+documents. Foundry filters child-process environment, can broker declared
+API keys (see [Credentials](#credentials)) and redacts reported values, but
+this is not an operating-system sandbox.
 
 ## Build a custom connector (advanced)
 
@@ -168,12 +169,13 @@ An adapter translates Foundry requests into calls to another AI tool.
 
 An owner may define additional adapters in `.foundry/providers.json`. Each
 adapter declares its name, kind, command, billing modes, environment variable
-names and capabilities. The schema validates these fields before dispatch.
-Secrets are supplied through the environment, not committed in the registry.
+names, credential references and capabilities. The schema validates these
+fields before dispatch. Secrets are never committed in the registry; it names
+where Foundry reads them and how it delivers them.
 Provider output and saved task records are bounded and validated.
 
 Capabilities include structured output, JSONL, resume, cancel, permissions,
-tools, browser, model selection and reasoning selection. A controller requests
+tools, browser, model selection, reasoning selection and usage metering. A controller requests
 capabilities it needs; an adapter that does not declare them is rejected.
 Declaring a permission capability does not prove the runtime enforces a
 permission boundary. Never treat a declared capability as a sandbox.
@@ -216,8 +218,10 @@ foundry new my-project --idea "Describe the project" --adapter my-agent --provid
 ```
 
 The command array executes directly from the project directory, without shell
-expansion. `environment` names additional variables to pass from the caller;
-values and secrets must not be stored in this file. A small base environment
+expansion. `environment` names additional non-secret variables to pass from the
+caller. Passed names that look like keys, tokens, secrets or passwords are
+recorded on each attempt as exposed to the adapter process; declare them under
+`credentials` with broker delivery to keep the value out of it. A small base environment
 (including `PATH`, home, temporary-directory and locale settings) is also passed.
 Use absolute command paths for portable configuration. Relative command paths
 resolve from the execution directory, which becomes the new project when run.
@@ -243,6 +247,76 @@ automatically. See [research limits](WORKFLOW.md#research).
 Existing projects use `.foundry/providers.json` in their own directory. New
 projects without `--providers FILE` copy the source installation's registry if
 present. Installing a package does not discover or execute third-party adapters.
+
+## Credentials
+
+An adapter can declare up to eight credential references. Each names the
+caller's environment variable that holds the value (`source_env`), the billing
+modes that need it and a delivery method:
+
+```json
+"credentials": [{
+  "id": "model-api",
+  "source_env": "MY_MODEL_API_KEY",
+  "billing_modes": ["api"],
+  "delivery": "broker",
+  "upstream": "https://api.example.com/v1",
+  "header": "authorization",
+  "base_url_env": "MODEL_BASE_URL",
+  "token_env": "MODEL_API_KEY"
+}]
+```
+
+- `broker`: for each attempt Foundry starts a loopback HTTP endpoint and gives
+  the adapter its address in `base_url_env` and a random per-attempt token in
+  `token_env`. The adapter sends that token as a bearer, `x-api-key` or
+  `api-key` header. Foundry checks it, replaces it with the real value in the
+  declared `header`, and forwards the request only to the declared `upstream`
+  origin, appending the request path to its path prefix. The upstream must be HTTPS (loopback HTTP is allowed
+  for local tests) without embedded credentials, query or fragment. The real
+  value never enters the adapter's environment.
+- `environment`: the value is copied into `target_env` for runtimes that cannot
+  use a base URL. The task record marks it as exposed to the adapter process.
+
+A selected credential that is not set stops the request before any process or
+task starts; Foundry never falls back to another key, account or billing mode.
+Broker tokens are revoked when the attempt is canceled, times out or reaches
+its reservation, and the endpoint closes when the attempt ends. Task records
+keep only metadata: credential ID, delivery, source variable name, exposure,
+upstream origin and request counts. Values and tokens are redacted from
+provider output, saved tasks and evidence logs.
+
+The broker keeps the key out of the adapter process and model tools only when
+the adapter's tools cannot read the caller's files or memory; it is not an
+operating-system sandbox. Delivery names cannot collide with the base
+environment, `environment` entries or other credentials. `codex-jsonl`
+adapters keep their existing API-key handling and cannot declare credentials.
+
+## Spending controls
+
+API billing needs `"mode": "api"`, `allow_api: true`,
+`acknowledge_posthoc_cost: true`, a positive `reservation_dollars` that fits
+`budget.max_api_dollars`, and one of these bounds:
+
+| Control | Who enforces it | What Foundry records |
+| --- | --- | --- |
+| `max_api_dollars` | Foundry, after the fact | Checked post-hoc from provider-reported usage. It is not a live cap unless the provider enforces it. |
+| `reservation_dollars` | Foundry, before each attempt | The known-dollar total plus the reservation must fit `max_api_dollars`. An attempt with unknown cost blocks further paid attempts. |
+| Usage metering (`usage_metering` capability) | Foundry, while running | Streamed cumulative usage. At or above the reservation the provider is stopped and the task is `budget_exceeded`. |
+| `provider_limit_dollars` | The provider account, if configured there | An owner attestation of a provider-side limit no higher than `max_api_dollars`. Foundry records it as `owner_attested_not_verified`. |
+
+API requests on adapters without `usage_metering` and without
+`provider_limit_dollars` are refused as unbounded paid execution.
+
+Usage metering stops the process when a report reaches the reservation, but
+provider reports can lag behind charges and in-flight requests can still bill.
+Spend can therefore exceed the reservation and `max_api_dollars`. Only a limit
+enforced by the provider bounds the bill. Foundry records `spend_control` on
+each task with `hard_dollar_cap: false` and keeps estimates, reservations,
+metered usage and post-hoc accounting in separate fields.
+
+Outside API billing, a streamed report of API dollars stops the provider and a
+streamed or final one marks the task `billing_violation`.
 
 ## Input, output and cancellation
 
@@ -279,7 +353,17 @@ output. If requested, the output must satisfy the schema. Supported schema
 keywords are `type`, `properties`, `required`, `additionalProperties` (boolean),
 `items`, `enum`, `description` and `title`; unsupported features are rejected.
 Unknown usage stays unknown: report actual quantities with `reliable: true`,
-not estimates presented as billed amounts. An error receipt can use
+not estimates presented as billed amounts. An adapter that declares
+`usage_metering` streams cumulative usage while it runs:
+
+```jsonl
+{"type":"usage","reliable":true,"input_tokens":1200,"output_tokens":300,"api_dollars":0.04}
+```
+
+Fields are totals for the attempt so far and must not decrease. Unreliable
+reports are ignored. Foundry saves the latest report as `metered_usage`, uses
+the final result when it is at least as high, and keeps a stopped attempt's
+final cost unknown. An error receipt can use
 `{"type":"error","code":"unavailable","message":"Runtime unavailable"}`.
 Errors do not authorize fallback or a change in billing.
 
@@ -300,7 +384,10 @@ with `npm install -g @openai/codex`, then run `codex` and follow
 [its sign-in instructions](https://developers.openai.com/codex/auth/).
 Select it explicitly with `--adapter codex`. Its executable is resolved from
 `PATH` or `FOUNDRY_CODEX=/absolute/path/to/codex`. Subscription execution filters
-API-key environment variables to keep that billing choice separate.
+API-key environment variables to keep that billing choice separate. It does not
+stream dollar usage, so API execution through it also needs
+`provider_limit_dollars`; its `OPENAI_API_KEY` or `CODEX_API_KEY` is recorded as
+exposed to the adapter process.
 
 The adapter names `codex` and `chatgpt` are reserved; `chatgpt` is an unsupported
 legacy entry. Other adapters can use `codex-jsonl` only when their command

@@ -445,8 +445,8 @@ const METERED = [...['jsonl', 'structured_output', 'resume', 'cancel', 'permissi
 
 test('brokered credentials reach the upstream without entering the adapter environment or saved state', async (t) => {
   const secret = 'fixture-provider-secret-5521';
-  const previous = process.env.FOUNDRY_PROVIDER_TEST_SECRET;
-  process.env.FOUNDRY_PROVIDER_TEST_SECRET = secret;
+  const previous = process.env.PROVIDER_TEST_SECRET;
+  process.env.PROVIDER_TEST_SECRET = secret;
   const received: string[] = [];
   const { createServer } = await import('node:http');
   const upstream = createServer((incoming, response) => {
@@ -456,8 +456,8 @@ test('brokered credentials reach the upstream without entering the adapter envir
   await new Promise<void>(resolve => upstream.listen(0, '127.0.0.1', resolve));
   const root = await project();
   t.after(async () => {
-    if (previous === undefined) delete process.env.FOUNDRY_PROVIDER_TEST_SECRET;
-    else process.env.FOUNDRY_PROVIDER_TEST_SECRET = previous;
+    if (previous === undefined) delete process.env.PROVIDER_TEST_SECRET;
+    else process.env.PROVIDER_TEST_SECRET = previous;
     upstream.close();
     await rm(root, { recursive: true, force: true });
   });
@@ -465,7 +465,7 @@ test('brokered credentials reach the upstream without entering the adapter envir
   await configureAdapter(root, {
     capabilities: METERED, billing_modes: ['local', 'api'],
     credentials: [{
-      id: 'fixture-api', delivery: 'broker', source_env: 'FOUNDRY_PROVIDER_TEST_SECRET', billing_modes: ['api'],
+      id: 'fixture-api', delivery: 'broker', credential: { kind: 'env', name: 'PROVIDER_TEST_SECRET' }, billing_modes: ['api'],
       upstream: `http://127.0.0.1:${port}`, header: 'x-api-key', base_url_env: 'FIXTURE_BASE_URL', token_env: 'FIXTURE_API_KEY',
     }],
   }, `process.stdin.on('data', async () => {
@@ -484,7 +484,7 @@ test('brokered credentials reach the upstream without entering the adapter envir
   assert.deepEqual(attempt.output, { answer: { answer: 'fixture' }, token: '[redacted]', saw_raw_value: false });
   assert.deepEqual(received, [secret]);
   assert.deepEqual(attempt.credentials, [{
-    id: 'fixture-api', delivery: 'broker', source_env: 'FOUNDRY_PROVIDER_TEST_SECRET', exposed_to_adapter_process: false,
+    id: 'fixture-api', delivery: 'broker', credential_reference: 'env:PROVIDER_TEST_SECRET', exposed_to_adapter_process: false,
     upstream_origin: `http://127.0.0.1:${port}`, requests: 1, rejected_requests: 0,
   }]);
   const evidence = await readFile(path.join(root, String(attempt.evidence)), 'utf8');
@@ -495,10 +495,10 @@ test('brokered credentials reach the upstream without entering the adapter envir
 test('missing selected credentials fail closed before a provider starts', async (t) => {
   const root = await project();
   t.after(() => rm(root, { recursive: true, force: true }));
-  delete process.env.FOUNDRY_PROVIDER_MISSING_SECRET;
+  delete process.env.PROVIDER_MISSING_SECRET;
   await configureAdapter(root, {
     capabilities: METERED, billing_modes: ['local', 'api'],
-    credentials: [{ id: 'absent', delivery: 'environment', source_env: 'FOUNDRY_PROVIDER_MISSING_SECRET', target_env: 'PROVIDER_KEY', billing_modes: ['api'] }],
+    credentials: [{ id: 'absent', delivery: 'environment', credential: { kind: 'env', name: 'PROVIDER_MISSING_SECRET' }, target_env: 'PROVIDER_KEY', billing_modes: ['api'] }],
   }, "process.stdin.on('data',()=>process.exit(9));");
   await assert.rejects(execute(root, apiRequest()), /Selected credentials are not set: absent/);
   await assert.rejects(readdir(path.join(root, '.foundry/state/providers/tasks')));
@@ -590,7 +590,7 @@ test('credential-like names passed through environment are recorded as exposed',
   assert.equal(result.status, 'completed');
   const attempt = (result.attempts as JsonRecord[])[0]!;
   assert.deepEqual(attempt.credentials, [{
-    id: 'foundry-fixture-api-token', delivery: 'environment', source_env: 'FOUNDRY_FIXTURE_API_TOKEN', exposed_to_adapter_process: true,
+    id: 'foundry-fixture-api-token', delivery: 'environment', credential_reference: 'env:FOUNDRY_FIXTURE_API_TOKEN', exposed_to_adapter_process: true,
   }]);
   assert.deepEqual(attempt.output, { seen: '[redacted]' });
 });

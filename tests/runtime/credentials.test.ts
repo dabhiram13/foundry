@@ -3,15 +3,15 @@ import { createServer, request as httpRequest, type IncomingHttpHeaders } from '
 import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 import {
-  credentialReferenceSchema, missingCredentials, openCredentialSession, validateCredentialReferences,
-  type CredentialReference,
+  adapterCredentialSchema, missingCredentials, openCredentialSession, validateAdapterCredentials,
+  type AdapterCredential,
 } from '../../src/runtime/credentials.js';
 
-function broker(upstream: string): Extract<CredentialReference, { delivery: 'broker' }> {
-  return credentialReferenceSchema.parse({
-    id: 'fixture-key', delivery: 'broker', source_env: 'FOUNDRY_CREDENTIAL_TEST_SECRET', billing_modes: ['api'],
+function broker(upstream: string): Extract<AdapterCredential, { delivery: 'broker' }> {
+  return adapterCredentialSchema.parse({
+    id: 'fixture-key', delivery: 'broker', credential: { kind: 'env', name: 'CREDENTIAL_TEST_SECRET' }, billing_modes: ['api'],
     upstream, header: 'authorization', base_url_env: 'FIXTURE_BASE_URL', token_env: 'FIXTURE_TOKEN',
-  }) as Extract<CredentialReference, { delivery: 'broker' }>;
+  }) as Extract<AdapterCredential, { delivery: 'broker' }>;
 }
 
 function send(url: string, token: string, body = '{"ping":1}'): Promise<{ status: number; body: string }> {
@@ -27,21 +27,22 @@ function send(url: string, token: string, body = '{"ping":1}'): Promise<{ status
 }
 
 test('credential references reject unsafe upstreams, collisions and credential-like environment names', () => {
-  assert.throws(() => credentialReferenceSchema.parse({ ...broker('https://api.example.test'), upstream: 'http://api.example.test' }));
-  assert.throws(() => credentialReferenceSchema.parse({ ...broker('https://api.example.test'), upstream: 'https://user:pass@api.example.test' }));
-  assert.throws(() => credentialReferenceSchema.parse({ ...broker('https://api.example.test'), upstream: 'https://api.example.test/?key=1' }));
+  assert.throws(() => adapterCredentialSchema.parse({ ...broker('https://api.example.test'), upstream: 'http://api.example.test' }));
+  assert.throws(() => adapterCredentialSchema.parse({ ...broker('https://api.example.test'), upstream: 'https://user:pass@api.example.test' }));
+  assert.throws(() => adapterCredentialSchema.parse({ ...broker('https://api.example.test'), upstream: 'https://api.example.test/?key=1' }));
   assert.doesNotThrow(() => broker('http://127.0.0.1:9'));
   const reference = broker('https://api.example.test');
-  assert.throws(() => validateCredentialReferences([reference, reference]), /unique/);
-  assert.throws(() => validateCredentialReferences([reference], ['FIXTURE_BASE_URL']), /collides/);
-  assert.throws(() => validateCredentialReferences([{ ...reference, source_env: 'FIXTURE_REGION' }], ['FIXTURE_REGION']), /source/);
-  assert.throws(() => validateCredentialReferences([{ ...reference, base_url_env: 'PATH' }]), /collides/);
-  assert.doesNotThrow(() => validateCredentialReferences([reference], ['PROVIDER_REGION']));
+  assert.throws(() => validateAdapterCredentials([reference, reference]), /unique/);
+  assert.throws(() => validateAdapterCredentials([reference], ['FIXTURE_BASE_URL']), /collides/);
+  assert.throws(() => validateAdapterCredentials([{ ...reference, credential: { kind: 'env', name: 'FIXTURE_REGION' } }], ['FIXTURE_REGION']), /source/);
+  assert.throws(() => validateAdapterCredentials([{ ...reference, base_url_env: 'PATH' }]), /collides/);
+  assert.doesNotThrow(() => validateAdapterCredentials([reference], ['PROVIDER_REGION']));
 });
 
 test('missing selected credentials fail closed and unselected modes are ignored', async () => {
   const reference = broker('https://api.example.test');
   assert.deepEqual(missingCredentials([reference], 'api', {}), ['fixture-key']);
+  assert.deepEqual(missingCredentials([reference], 'api', { CREDENTIAL_TEST_SECRET: 'short' }), ['fixture-key']);
   assert.deepEqual(missingCredentials([reference], 'local', {}), []);
   await assert.rejects(openCredentialSession([reference], 'api', {}), /not set/);
 });
@@ -58,7 +59,7 @@ test('broker injects the secret upstream, authenticates the adapter token and st
   await new Promise<void>(resolve => upstream.listen(0, '127.0.0.1', resolve));
   t.after(() => upstream.close());
   const origin = `http://127.0.0.1:${(upstream.address() as AddressInfo).port}/v1`;
-  const session = await openCredentialSession([broker(origin)], 'api', { FOUNDRY_CREDENTIAL_TEST_SECRET: secret });
+  const session = await openCredentialSession([broker(origin)], 'api', { CREDENTIAL_TEST_SECRET: secret });
   t.after(() => session.close());
   const base = session.environment.FIXTURE_BASE_URL!;
   const token = session.environment.FIXTURE_TOKEN!;

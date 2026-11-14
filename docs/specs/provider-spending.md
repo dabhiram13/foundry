@@ -17,8 +17,8 @@ fixtures and a loopback upstream.
 
 ## Acceptance
 
-- PS-01: Adapters declare credential references by source variable, billing
-  modes and delivery. Broker delivery gives the adapter a loopback URL and a
+- PS-01: Adapters declare credentials with the shared `CredentialReference`
+  contract from `src/core/credential-reference.ts`, billing modes and delivery. Broker delivery gives the adapter a loopback URL and a
   per-attempt token, injects the real value only toward the declared upstream,
   and revokes the token when the attempt stops. Environment delivery is
   recorded as exposed to the adapter process.
@@ -42,6 +42,8 @@ fixtures and a loopback upstream.
 ## Limits
 
 No credential store, account connection or provider limit verification is
-added. The broker is not an operating-system sandbox: tools that can read the
-caller's files or memory can still reach secrets. Live provider usage reports
+added. The broker is not an operating-system sandbox: same-user adapters and
+tools can still read Foundry's own environment, for example through `/proc`,
+and environment delivery is readable by every tool that inherits the adapter's
+environment. Live provider usage reports
 and provider-side limits are not qualified by these checks.

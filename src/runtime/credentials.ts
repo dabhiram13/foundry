@@ -3,6 +3,7 @@ import http from 'node:http';
 import https from 'node:https';
 import type { AddressInfo } from 'node:net';
 import { z } from 'zod';
+import { credentialReferenceSchema, resolveCredential } from '../core/credential-reference.js';
 import { FoundryError } from '../core/fs.js';
 import { BASE_ENVIRONMENT } from './environment.js';
 
@@ -38,12 +39,12 @@ const upstream = z.string().max(2048).superRefine((value, context) => {
 });
 const common = {
   id: z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/),
-  source_env: environmentName,
+  credential: credentialReferenceSchema,
   billing_modes: z.array(z.enum(CREDENTIAL_MODES)).min(1)
     .refine(modes => new Set(modes).size === modes.length, 'Credential billing modes must be unique'),
 };
 
-export const credentialReferenceSchema = z.discriminatedUnion('delivery', [
+export const adapterCredentialSchema = z.discriminatedUnion('delivery', [
   z.object({
     ...common,
     delivery: z.literal('broker'),
@@ -59,12 +60,12 @@ export const credentialReferenceSchema = z.discriminatedUnion('delivery', [
   }).strict(),
 ]);
 
-export type CredentialReference = z.infer<typeof credentialReferenceSchema>;
+export type AdapterCredential = z.infer<typeof adapterCredentialSchema>;
 
 export interface CredentialReceipt {
   id: string;
   delivery: 'broker' | 'environment';
-  source_env: string;
+  credential_reference: string;
   exposed_to_adapter_process: boolean;
   upstream_origin?: string;
   requests?: number;
@@ -79,17 +80,18 @@ export interface CredentialSession {
   close(): Promise<void>;
 }
 
-export function validateCredentialReferences(
-  references: readonly CredentialReference[],
+export function validateAdapterCredentials(
+  references: readonly AdapterCredential[],
   adapterEnvironment: readonly string[] = [],
 ): void {
   const ids = new Set<string>();
   const delivered = new Set<string>();
-  const sources = new Set(references.map(reference => reference.source_env));
+  const sources = new Set(references.map(reference => reference.credential.name));
   for (const reference of references) {
     if (ids.has(reference.id)) throw new FoundryError('Credential IDs must be unique');
     ids.add(reference.id);
-    if (BASE_ENVIRONMENT.includes(reference.source_env) || adapterEnvironment.includes(reference.source_env)) {
+    const source = reference.credential.name;
+    if (BASE_ENVIRONMENT.includes(source) || adapterEnvironment.includes(source)) {
       throw new FoundryError(`Credential ${reference.id} source cannot also be a passed environment name`);
     }
     const targets = reference.delivery === 'broker' ? [reference.base_url_env, reference.token_env] : [reference.target_env];
@@ -103,28 +105,37 @@ export function validateCredentialReferences(
   }
 }
 
-function selected(references: readonly CredentialReference[], mode: string): CredentialReference[] {
+function selected(references: readonly AdapterCredential[], mode: string): AdapterCredential[] {
   return references.filter(reference => (reference.billing_modes as readonly string[]).includes(mode));
 }
 
 export function missingCredentials(
-  references: readonly CredentialReference[],
+  references: readonly AdapterCredential[],
   mode: string,
   source: NodeJS.ProcessEnv = process.env,
 ): string[] {
-  return selected(references, mode).filter(reference => !source[reference.source_env]).map(reference => reference.id);
+  return selected(references, mode).filter(reference => !usable(reference, source)).map(reference => reference.id);
+}
+
+function usable(reference: AdapterCredential, source: NodeJS.ProcessEnv): boolean {
+  try {
+    resolveCredential(reference.credential, source);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function describeCredentials(
-  references: readonly CredentialReference[],
+  references: readonly AdapterCredential[],
   source: NodeJS.ProcessEnv = process.env,
 ): Record<string, unknown>[] {
   return references.map(reference => ({
     id: reference.id,
     delivery: reference.delivery,
-    source_env: reference.source_env,
+    credential_reference: `env:${reference.credential.name}`,
     billing_modes: reference.billing_modes,
-    present: Boolean(source[reference.source_env]),
+    present: usable(reference, source),
     exposed_to_adapter_process: reference.delivery === 'environment',
     ...(reference.delivery === 'broker' ? { upstream_origin: new URL(reference.upstream).origin } : {}),
   }));
@@ -161,12 +172,12 @@ interface Broker {
   close(): Promise<void>;
 }
 
-async function startBroker(reference: Extract<CredentialReference, { delivery: 'broker' }>, secret: string): Promise<Broker> {
+async function startBroker(reference: Extract<AdapterCredential, { delivery: 'broker' }>, secret: string): Promise<Broker> {
   const base = new URL(reference.upstream);
   const token = randomBytes(32).toString('base64url');
   const tokenBytes = Buffer.from(token);
   const receipt: CredentialReceipt = {
-    id: reference.id, delivery: 'broker', source_env: reference.source_env,
+    id: reference.id, delivery: 'broker', credential_reference: `env:${reference.credential.name}`,
     exposed_to_adapter_process: false, upstream_origin: base.origin, requests: 0, rejected_requests: 0,
   };
   let revoked = false;
@@ -246,7 +257,7 @@ async function startBroker(reference: Extract<CredentialReference, { delivery: '
 }
 
 export async function openCredentialSession(
-  references: readonly CredentialReference[],
+  references: readonly AdapterCredential[],
   mode: string,
   source: NodeJS.ProcessEnv = process.env,
 ): Promise<CredentialSession> {
@@ -258,11 +269,13 @@ export async function openCredentialSession(
   const receipts: CredentialReceipt[] = [];
   try {
     for (const reference of selected(references, mode)) {
-      const secret = source[reference.source_env] as string;
+      const secret = resolveCredential(reference.credential, source);
       secrets.push(secret);
       if (reference.delivery === 'environment') {
         environment[reference.target_env] = secret;
-        receipts.push({ id: reference.id, delivery: 'environment', source_env: reference.source_env, exposed_to_adapter_process: true });
+        receipts.push({
+          id: reference.id, delivery: 'environment', credential_reference: `env:${reference.credential.name}`, exposed_to_adapter_process: true,
+        });
       } else {
         const broker = await startBroker(reference, secret);
         brokers.push(broker);

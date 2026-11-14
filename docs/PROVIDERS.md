@@ -250,14 +250,14 @@ present. Installing a package does not discover or execute third-party adapters.
 
 ## Credentials
 
-An adapter can declare up to eight credential references. Each names the
-caller's environment variable that holds the value (`source_env`), the billing
-modes that need it and a delivery method:
+An adapter can declare up to eight credentials. Each has an `id`, a
+`credential` reference naming the caller's environment variable that holds the
+value, the billing modes that need it and a delivery method:
 
 ```json
 "credentials": [{
   "id": "model-api",
-  "source_env": "MY_MODEL_API_KEY",
+  "credential": { "kind": "env", "name": "MY_MODEL_API_KEY" },
   "billing_modes": ["api"],
   "delivery": "broker",
   "upstream": "https://api.example.com/v1",
@@ -267,30 +267,44 @@ modes that need it and a delivery method:
 }]
 ```
 
+The reference uses the same form as connection profiles: an uppercase variable
+name that is not `PATH`, `HOME`, `FOUNDRY_*`, `OPENCODE_*` or another reserved
+name. The value must be 8 to 4096 characters without whitespace.
+
 - `broker`: for each attempt Foundry starts a loopback HTTP endpoint and gives
   the adapter its address in `base_url_env` and a random per-attempt token in
   `token_env`. The adapter sends that token as a bearer, `x-api-key` or
   `api-key` header. Foundry checks it, replaces it with the real value in the
   declared `header`, and forwards the request only to the declared `upstream`
-  origin, appending the request path to its path prefix. The upstream must be HTTPS (loopback HTTP is allowed
-  for local tests) without embedded credentials, query or fragment. The real
-  value never enters the adapter's environment.
+  origin, appending the request path to its path prefix. The upstream must be
+  HTTPS (loopback HTTP is allowed for local tests) without embedded
+  credentials, query or fragment. The real value is not placed in the adapter's
+  environment.
 - `environment`: the value is copied into `target_env` for runtimes that cannot
-  use a base URL. The task record marks it as exposed to the adapter process.
+  use a base URL. The adapter and every tool or model command that inherits its
+  environment can read it, and the task record marks it as exposed to the
+  adapter process.
 
 A selected credential that is not set stops the request before any process or
 task starts; Foundry never falls back to another key, account or billing mode.
 Broker tokens are revoked when the attempt is canceled, times out or reaches
-its reservation, and the endpoint closes when the attempt ends. Task records
-keep only metadata: credential ID, delivery, source variable name, exposure,
-upstream origin and request counts. Values and tokens are redacted from
-provider output, saved tasks and evidence logs.
+its reservation, and the endpoint closes when the attempt ends. While the
+attempt runs, anything that can read the adapter's environment can use the
+broker token to make requests through the broker. Task records keep only
+metadata: credential ID, delivery, `env:NAME` reference, exposure, upstream
+origin and request counts. Values and tokens are redacted from provider output,
+saved tasks and evidence logs. Variables named in `environment` that look like
+keys, tokens, secrets or passwords are also recorded as exposed.
 
-The broker keeps the key out of the adapter process and model tools only when
-the adapter's tools cannot read the caller's files or memory; it is not an
-operating-system sandbox. Delivery names cannot collide with the base
-environment, `environment` entries or other credentials. `codex-jsonl`
-adapters keep their existing API-key handling and cannot declare credentials.
+The broker is not an operating-system sandbox. Foundry holds the real value in
+its own process and environment. The adapter and its tools usually run as the
+same operating-system user, so they may still read it, for example through
+`/proc` on Linux or the caller's files. Treat the broker as keeping the key out
+of the adapter's environment, prompts and records, not as isolation from a
+same-user process; use a separately restricted environment for untrusted
+tools. Delivery names cannot collide with the base environment, `environment`
+entries or other credentials. `codex-jsonl` adapters keep their existing
+API-key handling and cannot declare credentials.
 
 ## Spending controls
 

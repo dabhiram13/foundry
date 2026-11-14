@@ -14,8 +14,8 @@ import { readBoundedBytes } from '../core/factory-contract.js';
 import { requireRuntimeWorkspace } from '../core/lifecycle.js';
 import { providerEnvironment } from './environment.js';
 import {
-  SENSITIVE_ENVIRONMENT_NAME, credentialReferenceSchema, describeCredentials, missingCredentials,
-  openCredentialSession, validateCredentialReferences, type CredentialSession,
+  SENSITIVE_ENVIRONMENT_NAME, adapterCredentialSchema, describeCredentials, missingCredentials,
+  openCredentialSession, validateAdapterCredentials, type CredentialSession,
 } from './credentials.js';
 import { assertNoManagedClaim, withWorkspaceMutation } from '../core/workspace-ownership.js';
 
@@ -30,7 +30,7 @@ const adapterSchema = z.object({
   protocol: z.enum(['foundry-jsonl-v1', 'marketcraft-jsonl-v1', 'codex-jsonl']).optional(),
   environment: z.array(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/)).max(64)
     .refine(names => new Set(names).size === names.length, 'Environment names must be unique').optional(),
-  credentials: z.array(credentialReferenceSchema).max(8).optional(),
+  credentials: z.array(adapterCredentialSchema).max(8).optional(),
 }).strict();
 const requestSchema = z.object({
   adapter: z.string().min(1),
@@ -109,7 +109,7 @@ const savedAttemptSchema = z.object({
   credentials: z.array(z.object({
     id: z.string().min(1),
     delivery: z.enum(['broker', 'environment']),
-    source_env: z.string().min(1),
+    credential_reference: z.string().min(1),
     exposed_to_adapter_process: z.boolean(),
     upstream_origin: z.string().min(1).optional(),
     requests: z.number().int().nonnegative().optional(),
@@ -258,7 +258,7 @@ export async function registry(root: string, sourceConfiguration?: Uint8Array | 
       && parsed.data.capabilities.some((capability) => ['tools', 'browser', 'permissions', 'resume'].includes(capability))) {
       throw new FoundryError('A bounded-model adapter cannot advertise agent session/tools/permissions');
     }
-    validateCredentialReferences(parsed.data.credentials ?? [], parsed.data.environment ?? []);
+    validateAdapterCredentials(parsed.data.credentials ?? [], parsed.data.environment ?? []);
     if (parsed.data.credentials?.length && parsed.data.protocol === 'codex-jsonl') {
       throw new FoundryError('codex-jsonl adapters cannot use credential references; their API keys follow the API billing route');
     }
@@ -605,7 +605,7 @@ async function processTask(root: string, adapter: ProviderAdapter, settings: Jso
   for (const name of passedCredentials) {
     if (!environment[name]) continue;
     (attempt.credentials as JsonRecord[]).push({
-      id: name.toLowerCase().replaceAll('_', '-'), delivery: 'environment', source_env: name, exposed_to_adapter_process: true,
+      id: name.toLowerCase().replaceAll('_', '-'), delivery: 'environment', credential_reference: `env:${name}`, exposed_to_adapter_process: true,
     });
   }
   const clean = redactor(process.env, adapter.environment, credentials.secrets);

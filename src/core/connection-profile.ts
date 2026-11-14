@@ -24,11 +24,14 @@ function loopbackHost(hostname: string): boolean {
 
 const NON_PUBLIC = new BlockList();
 for (const [network, prefix] of [['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16],
-  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['224.0.0.0', 4], ['240.0.0.0', 4]] as const) {
+  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.88.99.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15],
+  ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4]] as const) {
   NON_PUBLIC.addSubnet(network, prefix, 'ipv4');
 }
-for (const [network, prefix] of [['::', 127], ['64:ff9b::', 96], ['64:ff9b:1::', 48], ['100::', 64], ['2001::', 32], ['2001:db8::', 32],
-  ['2002::', 16], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8]] as const) {
+// IPv6 is allow-listed to global unicast; transition, translation and documentation ranges inside it are excluded.
+const GLOBAL_UNICAST = new BlockList();
+GLOBAL_UNICAST.addSubnet('2000::', 3, 'ipv6');
+for (const [network, prefix] of [['2001::', 23], ['2001:db8::', 32], ['2002::', 16], ['3fff::', 20]] as const) {
   NON_PUBLIC.addSubnet(network, prefix, 'ipv6');
 }
 
@@ -40,7 +43,7 @@ export function publicAddress(value: string): boolean {
   if (/^::ffff:/.test(address)) return false;
   const family = isIP(address);
   if (family === 4) return !NON_PUBLIC.check(address, 'ipv4');
-  if (family === 6) return !NON_PUBLIC.check(address, 'ipv6');
+  if (family === 6) return GLOBAL_UNICAST.check(address, 'ipv6') && !NON_PUBLIC.check(address, 'ipv6');
   return false;
 }
 

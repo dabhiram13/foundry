@@ -178,10 +178,10 @@ test('offline relay stops in-flight upstream requests when the managed execution
 });
 
 test('remote forwarding connects only to public addresses and refuses redirects', async () => {
-  for (const address of ['8.8.8.8', '2001:4860:4860::8888']) assert.equal(publicAddress(address), true);
+  for (const address of ['8.8.8.8', '2001:4860:4860::8888', '2606:4700::1111', '::ffff:8.8.8.8']) assert.equal(publicAddress(address), true, address);
   for (const address of ['10.1.2.3', '127.0.0.1', '172.20.0.1', '192.168.0.1', '169.254.169.254', '100.100.0.1', '0.0.0.0', '::1', '::',
     'fc00::1', 'fe80::1', '::ffff:192.168.0.1', '64:ff9b::a00:1', '64:ff9b:1::a00:1', '2002:a00:1::1', '2001:0:a00:1::1', '2001:db8::1',
-    'not-an-ip']) assert.equal(publicAddress(address), false, address);
+    'fec0::1', '::10.0.0.1', '::a00:1', '::ffff:0:a00:1', '100::1', '2001:10::1', '3fff::1', '192.0.2.1', '203.0.113.9', 'not-an-ip']) assert.equal(publicAddress(address), false, address);
   for (const status of [200, 204, 205]) {
     const server = createServer((_request, reply) => { reply.writeHead(status, { 'x-status': String(status) }); reply.end(status === 200 ? 'ok' : undefined); });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));

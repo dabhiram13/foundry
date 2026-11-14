@@ -7,6 +7,7 @@ import { canonicalJson, exists, FoundryError } from './fs.js';
 export { credentialReferenceSchema, resolveCredential, type CredentialReference } from './credential-reference.js';
 
 const name = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/);
+const modelId = z.string().max(256).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?:\/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}){0,3}$/);
 
 function plainUrl(value: string): URL | null {
   try {
@@ -59,7 +60,7 @@ export const localTestConnectionSchema = z.strictObject({
   mode: z.literal('local-test'), id: name, model: name, baseURL: localTestEndpoint,
 });
 export const remoteConnectionSchema = z.strictObject({
-  mode: z.literal('remote'), id: name, model: name, baseURL: remoteEndpoint,
+  mode: z.literal('remote'), id: name, model: modelId, baseURL: remoteEndpoint,
   api: z.literal('openai-chat-completions'), credential: credentialReferenceSchema,
 });
 export const connectionProfileSchema = z.discriminatedUnion('mode', [localTestConnectionSchema, remoteConnectionSchema]);
